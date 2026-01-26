@@ -1,0 +1,67 @@
+---
+description: Use MCP servers for LangChain/LangGraph documentation and resources
+alwaysApply: true
+---
+
+# LangChain/LangGraph Resource Access
+
+When working with LangChain, LangGraph, or related libraries, **ALWAYS** use the following MCP servers to retrieve up-to-date documentation, code examples, and API references:
+
+## Required MCP Servers
+
+### 1. `user-docs-langchain` (Primary)
+- **Purpose**: Search the official Docs by LangChain knowledge base
+- **Tool**: `SearchDocsByLangChain`
+- **Use when**: 
+  - Looking for LangChain-specific documentation
+  - Finding code examples for LangChain features
+  - Understanding LangChain API references
+  - Searching for LangGraph documentation
+  - Need implementation guides or tutorials
+
+**Example usage:**
+```python
+# When implementing RAG with LangChain, use:
+# MCP: user-docs-langchain -> SearchDocsByLangChain("RAG retrieval chain examples")
+```
+
+### 2. `user-context7` (Secondary/General)
+- **Purpose**: Retrieve up-to-date documentation and code examples for any library
+- **Tools**: 
+  - `resolve-library-id`: Resolve library names to Context7-compatible IDs
+  - `query-docs`: Query documentation and code examples
+- **Use when**:
+  - Need general library documentation (including LangChain/LangGraph)
+  - Looking for code examples from multiple sources
+  - The docs-langchain server doesn't have what you need
+  - Working with related libraries (e.g., vector stores, embeddings)
+
+**Example usage:**
+```python
+# First resolve the library ID, then query:
+# 1. MCP: user-context7 -> resolve-library-id("langchain", "RAG implementation")
+# 2. MCP: user-context7 -> query-docs(libraryId="/langchain/langchain", query="PDF RAG chain")
+```
+
+## Guidelines
+
+1. **Always prefer `user-docs-langchain`** for LangChain-specific queries
+2. **Use `user-context7`** as a fallback or for related libraries
+3. **Check MCP servers BEFORE** making assumptions about LangChain APIs
+4. **Use specific queries** - avoid vague searches like "langchain" or "rag"
+5. **Limit queries** - Don't call tools more than 3 times per question
+
+## When to Use
+
+- ✅ Implementing LangChain/LangGraph features
+- ✅ Looking up API signatures and parameters
+- ✅ Finding code examples and patterns
+- ✅ Understanding best practices
+- ✅ Troubleshooting LangChain issues
+- ✅ Learning about new LangChain features
+
+## When NOT to Use
+
+- ❌ General Python questions (use standard Python docs)
+- ❌ Questions about unrelated libraries
+- ❌ Very basic syntax questions
