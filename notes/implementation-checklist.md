@@ -1,70 +1,282 @@
 # Oracle-RAG Implementation Checklist
 
-## Architecture & Framework Decisions
+## Phase 0: Planning & Setup
 
-- [ ] Choose between LangChain or LangGraph
+- [ ] **Framework Decision**
   - [ ] Evaluate LangChain for simple RAG pipeline
   - [ ] Evaluate LangGraph for complex workflows with state management
-  - [ ] Make decision and document rationale
+  - [ ] Make decision and document rationale (✅ Decision: Start with LangChain)
 
-## PDF Processing
+- [ ] **Project Setup**
+  - [ ] Initialize Python project structure
+  - [ ] Set up dependency management (requirements.txt or pyproject.toml)
+  - [ ] Create project directory structure
+  - [ ] Set up development environment
 
-- [ ] Select PDF parsing library (PyPDF2, pdfplumber, pypdf, etc.)
-- [ ] Implement PDF text extraction
-- [ ] Handle different PDF formats (text-based, scanned, etc.)
-- [ ] Implement chunking strategy
-  - [ ] Choose chunk size
-  - [ ] Choose chunk overlap
-  - [ ] Implement text splitters
+---
 
-## Embeddings & Vector Store
+## Phase 1: MVP - Core Functionality
 
-- [ ] Choose embedding model (OpenAI, HuggingFace, local, etc.)
-- [ ] Select vector database (Chroma, FAISS, Pinecone, Weaviate, etc.)
-- [ ] Implement embedding generation
-- [ ] Implement vector storage
-- [ ] Implement similarity search/retrieval
+### PDF Processing
+- [ ] **PDF Library Selection**
+  - [ ] Research PDF parsing libraries (PyPDF2, pdfplumber, pypdf, etc.)
+  - [ ] Choose PDF library
+  - [ ] Install and test basic PDF text extraction
 
-## RAG Pipeline
+- [ ] **Basic PDF Processing**
+  - [ ] Implement single PDF loading
+  - [ ] Extract text from PDF files
+  - [ ] Extract basic metadata (page numbers, document name)
+  - [ ] Handle basic text-based PDFs
 
-- [ ] Design retrieval strategy
-  - [ ] Basic similarity search
-  - [ ] Hybrid search (if needed)
-  - [ ] Re-ranking (if needed)
-- [ ] Implement retrieval logic
-- [ ] Choose LLM provider (OpenAI, Anthropic, local, etc.)
-- [ ] Design prompt template
-- [ ] Implement generation with context
-- [ ] Implement response formatting
+### Chunking & Embeddings
+- [ ] **Chunking Strategy**
+  - [ ] Choose chunk size (default: 1000 chars)
+  - [ ] Choose chunk overlap (default: 200 chars)
+  - [ ] Implement text splitter (LangChain RecursiveCharacterTextSplitter)
+  - [ ] Preserve page numbers in chunks
+  - [ ] Add document identifier to chunks
 
-## LangGraph Implementation (if chosen)
+- [ ] **Embedding Setup**
+  - [ ] Choose embedding model (OpenAI, HuggingFace, local, etc.)
+  - [ ] Set up embedding model client
+  - [ ] Test embedding generation
 
-- [ ] Design graph structure
-- [ ] Define state schema
-- [ ] Create nodes for each step
-- [ ] Define edges and routing logic
-- [ ] Implement error handling
-- [ ] Add streaming support (if needed)
+### Vector Store
+- [ ] **Vector Database Selection**
+  - [ ] Research vector databases (Chroma, FAISS, Pinecone, etc.)
+  - [ ] Choose vector database (recommendation: Chroma for local, simple setup)
+  - [ ] Install and configure vector database
 
-## MCP Server Integration
+- [ ] **Vector Store Implementation**
+  - [ ] Implement embedding storage with metadata
+  - [ ] Implement similarity search/retrieval
+  - [ ] Test basic retrieval functionality
 
-- [ ] Design MCP server interface
-- [ ] Define MCP tools/resources
-- [ ] Implement MCP server wrapper
-- [ ] Add configuration management
-- [ ] Test MCP server integration
+### RAG Pipeline
+- [ ] **LLM Setup**
+  - [ ] Choose LLM provider (OpenAI, Anthropic, local, etc.)
+  - [ ] Set up LLM client
+  - [ ] Test basic LLM calls
 
-## Testing & Quality
+- [ ] **RAG Chain Implementation**
+  - [ ] Design prompt template with context and question
+  - [ ] Implement retrieval step
+  - [ ] Implement context formatting
+  - [ ] Implement generation step
+  - [ ] Implement response formatting with citations
+  - [ ] Build LangChain chain (RunnablePassthrough pattern)
 
-- [ ] Unit tests for core components
-- [ ] Integration tests for RAG pipeline
-- [ ] Test with various PDF types
-- [ ] Performance testing
-- [ ] Error handling and edge cases
+### MCP Server - Basic
+- [ ] **MCP Server Setup**
+  - [ ] Research MCP server implementation patterns
+  - [ ] Set up MCP server structure
+  - [ ] Implement basic MCP server framework
 
-## Documentation
+- [ ] **Basic MCP Tools**
+  - [ ] Implement `query_pdf` tool
+  - [ ] Implement `add_pdf` tool
+  - [ ] Test MCP server integration
 
-- [ ] API documentation
-- [ ] Usage examples
-- [ ] Configuration guide
-- [ ] Deployment instructions
+### Configuration & Persistence
+- [ ] **Configuration Management**
+  - [ ] Set up configuration file (YAML/JSON/env)
+  - [ ] Make chunk size configurable
+  - [ ] Make chunk overlap configurable
+  - [ ] Make embedding model configurable
+  - [ ] Make LLM provider configurable
+
+- [ ] **Persistence**
+  - [ ] Implement vector store persistence
+  - [ ] Test persistence across restarts
+  - [ ] Handle data directory setup
+
+### Error Handling
+- [ ] **Basic Error Handling**
+  - [ ] Handle PDF loading errors
+  - [ ] Handle embedding generation errors
+  - [ ] Handle retrieval errors
+  - [ ] Handle LLM generation errors
+  - [ ] Add basic error messages
+
+### Testing - MVP
+- [ ] **Basic Testing**
+  - [ ] Test PDF loading with sample PDF
+  - [ ] Test chunking and metadata preservation
+  - [ ] Test embedding generation
+  - [ ] Test retrieval functionality
+  - [ ] Test end-to-end RAG pipeline
+  - [ ] Test MCP tools
+
+---
+
+## Phase 2: Enhanced Features
+
+### PDF Processing - Enhanced
+- [ ] **Multiple PDF Support**
+  - [ ] Implement batch PDF loading
+  - [ ] Handle duplicate content detection
+  - [ ] Test with multiple PDFs
+
+- [ ] **Enhanced Metadata**
+  - [ ] Extract section/heading information
+  - [ ] Extract document metadata (author, creation date)
+  - [ ] Add upload timestamps
+  - [ ] Store document size information
+
+### Chunking - Enhanced
+- [ ] **Intelligent Chunking**
+  - [ ] Improve chunking to respect paragraph boundaries
+  - [ ] Better handling of document structure
+  - [ ] Add section/heading metadata to chunks
+  - [ ] Add character offsets to chunks
+
+### Vector Store - Enhanced
+- [ ] **Metadata Filtering**
+  - [ ] Implement filter by document
+  - [ ] Implement filter by page range
+  - [ ] Implement filter by section
+  - [ ] Test metadata filtering
+
+### Document Management
+- [ ] **Document Operations**
+  - [ ] Implement document removal (delete PDF and chunks)
+  - [ ] Implement document listing
+  - [ ] Implement document status tracking
+  - [ ] Implement document update/re-indexing
+  - [ ] Add document metadata display
+
+### MCP Server - Enhanced
+- [ ] **Additional MCP Tools**
+  - [ ] Implement `remove_pdf` tool
+  - [ ] Implement `list_pdfs` tool
+  - [ ] Implement `query_specific_pdf` tool
+
+- [ ] **MCP Resources**
+  - [ ] Expose document metadata as resource
+  - [ ] Expose chunk information as resource
+
+### Error Handling - Enhanced
+- [ ] **Advanced Error Handling**
+  - [ ] Handle corrupted PDFs gracefully
+  - [ ] Improve error messages
+  - [ ] Add error logging
+  - [ ] Implement graceful degradation
+
+### Testing - Enhanced
+- [ ] **Comprehensive Testing**
+  - [ ] Unit tests for document management
+  - [ ] Unit tests for metadata filtering
+  - [ ] Integration tests for multiple PDFs
+  - [ ] Test error scenarios
+  - [ ] Test MCP tools thoroughly
+
+---
+
+## Phase 3: Advanced Features
+
+### Retrieval - Advanced
+- [ ] **Advanced Retrieval Strategies**
+  - [ ] Research hybrid search options
+  - [ ] Implement hybrid search (if supported by vector DB)
+  - [ ] Implement re-ranking
+  - [ ] Implement multi-query expansion
+  - [ ] Add query preprocessing
+
+- [ ] **Retrieval Quality**
+  - [ ] Implement retrieval quality evaluation
+  - [ ] Implement fallback strategies
+  - [ ] Add re-query logic with different parameters
+
+### Response Generation - Advanced
+- [ ] **Streaming**
+  - [ ] Implement streaming response generation
+  - [ ] Test streaming functionality
+  - [ ] Add streaming support to MCP server
+
+- [ ] **Advanced Citations**
+  - [ ] Improve citation formatting
+  - [ ] Add confidence scores
+  - [ ] Link back to document sections
+
+### Advanced Features
+- [ ] **Query Classification** (Consider LangGraph migration)
+  - [ ] Implement query type detection
+  - [ ] Implement conditional routing based on query type
+  - [ ] Test different retrieval strategies per query type
+
+- [ ] **Multi-step Reasoning** (Consider LangGraph migration)
+  - [ ] Design multi-step workflow
+  - [ ] Implement query decomposition
+  - [ ] Implement iterative retrieval
+  - [ ] Implement answer synthesis
+
+- [ ] **Conversation History** (Consider LangGraph migration)
+  - [ ] Design conversation state management
+  - [ ] Implement context tracking
+  - [ ] Implement follow-up question handling
+
+### Framework Migration (if needed)
+- [ ] **Evaluate LangGraph Migration**
+  - [ ] Assess if Phase 3 features require LangGraph
+  - [ ] If yes: Design LangGraph structure
+  - [ ] If yes: Define state schema
+  - [ ] If yes: Create nodes for each step
+  - [ ] If yes: Define edges and routing logic
+  - [ ] If yes: Migrate existing functionality
+
+### Testing - Advanced
+- [ ] **Advanced Testing**
+  - [ ] Test streaming functionality
+  - [ ] Test query classification
+  - [ ] Test multi-step reasoning
+  - [ ] Performance testing with large document sets
+  - [ ] Load testing
+
+---
+
+## Phase 4: Polish & Production Ready
+
+### Advanced PDF Processing
+- [ ] **OCR Support**
+  - [ ] Research OCR solutions
+  - [ ] Implement OCR for scanned PDFs
+  - [ ] Handle images and diagrams
+
+### Monitoring & Observability
+- [ ] **Metrics & Logging**
+  - [ ] Implement query performance metrics
+  - [ ] Implement retrieval quality metrics
+  - [ ] Add comprehensive logging
+  - [ ] Set up error tracking
+
+### Security & Access Control
+- [ ] **Security Features**
+  - [ ] Implement document-level access control
+  - [ ] Add query authentication
+  - [ ] Implement audit logging
+  - [ ] Security review
+
+### Scalability
+- [ ] **Performance Optimization**
+  - [ ] Optimize batch processing
+  - [ ] Implement caching strategies
+  - [ ] Test scalability with hundreds of PDFs
+  - [ ] Consider distributed vector store
+
+### Documentation
+- [ ] **Complete Documentation**
+  - [ ] API documentation
+  - [ ] Usage examples
+  - [ ] Configuration guide
+  - [ ] Deployment instructions
+  - [ ] Architecture documentation
+  - [ ] Troubleshooting guide
+
+### Production Readiness
+- [ ] **Final Polish**
+  - [ ] Code review
+  - [ ] Performance optimization
+  - [ ] Security audit
+  - [ ] Documentation review
+  - [ ] Deployment testing
