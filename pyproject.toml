@@ -1,0 +1,37 @@
+[project]
+name = "oracle-rag"
+version = "0.1.0"
+description = "A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed to be wrapped as an MCP server"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.4.1",
+    "langchain>=1.2.7",
+    "langchain-community>=0.4.1",
+    "langchain-core>=1.2.7",
+    "langchain-openai>=1.1.7",
+    "langchain-text-splitters>=1.1.0",
+    "pypdf>=6.6.1",
+    "python-dotenv>=1.2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6.1",
+    "mypy>=1.11.1",
+    "pytest>=8.0.0",
+]
+
+[tool.ruff]
+lint.select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # isort
+    "D",    # pydocstyle
+    "UP",   # pyupgrade
+]
+lint.ignore = [
+    "T201", # allow print()
+    "E501",  # ignore line length
+    "D101",  # ignore docstring for private modules
+    "D103",  # ignore docstring for private modules
+]
