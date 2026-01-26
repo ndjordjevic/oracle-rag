@@ -10,6 +10,14 @@ alwaysApply: true
 1. **`user-docs-langchain`** (primary) - Use `SearchDocsByLangChain` for LangChain-specific queries
 2. **`user-context7`** (fallback) - Use `resolve-library-id` then `query-docs` for general library docs or when docs-langchain doesn't have what you need
 
+## Reference Projects
+
+Use these example projects for valid LangChain/LangGraph patterns with the newest API:
+- `/Users/nenaddjordjevic/PythonProjects/langchain-academy/`
+- `/Users/nenaddjordjevic/PythonProjects/lca-lc-foundations/`
+- `/Users/nenaddjordjevic/PythonProjects/lca-langchainV1-essentials/`
+- `/Users/nenaddjordjevic/PythonProjects/lca-langgraph-essentials/`
+
 ## Guidelines
 
 - Prefer `user-docs-langchain` for LangChain-specific queries
