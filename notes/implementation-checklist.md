@@ -2,10 +2,10 @@
 
 ## Phase 0: Planning & Setup
 
-- [ ] **Framework Decision**
-  - [ ] Evaluate LangChain for simple RAG pipeline
-  - [ ] Evaluate LangGraph for complex workflows with state management
-  - [ ] Make decision and document rationale (✅ Decision: Start with LangChain)
+- [x] **Framework Decision**
+  - [x] Evaluate LangChain for simple RAG pipeline
+  - [x] Evaluate LangGraph for complex workflows with state management
+  - [x] Make decision and document rationale (✅ Decision: Start with LangChain)
 
 - [ ] **Project Setup**
   - [ ] Initialize Python project structure
