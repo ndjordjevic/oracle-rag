@@ -35,3 +35,13 @@ lint.ignore = [
     "D101",  # ignore docstring for private modules
     "D103",  # ignore docstring for private modules
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

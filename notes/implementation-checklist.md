@@ -18,14 +18,15 @@
 ## Phase 1: MVP - Core Functionality
 
 ### PDF Processing
-- [ ] **PDF Library Selection**
-  - [ ] Research PDF parsing libraries (PyPDF2, pdfplumber, pypdf, etc.)
-  - [ ] Choose PDF library
-  - [ ] Install and test basic PDF text extraction
+- [x] **PDF Library Selection**
+  - [x] Research PDF parsing libraries (PyPDF2, pdfplumber, pypdf, etc.)
+  - [x] Choose PDF library (**pypdf**)
+  - [x] Install and test basic PDF text extraction (**pypdf** smoke-tested)
 
 - [ ] **Basic PDF Processing**
-  - [ ] Implement single PDF loading
-  - [ ] Extract text from PDF files
+  - [x] Implement single PDF loading
+  - [x] Extract text from PDF files
+  - [x] Test parsing with sample PDFs and verify output (e.g. `scripts/print_pdf_page.py`)
   - [ ] Extract basic metadata (page numbers, document name)
   - [ ] Handle basic text-based PDFs
 

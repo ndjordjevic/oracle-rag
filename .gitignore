@@ -62,6 +62,7 @@ embeddings/
 
 # PDF files (if you want to ignore uploaded PDFs)
 # *.pdf
+data/pdfs/
 
 # Logs
 *.log
