@@ -24,4 +24,12 @@ Use these example projects for valid LangChain/LangGraph patterns with the newes
 - Use `user-context7` as fallback or for related libraries
 - Check MCP servers BEFORE making assumptions about LangChain APIs
 - Use specific queries (avoid vague searches)
-- Limit to 3 tool calls per question
+
+## When Answering Questions
+
+- **Always cite sources**: Always cite the source documentation you're referencing, including URLs when available
+- **Search priority**: First search the listed documentation resources above. If information is not found there, you may search the internet
+- **Internet search citation**: When using information from internet searches, you must list the specific resources (URLs, websites, articles) where you found the information
+- **Strictly avoid hallucinations**: Never make up or guess information
+- **Be honest about uncertainty**: If information cannot be found in the available documentation resources or through internet search, explicitly state \"I don't know\" or \"I cannot find this information\" rather than speculating or inventing details
+- **Verification**: Only provide information that can be verified from the listed documentation sources, workspace codebase, or cited internet resources
