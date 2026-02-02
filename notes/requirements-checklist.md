@@ -16,15 +16,15 @@
   - Document title (and author when present in PDF)
 
 ### Chunking & Embedding
-- [ ] **Basic chunking**
-  - Configurable chunk size
+- [x] **Basic chunking**
+  - Configurable chunk size (default 1000) and overlap (default 200)
   - Basic overlap between chunks
-  - Respect sentence boundaries
+  - Respect sentence boundaries (RecursiveCharacterTextSplitter)
 
-- [ ] **Essential chunk metadata**
-  - Source document identifier
-  - Page number(s) the chunk spans
-  - Chunk index within document
+- [x] **Essential chunk metadata**
+  - Source document identifier (document_id from file_name)
+  - Page number(s) the chunk spans (page preserved)
+  - Chunk index within document (chunk_index per page)
 
 - [ ] **Embedding generation**
   - Generate embeddings for all chunks

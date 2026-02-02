@@ -31,12 +31,12 @@
   - [x] Handle basic text-based PDFs (raise ValueError when no text extracted; Phase 1 text-only)
 
 ### Chunking & Embeddings
-- [ ] **Chunking Strategy**
-  - [ ] Choose chunk size (default: 1000 chars)
-  - [ ] Choose chunk overlap (default: 200 chars)
-  - [ ] Implement text splitter (LangChain RecursiveCharacterTextSplitter)
-  - [ ] Preserve page numbers in chunks
-  - [ ] Add document identifier to chunks
+- [x] **Chunking Strategy**
+  - [x] Choose chunk size (default: 1000 chars)
+  - [x] Choose chunk overlap (default: 200 chars)
+  - [x] Implement text splitter (LangChain RecursiveCharacterTextSplitter)
+  - [x] Preserve page numbers in chunks
+  - [x] Add document identifier to chunks
 
 - [ ] **Embedding Setup**
   - [ ] Choose embedding model (OpenAI, HuggingFace, local, etc.)
