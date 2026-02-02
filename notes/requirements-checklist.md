@@ -5,15 +5,15 @@
 **Goal:** Get a working PDF RAG that can load PDFs, answer questions, and provide basic source citations.
 
 ### PDF Processing
-- [ ] **Load single PDF**
+- [x] **Load single PDF**
   - Extract text from PDF files
-  - Handle basic text-based PDFs
+  - Handle basic text-based PDFs (Phase 1: text-only; ValueError if no text extracted)
   - Support simple PDF structures
 
-- [ ] **Basic metadata extraction**
-  - Page numbers for each chunk
+- [x] **Basic metadata extraction** (per-page documents; chunk metadata when chunking is added)
+  - Page numbers for each document/page
   - Source document identifier (file name)
-  - Document title
+  - Document title (and author when present in PDF)
 
 ### Chunking & Embedding
 - [ ] **Basic chunking**

@@ -23,12 +23,12 @@
   - [x] Choose PDF library (**pypdf**)
   - [x] Install and test basic PDF text extraction (**pypdf** smoke-tested)
 
-- [ ] **Basic PDF Processing**
+- [x] **Basic PDF Processing**
   - [x] Implement single PDF loading
   - [x] Extract text from PDF files
   - [x] Test parsing with sample PDFs and verify output (e.g. `scripts/print_pdf_page.py`)
-  - [ ] Extract basic metadata (page numbers, document name)
-  - [ ] Handle basic text-based PDFs
+  - [x] Extract basic metadata (page numbers, document name, document title/author from PDF)
+  - [x] Handle basic text-based PDFs (raise ValueError when no text extracted; Phase 1 text-only)
 
 ### Chunking & Embeddings
 - [ ] **Chunking Strategy**

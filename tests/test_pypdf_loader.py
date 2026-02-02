@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -24,6 +25,42 @@ def test_load_pdf_as_documents_smoke() -> None:
     assert len(result.documents) > 0
     assert all("page" in d.metadata for d in result.documents)
     assert any(d.page_content.strip() for d in result.documents)
+
+
+def test_load_pdf_as_documents_metadata_keys() -> None:
+    """Each document has required metadata; document_title/author when present in PDF."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping metadata test")
+
+    result = load_pdf_as_documents(sample_pdf)
+    assert len(result.documents) >= 1
+    doc = result.documents[0]
+    required = {"source", "file_name", "page", "total_pages"}
+    assert required.issubset(doc.metadata.keys())
+    assert doc.metadata["file_name"] == sample_pdf.name
+    assert doc.metadata["page"] >= 1
+    assert doc.metadata["total_pages"] == result.total_pages
+    # document_title / document_author only if present in PDF
+    for key in ("document_title", "document_author"):
+        if key in doc.metadata:
+            assert isinstance(doc.metadata[key], str)
+            assert len(doc.metadata[key]) > 0
+
+
+def test_load_pdf_as_documents_no_text_raises() -> None:
+    """Raises ValueError when no text is extracted (e.g. image-only PDF)."""
+    from pypdf import PageObject
+
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping no-text test")
+
+    with patch.object(PageObject, "extract_text", return_value=""):
+        with pytest.raises(ValueError, match="No text extracted"):
+            load_pdf_as_documents(sample_pdf, skip_empty_pages=True)
 
 
 def test_iter_pdf_page_text() -> None:
