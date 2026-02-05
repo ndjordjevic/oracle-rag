@@ -38,16 +38,17 @@
   - [x] Preserve page numbers in chunks
   - [x] Add document identifier to chunks
 
-- [ ] **Embedding Setup**
-  - [ ] Choose embedding model (OpenAI, HuggingFace, local, etc.)
-  - [ ] Set up embedding model client
-  - [ ] Test embedding generation
+- [x] **Embedding Setup**
+  - [x] Choose embedding model (**OpenAI API** — see [embedding-provider-decision.md](embedding-provider-decision.md))
+  - [x] Set up embedding model client
+  - [x] Test embedding generation (incl. pipeline test: PDF load → chunk → embed a few chunks in `tests/test_embeddings.py::test_embed_pdf_chunks`)
 
 ### Vector Store
-- [ ] **Vector Database Selection**
-  - [ ] Research vector databases (Chroma, FAISS, Pinecone, etc.)
-  - [ ] Choose vector database (recommendation: Chroma for local, simple setup)
-  - [ ] Install and configure vector database
+- [x] **Vector Database Selection**
+  - [x] Research vector databases (Chroma, FAISS, Pinecone, etc.) — see [vector-database-decision.md](vector-database-decision.md)
+  - [x] Choose vector database (**Chroma** for local, simple setup)
+  - [x] Install and configure vector database (`chromadb`, `langchain-chroma`; `oracle_rag.vectorstore.get_chroma_store()` with persist dir `chroma_db`)
+  - [x] Unit tests for Chroma store (`tests/test_vectorstore.py`: get_chroma_store, persist dir, add_documents + similarity_search)
 
 - [ ] **Vector Store Implementation**
   - [ ] Implement embedding storage with metadata

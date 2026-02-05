@@ -15,31 +15,27 @@
   - Source document identifier (file name)
   - Document title (and author when present in PDF)
 
-### Chunking & Embedding
-- [x] **Basic chunking**
+### Chunking & Embeddings
+- [x] **Chunking strategy**
   - Configurable chunk size (default 1000) and overlap (default 200)
-  - Basic overlap between chunks
-  - Respect sentence boundaries (RecursiveCharacterTextSplitter)
+  - RecursiveCharacterTextSplitter (sentence/paragraph boundaries)
+  - Preserve page numbers and document identifier in chunks (chunk_index, document_id)
 
-- [x] **Essential chunk metadata**
-  - Source document identifier (document_id from file_name)
-  - Page number(s) the chunk spans (page preserved)
-  - Chunk index within document (chunk_index per page)
+- [x] **Embedding setup** (provider: **OpenAI API** — see [embedding-provider-decision.md](embedding-provider-decision.md))
+  - Embedding model client (text-embedding-3-small)
+  - Generate embeddings (client ready; batch “for all chunks” when storing in vector store)
+  - Pipeline test: PDF → chunk → embed (`tests/test_embeddings.py`)
 
-- [ ] **Embedding generation**
-  - Generate embeddings for all chunks
-  - Store embeddings in vector database
-  - Associate embeddings with basic metadata
+### Vector Store
+- [x] **Vector database selection** (see [vector-database-decision.md](vector-database-decision.md))
+  - Chosen: **Chroma** (local, persist dir `chroma_db`)
+  - Install and configure (`chromadb`, `langchain-chroma`; `get_chroma_store()`)
+  - Unit tests: get_chroma_store, persist dir, add_documents + similarity_search (`tests/test_vectorstore.py`)
 
-### Vector Store & Retrieval
-- [ ] **Vector database setup**
-  - Store embeddings with metadata
-  - Support similarity search
-  - Efficient retrieval of top-k similar chunks
-
-- [ ] **Basic retrieval**
-  - Basic similarity search
-  - Single query processing
+- [ ] **Vector store implementation**
+  - Store embeddings with metadata (add chunk docs to Chroma with page, file_name, etc.)
+  - Similarity search / top-k retrieval
+  - Test basic retrieval (index sample PDF, run query, verify results)
 
 ### Response Generation
 - [ ] **Answer generation**
