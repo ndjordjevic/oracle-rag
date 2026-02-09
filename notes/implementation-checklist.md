@@ -51,9 +51,9 @@
   - [x] Unit tests for Chroma store (`tests/test_vectorstore.py`: get_chroma_store, persist dir, add_documents + similarity_search)
 
 - [ ] **Vector Store Implementation**
-  - [ ] Implement embedding storage with metadata
-  - [ ] Implement similarity search/retrieval
-  - [ ] Test basic retrieval functionality
+  - [x] Implement embedding storage with metadata (via `index_pdf` → `get_chroma_store().add_documents()`)
+  - [x] Implement similarity search/retrieval (`query_index` + Chroma `similarity_search`; tests in `tests/test_indexing.py` and `tests/test_vectorstore.py`)
+  - [x] Test basic retrieval functionality (CLI: `scripts/index_pdf_cli.py`, `scripts/query_rag_cli.py`; tests: `test_indexing.py`, `test_vectorstore.py`)
 
 ### RAG Pipeline
 - [ ] **LLM Setup**

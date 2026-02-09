@@ -32,7 +32,7 @@
   - Install and configure (`chromadb`, `langchain-chroma`; `get_chroma_store()`)
   - Unit tests: get_chroma_store, persist dir, add_documents + similarity_search (`tests/test_vectorstore.py`)
 
-- [ ] **Vector store implementation**
+- [x] **Vector store implementation** (via `index_pdf` & `query_index`; tests in `test_indexing.py`, `test_vectorstore.py`)
   - Store embeddings with metadata (add chunk docs to Chroma with page, file_name, etc.)
   - Similarity search / top-k retrieval
   - Test basic retrieval (index sample PDF, run query, verify results)

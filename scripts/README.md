@@ -85,3 +85,56 @@ uv run python scripts/print_pdf_chunks.py data/pdfs/sample.pdf --chunk-size 400 
 # Page 7, first 2 chunks, 300-char preview
 uv run python scripts/print_pdf_chunks.py data/pdfs/sample.pdf --page 7 --limit 2 --preview 300
 ```
+
+---
+
+## index_pdf_cli.py
+
+Index a PDF into the local Chroma vector store using the project’s indexing pipeline.
+
+**Arguments**
+
+| Argument | Description |
+|----------|-------------|
+| `pdf_path` | Path to the PDF file to index (positional). |
+| `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
+| `--collection` | Chroma collection name (default: `oracle_rag`). |
+
+**Examples**
+
+```bash
+# Index a sample PDF into the default store
+uv run python scripts/index_pdf_cli.py data/pdfs/sample-text.pdf
+
+# Index into a custom directory and collection
+uv run python scripts/index_pdf_cli.py data/pdfs/your.pdf --persist-dir my_chroma --collection my_collection
+```
+
+---
+
+## query_rag_cli.py
+
+Query the indexed chunks in Chroma and print matching chunks with metadata.
+
+**Arguments**
+
+| Argument | Description |
+|----------|-------------|
+| `query` | Natural language query string (positional). |
+| `--k` | Number of top chunks to return (default: `5`). |
+| `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
+| `--collection` | Chroma collection name (default: `oracle_rag`). |
+| `--preview` | Max characters of chunk text to show (`0` = full, default: `240`). |
+
+**Examples**
+
+```bash
+# Query the default index
+uv run python scripts/query_rag_cli.py "chip memory" --k 3
+
+# Show full text of each chunk
+uv run python scripts/query_rag_cli.py "chip memory" --k 3 --preview 0
+
+# Query a custom store location
+uv run python scripts/query_rag_cli.py "audio hardware" --persist-dir my_chroma --collection my_collection
+```
