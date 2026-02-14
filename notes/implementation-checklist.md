@@ -50,24 +50,28 @@
   - [x] Install and configure vector database (`chromadb`, `langchain-chroma`; `oracle_rag.vectorstore.get_chroma_store()` with persist dir `chroma_db`)
   - [x] Unit tests for Chroma store (`tests/test_vectorstore.py`: get_chroma_store, persist dir, add_documents + similarity_search)
 
-- [ ] **Vector Store Implementation**
+- [x] **Vector Store Implementation**
   - [x] Implement embedding storage with metadata (via `index_pdf` → `get_chroma_store().add_documents()`)
   - [x] Implement similarity search/retrieval (`query_index` + Chroma `similarity_search`; tests in `tests/test_indexing.py` and `tests/test_vectorstore.py`)
   - [x] Test basic retrieval functionality (CLI: `scripts/index_pdf_cli.py`, `scripts/query_rag_cli.py`; tests: `test_indexing.py`, `test_vectorstore.py`)
 
 ### RAG Pipeline
-- [ ] **LLM Setup**
-  - [ ] Choose LLM provider (OpenAI, Anthropic, local, etc.)
-  - [ ] Set up LLM client
-  - [ ] Test basic LLM calls
+- [x] **LLM Setup**
+  - [x] Choose LLM provider (OpenAI for chat/completion)
+  - [x] Set up LLM client (`oracle_rag.llm.get_chat_model()` — ChatOpenAI, gpt-4o-mini; OPENAI_API_KEY from env)
+  - [x] Test basic LLM calls (`tests/test_llm.py`, `scripts/test_llm_cli.py`)
 
-- [ ] **RAG Chain Implementation**
-  - [ ] Design prompt template with context and question
-  - [ ] Implement retrieval step
-  - [ ] Implement context formatting
-  - [ ] Implement generation step
-  - [ ] Implement response formatting with citations
-  - [ ] Build LangChain chain (RunnablePassthrough pattern)
+- [x] **RAG Chain Implementation**
+  - [x] Design prompt template with context and question (`oracle_rag.rag.prompts.RAG_PROMPT`)
+  - [x] Implement retrieval step (wire `query_index` in chain)
+  - [x] Implement context formatting (`format_docs`, numbered with doc/page for citations)
+  - [x] Implement generation step (prompt | llm | StrOutputParser)
+  - [x] Implement response formatting with citations (`format_sources`, `RAGResult`-like output)
+  - [x] Build LangChain chain (RunnablePassthrough pattern in `get_rag_chain()`; CLI: `scripts/rag_cli.py`)
+
+- [ ] **Observability & Development Tools**
+  - [x] Setup LangSmith (tracing, observability; see `notes/langsmith-setup.md`)
+  - [ ] Learn how to read and interpret LangSmith traces (understand trace structure, timing, inputs/outputs, debugging workflow)
 
 ### MCP Server - Basic
 - [ ] **MCP Server Setup**
@@ -103,16 +107,24 @@
 
 ### Testing - MVP
 - [ ] **Basic Testing**
-  - [ ] Test PDF loading with sample PDF
-  - [ ] Test chunking and metadata preservation
-  - [ ] Test embedding generation
-  - [ ] Test retrieval functionality
-  - [ ] Test end-to-end RAG pipeline
+  - [x] Test PDF loading with sample PDF (`tests/test_pypdf_loader.py`)
+  - [x] Test chunking and metadata preservation (`tests/test_chunking.py`)
+  - [x] Test embedding generation (`tests/test_embeddings.py`)
+  - [x] Test retrieval functionality (`tests/test_vectorstore.py`, `tests/test_indexing.py`)
+  - [x] Test end-to-end RAG pipeline (`tests/test_rag.py`)
   - [ ] Test MCP tools
 
 ---
 
 ## Phase 2: Enhanced Features
+
+### RAG Chain Rewrite
+- [ ] **Replace LCEL with plain Python + LangGraph**
+  - [ ] Rewrite LCEL chain (`RunnablePassthrough`/`RunnableLambda`) as a plain Python function for readability
+  - [ ] Add `@traceable` decorator (from `langsmith`) to preserve per-step LangSmith tracing
+  - [ ] Evaluate wrapping as a LangGraph `StateGraph` for Studio support and future extensibility
+  - [ ] Update tests to work with the new implementation
+  - *Context*: LangChain maintainers confirmed LCEL/Runnables are effectively deprecated in favor of LangGraph + `create_agent`. Plain Python is clearer for a deterministic RAG pipeline.
 
 ### PDF Processing - Enhanced
 - [ ] **Multiple PDF Support**
@@ -139,6 +151,10 @@
   - [ ] Implement filter by page range
   - [ ] Implement filter by section
   - [ ] Test metadata filtering
+
+- [ ] **Retriever abstraction (oracle-rag 2.0)**
+  - [ ] Use LangChain Retriever (`store.as_retriever()`) in RAG chain instead of `query_index`
+  - [ ] Refactor `get_rag_chain()` to accept a retriever runnable
 
 ### Document Management
 - [ ] **Document Operations**
@@ -218,14 +234,34 @@
   - [ ] Implement context tracking
   - [ ] Implement follow-up question handling
 
-### Framework Migration (if needed)
-- [ ] **Evaluate LangGraph Migration**
-  - [ ] Assess if Phase 3 features require LangGraph
-  - [ ] If yes: Design LangGraph structure
-  - [ ] If yes: Define state schema
-  - [ ] If yes: Create nodes for each step
-  - [ ] If yes: Define edges and routing logic
-  - [ ] If yes: Migrate existing functionality
+### Framework Migration
+- [ ] **LangGraph for Advanced Features** (builds on Phase 2 RAG chain rewrite)
+  - [ ] Extend LangGraph `StateGraph` with conditional routing for query classification
+  - [ ] Add state persistence for multi-step reasoning and conversation history
+  - [ ] Define edges and routing logic for different retrieval strategies
+  - [ ] **LangChain Studio Integration** (requires LangGraph)
+    - [ ] Configure `langgraph.json` for Studio
+    - [ ] Test RAG chain visualization and debugging in LangChain Studio
+    - [ ] Document Studio setup and usage (`studio/README.md`)
+
+### MCP Server - Advanced
+- [ ] **Advanced MCP Features**
+  - [ ] Expose query history
+  - [ ] Add streaming support via MCP
+  - [ ] Implement advanced filtering options
+
+### Advanced PDF Processing
+- [ ] **OCR Support**
+  - [ ] Research OCR solutions
+  - [ ] Implement OCR for scanned PDFs
+  - [ ] Handle complex PDF structures (multi-column, tables)
+  - [ ] Handle images and diagrams
+
+### Performance
+- [ ] **Performance Optimization**
+  - [ ] Scalable to hundreds of PDFs
+  - [ ] Optimized batch processing
+  - [ ] Implement caching strategies
 
 ### Testing - Advanced
 - [ ] **Advanced Testing**
@@ -238,12 +274,6 @@
 ---
 
 ## Phase 4: Polish & Production Ready
-
-### Advanced PDF Processing
-- [ ] **OCR Support**
-  - [ ] Research OCR solutions
-  - [ ] Implement OCR for scanned PDFs
-  - [ ] Handle images and diagrams
 
 ### Monitoring & Observability
 - [ ] **Metrics & Logging**
@@ -265,6 +295,24 @@
   - [ ] Implement caching strategies
   - [ ] Test scalability with hundreds of PDFs
   - [ ] Consider distributed vector store
+
+### Advanced Query Understanding
+- [ ] **Query Intelligence**
+  - [ ] Query intent detection
+  - [ ] Multi-lingual support
+  - [ ] Complex query parsing
+
+### Document Versioning
+- [ ] **Version Management**
+  - [ ] Track document versions
+  - [ ] Handle document updates intelligently
+  - [ ] Version-aware retrieval
+
+### Advanced Configuration
+- [ ] **Dynamic Configuration**
+  - [ ] Dynamic configuration updates
+  - [ ] A/B testing support
+  - [ ] Feature flags
 
 ### Documentation
 - [ ] **Complete Documentation**

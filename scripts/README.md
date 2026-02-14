@@ -112,6 +112,71 @@ uv run python scripts/index_pdf_cli.py data/pdfs/your.pdf --persist-dir my_chrom
 
 ---
 
+## list_indexed_docs_cli.py
+
+List which documents are currently indexed in the local Chroma store.
+
+**Arguments**
+
+| Argument | Description |
+|----------|-------------|
+| `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
+| `--collection` | Chroma collection name (default: `oracle_rag`). |
+
+**Examples**
+
+```bash
+# List docs in the default index
+uv run python scripts/list_indexed_docs_cli.py
+
+# List docs in a custom store
+uv run python scripts/list_indexed_docs_cli.py --persist-dir my_chroma --collection my_collection
+```
+
+---
+
+## test_llm_cli.py
+
+Call the OpenAI chat model with a test prompt (requires `OPENAI_API_KEY` in `.env` or environment).
+
+**Arguments**
+
+| Argument | Description |
+|----------|-------------|
+| `prompt` | Optional prompt (default: simple greeting). |
+
+**Examples**
+
+```bash
+uv run python scripts/test_llm_cli.py
+uv run python scripts/test_llm_cli.py "What is 2+2? Reply with one number."
+```
+
+---
+
+## rag_cli.py
+
+Run the full RAG chain: ask a question over indexed PDFs and get an answer with source citations (requires `OPENAI_API_KEY`).
+
+**Arguments**
+
+| Argument | Description |
+|----------|-------------|
+| `query` | Natural language question (positional). |
+| `--k` | Number of chunks to retrieve (default: `5`). |
+| `--persist-dir` | Chroma persistence directory (default: `chroma_db`). |
+| `--collection` | Chroma collection name (default: `oracle_rag`). |
+
+**Examples**
+
+```bash
+# After indexing a PDF with index_pdf_cli.py
+uv run python scripts/rag_cli.py "What is this document about?"
+uv run python scripts/rag_cli.py "Summarize the main points." --k 8
+```
+
+---
+
 ## query_rag_cli.py
 
 Query the indexed chunks in Chroma and print matching chunks with metadata.

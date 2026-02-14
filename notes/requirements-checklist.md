@@ -37,11 +37,23 @@
   - Similarity search / top-k retrieval
   - Test basic retrieval (index sample PDF, run query, verify results)
 
+### LLM Setup
+- [x] **LLM provider and client**
+  - Choose LLM provider (OpenAI for chat/completion)
+  - Set up LLM client (`ChatOpenAI`, gpt-4o-mini)
+  - Test basic LLM calls (`tests/test_llm.py`, `scripts/test_llm_cli.py`)
+
 ### Response Generation
-- [ ] **Answer generation**
-  - Generate answers using retrieved context
-  - Include basic source citations (document name, page numbers)
-  - Format responses clearly
+- [x] **Answer generation**
+  - Generate answers using retrieved context (RAG chain: `get_rag_chain()` + `rag_cli.py`)
+  - Include basic source citations (document name, page numbers from chunk metadata)
+  - Format responses clearly (answer text + "Sources" section)
+
+### Observability & Development Tools
+- [x] **LangSmith setup** (see `notes/langsmith-setup.md`)
+  - Configure LangSmith tracing (API key, endpoint, project)
+  - Automatic trace capture for LCEL chains (no code changes)
+  - Trace execution flow, timing, inputs/outputs, token counts
 
 ### MCP Server Integration
 - [ ] **Basic MCP tools**
@@ -67,7 +79,14 @@
 
 ## Phase 2: Enhanced Features
 
-**Goal:** Add document management, better metadata, and improved retrieval capabilities.
+**Goal:** Add document management, better metadata, improved retrieval capabilities, and modernize the RAG chain.
+
+### RAG Chain Rewrite
+- [ ] **Replace LCEL with plain Python + LangGraph**
+  - Rewrite LCEL chain as a plain Python function for readability
+  - Preserve LangSmith tracing via `@traceable` decorator
+  - Evaluate LangGraph `StateGraph` for Studio support and future extensibility
+  - *Context*: LangChain maintainers confirmed LCEL/Runnables are effectively deprecated in favor of LangGraph + `create_agent`.
 
 ### PDF Processing
 - [ ] **Load multiple PDFs**
@@ -99,6 +118,10 @@
 - [ ] **Query handling**
   - Query preprocessing (cleaning, normalization)
   - Better query understanding
+
+- [ ] **Retriever abstraction (oracle-rag 2.0)**
+  - Use LangChain Retriever (`store.as_retriever()`) in the RAG chain instead of direct `query_index` / `similarity_search`
+  - Integrate with the rewritten chain (plain Python or LangGraph)
 
 ### Document Management
 - [ ] **Add documents**
@@ -250,23 +273,29 @@
 
 ## Framework Evaluation
 
-### Phase 1-2: LangChain ✅
-**LangChain is sufficient for:**
-- All Phase 1 requirements (MVP)
-- All Phase 2 requirements (enhanced features)
-- Multiple PDF loading and processing
-- Chunking with metadata
-- Vector store with metadata filtering
-- Basic and enhanced retrieval
-- Document management operations
+### Phase 1: LangChain + LCEL ✅ (current)
+**LangChain is sufficient for Phase 1 MVP:**
+- PDF processing, chunking, embeddings
+- Vector store with Chroma
+- RAG chain via LCEL (`RunnablePassthrough`, `RunnableLambda`)
+- LangSmith observability (automatic with LCEL)
 - MCP tool integration
 
-### Phase 3: Consider LangGraph ⚠️
-**LangGraph becomes beneficial for:**
+> **Note:** LCEL/Runnables are effectively deprecated per LangChain maintainers (not formally removed yet, but no longer recommended). The current Phase 1 chain works and won't break, but should be migrated in Phase 2.
+
+### Phase 2: Plain Python + LangGraph evaluation ⚠️
+**Planned migration:**
+- Rewrite LCEL chain as plain Python for readability
+- Evaluate LangGraph `StateGraph` as the orchestration layer
+- Use `@traceable` from LangSmith to preserve per-step tracing
+- LangGraph enables LangChain Studio support
+
+### Phase 3: LangGraph (if adopted in Phase 2)
+**LangGraph becomes essential for:**
 - Query classification with conditional routing
 - Multi-step reasoning with state persistence
 - Retrieval quality checks with fallback logic
 - Complex conversation history management
 - Iterative refinement workflows
 
-**Recommendation:** Start with LangChain for Phases 1-2. Evaluate migration to LangGraph at Phase 3 if advanced features require conditional logic or complex state management.
+**Recommendation:** LangChain maintainers recommend LangGraph + `create_agent` + deepagents as the current SOTA patterns. For a deterministic RAG pipeline, LangGraph `StateGraph` is the most relevant migration target.
