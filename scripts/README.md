@@ -177,6 +177,47 @@ uv run python scripts/rag_cli.py "Summarize the main points." --k 8
 
 ---
 
+## mcp_server.py
+
+Run the Oracle-RAG MCP (Model Context Protocol) server, exposing RAG tools (`query_pdf`, `add_pdf`) to MCP-compatible clients like Claude Desktop, Cursor, or the MCP Inspector.
+
+**Requirements**
+
+- `OPENAI_API_KEY` must be set in `.env` or environment variables
+- PDFs can be indexed using either:
+  - The `add_pdf` MCP tool (via MCP client)
+  - The `index_pdf_cli.py` CLI script
+
+**Transport**
+
+The server uses `stdio` transport (standard for MCP), reading from stdin and writing to stdout. Logs are written to stderr to avoid corrupting JSON-RPC messages.
+
+**Available Tools**
+
+- `query_pdf`: Query indexed PDFs and return answers with citations
+- `add_pdf`: Index a new PDF into the vector store
+
+**Examples**
+
+```bash
+# Run the MCP server (will run until interrupted)
+uv run python scripts/mcp_server.py
+
+# Test with MCP Inspector (in another terminal)
+npx -y @modelcontextprotocol/inspector
+# Then connect to stdio transport and test the tools
+```
+
+**Integration**
+
+To use with MCP clients (e.g., Claude Desktop, Cursor), configure the client to run:
+```bash
+uv run python scripts/mcp_server.py
+```
+as the server command with stdio transport.
+
+---
+
 ## query_rag_cli.py
 
 Query the indexed chunks in Chroma and print matching chunks with metadata.

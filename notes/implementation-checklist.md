@@ -71,18 +71,23 @@
 
 - [ ] **Observability & Development Tools**
   - [x] Setup LangSmith (tracing, observability; see `notes/langsmith-setup.md`)
-  - [ ] Learn how to read and interpret LangSmith traces (understand trace structure, timing, inputs/outputs, debugging workflow)
+  - [x] Learn how to read and interpret LangSmith traces (understand trace structure, timing, inputs/outputs, debugging workflow)
+  - [x] Understand all code written so far (review PDF processing, chunking, embeddings, vector store, RAG chain, scripts/CLIs, tests) before moving to MCP implementation
 
 ### MCP Server - Basic
 - [ ] **MCP Server Setup**
-  - [ ] Research MCP server implementation patterns
-  - [ ] Set up MCP server structure
-  - [ ] Implement basic MCP server framework
+  - [x] Research MCP server implementation patterns (see `notes/mcp-server-research.md`)
+  - [x] Install MCP Python SDK (`mcp>=1.26.0`)
+  - [x] Create `src/oracle_rag/mcp/` module structure
+  - [x] Set up FastMCP server framework (`mcp/server.py`)
+  - [x] Create entry point script (`scripts/mcp_server.py`)
 
 - [ ] **Basic MCP Tools**
-  - [ ] Implement `query_pdf` tool
-  - [ ] Implement `add_pdf` tool
-  - [ ] Test MCP server integration
+  - [ ] Implement `query_pdf` tool (wraps `get_rag_chain()`)
+  - [ ] Implement `add_pdf` tool (wraps `index_pdf()`)
+  - [ ] Add error handling and input validation
+  - [ ] Test with MCP Inspector (`npx @modelcontextprotocol/inspector`)
+  - [ ] Add unit tests (`tests/test_mcp_server.py`)
 
 ### Configuration & Persistence
 - [ ] **Configuration Management**
