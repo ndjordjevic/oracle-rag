@@ -147,6 +147,12 @@ Trace: RAG Chain Execution
 - Verify `LANGSMITH_TRACING=true`
 - Ensure you're loading `.env` with `load_dotenv()`
 
+**Traces work from CLI but not when calling MCP tools (e.g. add_pdf_tool)?**
+- MCP tools run in the **MCP server process**. That process must have LangSmith env vars set.
+- **Option A (implemented)**: The MCP entrypoint (`scripts/mcp_server.py`) loads `.env` from the **project root** (directory containing `pyproject.toml`), so it does not depend on process cwd. Add the LangSmith vars to your project's `.env` (see step 2 above); then restart the MCP server (or Cursor). Traces from tool calls should then appear in LangSmith.
+- **Alternative**: To avoid using project `.env`, set `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, and `LANGSMITH_PROJECT` in Cursor's MCP server env for Oracle-RAG.
+- Tool calls are wrapped with LangSmith's `@traceable` (`add_pdf`, `query_pdf`), so you'll see a top-level run per tool call when tracing is on.
+
 **Wrong project name?**
 - Set `LANGSMITH_PROJECT` explicitly
 - Or create the project manually in LangSmith UI

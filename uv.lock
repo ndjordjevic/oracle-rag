@@ -1775,13 +1775,13 @@ dependencies = [
     { name = "langchain-text-splitters" },
     { name = "mcp" },
     { name = "pypdf" },
+    { name = "pytest" },
     { name = "python-dotenv" },
 ]
 
 [package.optional-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -1797,7 +1797,7 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.26.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11.1" },
     { name = "pypdf", specifier = ">=6.6.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.1" },
 ]

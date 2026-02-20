@@ -313,10 +313,16 @@ MCP tools should:
 - Return structured error messages
 - Log errors to stderr (not stdout, to avoid corrupting JSON-RPC)
 
-## Future Enhancements (Phase 2)
+## What MCP Can Expose
 
-- **Resources**: Expose document metadata, chunk information
-- **Prompts**: Pre-built prompts for common query types
+MCP servers can expose **tools**, **resources**, **prompts**, **tasks**, and more. The current Oracle-RAG server **only exposes tools** (`query_pdf_tool`, `add_pdf_tool`).
+
+## Future Enhancements (Phase 2+)
+
+If you want to add more later (e.g. in Phase 2):
+
+- **Resources** – Read-only data by URI. Examples: “list of indexed documents”, “chunk preview for document X”. Expose document metadata and chunk information as resources.
+- **Prompts** – Pre-built prompt templates with parameters. Examples: “Ask about this document”, “Summarize” with configurable arguments.
 - **Additional Tools**: `remove_pdf`, `list_pdfs`, `query_specific_pdf`
 - **Streaming**: Support streaming responses for long queries
 

@@ -8,7 +8,7 @@ import sys
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-from oracle_rag.mcp.tools import add_pdf, query_pdf
+from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf
 
 # Load environment variables
 load_dotenv()
@@ -76,6 +76,31 @@ def add_pdf_tool(
         - collection_name: Collection name used
     """
     return add_pdf(pdf_path=pdf_path, persist_dir=persist_dir, collection=collection)
+
+
+@mcp.tool()
+def list_pdfs_tool(
+    persist_dir: str = "chroma_db",
+    collection: str = "oracle_rag",
+) -> dict:
+    """List all indexed PDFs (books) in the Oracle-RAG index.
+
+    Returns the unique document names (e.g. PDF file names) currently in the
+    vector store, plus total chunk count. Use this to see which books are
+    available for querying.
+
+    Args:
+        persist_dir: Chroma vector store persistence directory (default: "chroma_db").
+        collection: Chroma collection name (default: "oracle_rag").
+
+    Returns:
+        Dictionary containing:
+        - documents: List of unique document identifiers (typically file names)
+        - total_chunks: Total number of chunks in the index
+        - persist_directory: Path to the Chroma store
+        - collection_name: Collection name used
+    """
+    return list_pdfs(persist_dir=persist_dir, collection=collection)
 
 
 def create_mcp_server() -> FastMCP:

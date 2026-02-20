@@ -69,25 +69,27 @@
   - [x] Implement response formatting with citations (`format_sources`, `RAGResult`-like output)
   - [x] Build LangChain chain (RunnablePassthrough pattern in `get_rag_chain()`; CLI: `scripts/rag_cli.py`)
 
-- [ ] **Observability & Development Tools**
+- [x] **Observability & Development Tools**
   - [x] Setup LangSmith (tracing, observability; see `notes/langsmith-setup.md`)
   - [x] Learn how to read and interpret LangSmith traces (understand trace structure, timing, inputs/outputs, debugging workflow)
   - [x] Understand all code written so far (review PDF processing, chunking, embeddings, vector store, RAG chain, scripts/CLIs, tests) before moving to MCP implementation
 
 ### MCP Server - Basic
-- [ ] **MCP Server Setup**
+- [x] **MCP Server Setup**
   - [x] Research MCP server implementation patterns (see `notes/mcp-server-research.md`)
   - [x] Install MCP Python SDK (`mcp>=1.26.0`)
   - [x] Create `src/oracle_rag/mcp/` module structure
   - [x] Set up FastMCP server framework (`mcp/server.py`)
   - [x] Create entry point script (`scripts/mcp_server.py`)
 
-- [ ] **Basic MCP Tools**
-  - [ ] Implement `query_pdf` tool (wraps `get_rag_chain()`)
-  - [ ] Implement `add_pdf` tool (wraps `index_pdf()`)
-  - [ ] Add error handling and input validation
-  - [ ] Test with MCP Inspector (`npx @modelcontextprotocol/inspector`)
-  - [ ] Add unit tests (`tests/test_mcp_server.py`)
+- [x] **Basic MCP Tools**
+  - [x] Implement `query_pdf` tool (wraps `get_rag_chain()`)
+  - [x] Implement `add_pdf` tool (wraps `index_pdf()`)
+  - [x] Implement `list_pdfs` tool (list all indexed books in Oracle-RAG)
+  - [x] Add error handling and input validation
+  - [x] Test with MCP Inspector (`npx @modelcontextprotocol/inspector`)
+  - [x] Add unit tests (`tests/test_mcp_server.py`)
+  - [ ] Test MCP server from Cursor (add Oracle-RAG to Cursor MCP config, invoke query_pdf / add_pdf / list_pdfs)
 
 ### Configuration & Persistence
 - [ ] **Configuration Management**
@@ -172,12 +174,16 @@
 ### MCP Server - Enhanced
 - [ ] **Additional MCP Tools**
   - [ ] Implement `remove_pdf` tool
-  - [ ] Implement `list_pdfs` tool
+  - [x] Implement `list_pdfs` tool
   - [ ] Implement `query_specific_pdf` tool
 
-- [ ] **MCP Resources**
+- [ ] **MCP Resources** (read-only data by URI)
+  - [ ] Expose list of indexed documents as resource
+  - [ ] Expose chunk preview for a document as resource
   - [ ] Expose document metadata as resource
-  - [ ] Expose chunk information as resource
+
+- [ ] **MCP Prompts** (pre-built templates with parameters)
+  - [ ] e.g. “Ask about this document”, “Summarize” with parameters
 
 ### Error Handling - Enhanced
 - [ ] **Advanced Error Handling**

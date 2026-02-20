@@ -196,6 +196,7 @@ The server uses `stdio` transport (standard for MCP), reading from stdin and wri
 
 - `query_pdf`: Query indexed PDFs and return answers with citations
 - `add_pdf`: Index a new PDF into the vector store
+- `list_pdfs`: List all indexed PDFs (books) in the Oracle-RAG index
 
 **Examples**
 
@@ -203,9 +204,12 @@ The server uses `stdio` transport (standard for MCP), reading from stdin and wri
 # Run the MCP server (will run until interrupted)
 uv run python scripts/mcp_server.py
 
-# Test with MCP Inspector (in another terminal)
-npx -y @modelcontextprotocol/inspector
-# Then connect to stdio transport and test the tools
+# Test with MCP Inspector (one command: Inspector spawns the server)
+cd /path/to/oracle-rag
+npx -y @modelcontextprotocol/inspector uv run python scripts/mcp_server.py
+# The terminal prints a URL like: http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=<token>
+# Open that full URL in your browser (the token is required). Use the Tools tab to call query_pdf and add_pdf.
+# Note: OPENAI_API_KEY is required when you run the tools (for embeddings/LLM), not for the Inspector URL.
 ```
 
 **Integration**

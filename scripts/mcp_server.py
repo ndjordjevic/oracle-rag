@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from oracle_rag.mcp.server import mcp
 
-# Load environment variables
-load_dotenv()
+# Load .env from project root so LangSmith and other vars are found
+# even when Cursor (or another MCP client) starts the server with a different cwd.
+_project_root = Path(__file__).resolve().parent.parent
+load_dotenv(_project_root / ".env")
 
 # Verify required environment variables
 if not os.environ.get("OPENAI_API_KEY"):
