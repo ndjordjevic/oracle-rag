@@ -15,7 +15,9 @@
 
 ---
 
-## Phase 1: MVP - Core Functionality
+## Phase 1: MVP - Core Functionality **(v1.0.0)**
+
+Phase 1 complete = first release; package version in `pyproject.toml` is set to `1.0.0` and tagged as `v1.0.0` in git.
 
 ### PDF Processing
 - [x] **PDF Library Selection**
@@ -92,6 +94,10 @@
   - [x] Add unit tests (`tests/test_mcp_server.py`)
   - [x] Test MCP server from Cursor (add Oracle-RAG to Cursor MCP config, invoke query_pdf / add_pdf / list_pdfs; see `notes/cursor-mcp-setup.md` and `.cursor/mcp.json`)
 
+---
+
+## Phase 1.5: Configuration, Persistence & Error Handling
+
 ### Configuration & Persistence
 - [ ] **Configuration Management**
   - [ ] Set up configuration file (YAML/JSON/env)
@@ -105,6 +111,9 @@
   - [ ] Test persistence across restarts
   - [ ] Handle data directory setup
 
+- [ ] **Duplicate PDF detection**
+  - [ ] On add_pdf: check if document_id (file name) already in index; warn or offer replace (remove existing chunks then add) to avoid duplicate chunks
+
 ### Error Handling
 - [ ] **Basic Error Handling**
   - [ ] Handle PDF loading errors
@@ -114,13 +123,19 @@
   - [ ] Add basic error messages
 
 ### Testing - MVP
-- [ ] **Basic Testing**
+- [x] **Basic Testing**
   - [x] Test PDF loading with sample PDF (`tests/test_pypdf_loader.py`)
   - [x] Test chunking and metadata preservation (`tests/test_chunking.py`)
   - [x] Test embedding generation (`tests/test_embeddings.py`)
   - [x] Test retrieval functionality (`tests/test_vectorstore.py`, `tests/test_indexing.py`)
   - [x] Test end-to-end RAG pipeline (`tests/test_rag.py`)
   - [x] Test MCP tools
+
+- [ ] **Configuration, Persistence & Error Handling**
+  - [ ] Test configuration (load config, override chunk size/overlap, embedding/LLM settings)
+  - [ ] Test persistence (index PDF, restart or new process, verify index survives and queries work)
+  - [ ] Test error handling (PDF load failures, embedding/retrieval/LLM errors return clear messages; CLI and MCP)
+  - [ ] Test duplicate PDF detection (add same PDF twice: expect warn or replace; verify no duplicate chunks in index)
 
 ---
 
@@ -166,17 +181,18 @@
 
 ### Document Management
 - [ ] **Document Operations**
-  - [ ] Implement document removal (delete PDF and chunks)
-  - [ ] Implement document listing
+  - [x] Implement document removal (delete PDF and chunks) — done in Phase 1 via `remove_pdf` MCP tool
+  - [x] Implement document listing — done in Phase 1 via `list_pdfs` MCP tool
   - [ ] Implement document status tracking
   - [ ] Implement document update/re-indexing
-  - [ ] Add document metadata display
+  - [ ] Add document metadata display (e.g. chunk count per document in list_pdfs)
 
 ### MCP Server - Enhanced
 - [ ] **Additional MCP Tools**
-  - [ ] Implement `remove_pdf` tool
-  - [x] Implement `list_pdfs` tool
-  - [ ] Implement `query_specific_pdf` tool
+  - [x] Implement `remove_pdf` tool — done in Phase 1
+  - [x] Implement `list_pdfs` tool — done in Phase 1
+  - [ ] Implement `query_specific_pdf` tool (filter retrieval to a single document by name)
+  - [ ] Add per-document chunk count to list_pdfs output
 
 - [ ] **MCP Resources** (read-only data by URI)
   - [ ] Expose list of indexed documents as resource
@@ -206,6 +222,11 @@
 ## Phase 3: Advanced Features
 
 ### Retrieval - Advanced
+- [ ] **Evaluation framework** (do before complex retrieval changes)
+  - [ ] Create evaluation dataset (question / expected-answer or relevance pairs)
+  - [ ] Measure retrieval quality (e.g. precision@k, recall) and answer quality
+  - [ ] Use metrics to validate hybrid search, re-ranking, multi-query before/after
+
 - [ ] **Advanced Retrieval Strategies**
   - [ ] Research hybrid search options
   - [ ] Implement hybrid search (if supported by vector DB)
@@ -219,6 +240,13 @@
   - [ ] Add re-query logic with different parameters
 
 ### Response Generation - Advanced
+- [ ] **Prompt engineering iteration**
+  - [ ] Evaluate and iterate on RAG prompt template using evaluation dataset
+  - [ ] Test different system messages, few-shot examples, or chain-of-thought instructions
+
+- [ ] **Context window management**
+  - [ ] Handle context window limits (truncate, summarize, or select fewer chunks when total context exceeds model limit)
+
 - [ ] **Streaming**
   - [ ] Implement streaming response generation
   - [ ] Test streaming functionality
@@ -264,8 +292,8 @@
 
 ### Advanced PDF Processing
 - [ ] **OCR Support**
-  - [ ] Research OCR solutions
-  - [ ] Implement OCR for scanned PDFs
+  - [x] Research OCR solutions (ocrmypdf + Tesseract used externally; see notes)
+  - [ ] Integrate OCR into pipeline (detect image-only pages, run OCR automatically or offer as option in add_pdf)
   - [ ] Handle complex PDF structures (multi-column, tables)
   - [ ] Handle images and diagrams
 
@@ -287,12 +315,20 @@
 
 ## Phase 4: Polish & Production Ready
 
+### Deployment & Operations
+- [ ] **Deployment packaging**
+  - [ ] Package for deployment (Docker image, or installable CLI via `pip install oracle-rag`, or hosted MCP server)
+- [ ] **Backup and restore**
+  - [ ] Implement Chroma index backup and restore (export/import) for migration and recovery
+
 ### Monitoring & Observability
 - [ ] **Metrics & Logging**
   - [ ] Implement query performance metrics
   - [ ] Implement retrieval quality metrics
   - [ ] Add comprehensive logging
   - [ ] Set up error tracking
+- [ ] **Usage analytics** (optional)
+  - [ ] Track query patterns, most-queried documents, average response quality
 
 ### Security & Access Control
 - [ ] **Security Features**
@@ -306,7 +342,7 @@
   - [ ] Optimize batch processing
   - [ ] Implement caching strategies
   - [ ] Test scalability with hundreds of PDFs
-  - [ ] Consider distributed vector store
+  - [ ] Consider distributed vector store (see Future section if not needed soon)
 
 ### Advanced Query Understanding
 - [ ] **Query Intelligence**
@@ -323,8 +359,8 @@
 ### Advanced Configuration
 - [ ] **Dynamic Configuration**
   - [ ] Dynamic configuration updates
-  - [ ] A/B testing support
-  - [ ] Feature flags
+  - [ ] A/B testing support (optional; see Future)
+  - [ ] Feature flags (optional; see Future)
 
 ### Documentation
 - [ ] **Complete Documentation**
@@ -342,3 +378,7 @@
   - [ ] Security audit
   - [ ] Documentation review
   - [ ] Deployment testing
+
+### Future / If Needed
+- **Horizontal scaling, load balancing, distributed vector store** — when serving many concurrent users
+- **A/B testing, feature flags** — when running experiments in production
