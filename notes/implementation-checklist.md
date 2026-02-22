@@ -85,11 +85,12 @@
 - [x] **Basic MCP Tools**
   - [x] Implement `query_pdf` tool (wraps `get_rag_chain()`)
   - [x] Implement `add_pdf` tool (wraps `index_pdf()`)
+  - [x] Implement `remove_pdf` tool (remove PDF and all its chunks/embeddings from Chroma)
   - [x] Implement `list_pdfs` tool (list all indexed books in Oracle-RAG)
   - [x] Add error handling and input validation
   - [x] Test with MCP Inspector (`npx @modelcontextprotocol/inspector`)
   - [x] Add unit tests (`tests/test_mcp_server.py`)
-  - [ ] Test MCP server from Cursor (add Oracle-RAG to Cursor MCP config, invoke query_pdf / add_pdf / list_pdfs)
+  - [x] Test MCP server from Cursor (add Oracle-RAG to Cursor MCP config, invoke query_pdf / add_pdf / list_pdfs; see `notes/cursor-mcp-setup.md` and `.cursor/mcp.json`)
 
 ### Configuration & Persistence
 - [ ] **Configuration Management**
@@ -119,7 +120,7 @@
   - [x] Test embedding generation (`tests/test_embeddings.py`)
   - [x] Test retrieval functionality (`tests/test_vectorstore.py`, `tests/test_indexing.py`)
   - [x] Test end-to-end RAG pipeline (`tests/test_rag.py`)
-  - [ ] Test MCP tools
+  - [x] Test MCP tools
 
 ---
 

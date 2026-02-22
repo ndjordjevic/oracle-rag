@@ -8,7 +8,7 @@ import sys
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf
+from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf, remove_pdf
 
 # Load environment variables
 load_dotenv()
@@ -101,6 +101,37 @@ def list_pdfs_tool(
         - collection_name: Collection name used
     """
     return list_pdfs(persist_dir=persist_dir, collection=collection)
+
+
+@mcp.tool()
+def remove_pdf_tool(
+    document_id: str,
+    persist_dir: str = "chroma_db",
+    collection: str = "oracle_rag",
+) -> dict:
+    """Remove a PDF and all its chunks and embeddings from the Oracle-RAG index.
+
+    Deletes all chunks and their embeddings for the given document from the
+    Chroma vector store. Use list_pdfs_tool to see the exact document_id
+    (typically the PDF file name) to remove.
+
+    Args:
+        document_id: Document identifier to remove (same as in list_pdfs, e.g. "mybook.pdf").
+        persist_dir: Chroma vector store persistence directory (default: "chroma_db").
+        collection: Chroma collection name (default: "oracle_rag").
+
+    Returns:
+        Dictionary containing:
+        - deleted_chunks: Number of chunks (and embeddings) removed
+        - document_id: The document that was removed
+        - persist_directory: Path to the Chroma store
+        - collection_name: Collection name used
+    """
+    return remove_pdf(
+        document_id=document_id,
+        persist_dir=persist_dir,
+        collection=collection,
+    )
 
 
 def create_mcp_server() -> FastMCP:

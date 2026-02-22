@@ -10,6 +10,40 @@ from pypdf import PdfReader
 
 PathLike = Union[str, Path]
 
+# Minimum total chars from layout extraction to avoid fallback to plain (for multi-page PDFs).
+_LAYOUT_MIN_CHARS_FOR_NO_FALLBACK = 500
+
+
+def _extract_with_mode(
+    reader: PdfReader,
+    pdf_path: Path,
+    total_pages: int,
+    extraction_mode: str,
+    skip_empty_pages: bool,
+    document_title: Optional[str],
+    document_author: Optional[str],
+) -> list[Document]:
+    """Extract per-page Documents using the given pypdf extraction_mode."""
+    docs: list[Document] = []
+    for page_index, page in enumerate(reader.pages):
+        page_number = page_index + 1
+        text = page.extract_text(extraction_mode=extraction_mode) or ""
+        text = text.strip()
+        if skip_empty_pages and not text:
+            continue
+        doc_meta: dict = {
+            "source": str(pdf_path),
+            "file_name": pdf_path.name,
+            "page": page_number,
+            "total_pages": total_pages,
+        }
+        if document_title is not None:
+            doc_meta["document_title"] = document_title
+        if document_author is not None:
+            doc_meta["document_author"] = document_author
+        docs.append(Document(page_content=text, metadata=doc_meta))
+    return docs
+
 
 @dataclass(frozen=True)
 class PdfLoadResult:
@@ -33,12 +67,20 @@ def load_pdf_as_documents(
       if no text is extracted from any page.
     - Metadata uses 1-indexed page numbers. Each document gets: source, file_name,
       page, total_pages; and document_title / document_author when present in the PDF.
-    - `pypdf` supports `extraction_mode="layout"` for better spacing fidelity.
+    By default, tries layout first; if layout yields very little text (fewer than
+    2 pages with text or fewer than 500 total characters), retries with plain
+    and uses whichever mode extracted more text. Pass extraction_mode="layout"
+    or "plain" to force a single mode with no fallback.
+
+    Notes:
+    - Phase 1 assumes text-based PDFs (digitally-born, no OCR). Raises ValueError
+      if no text is extracted from any page.
+    - Metadata uses 1-indexed page numbers. Each document gets: source, file_name,
+      page, total_pages; and document_title / document_author when present in the PDF.
 
     Sources:
     - pypdf extract_text docs: https://pypdf.readthedocs.io/en/stable/user/extract-text.html
     """
-
     pdf_path = Path(path).expanduser().resolve()
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
@@ -50,7 +92,6 @@ def load_pdf_as_documents(
     reader = PdfReader(str(pdf_path))
     total_pages = len(reader.pages)
 
-    # Extract document-level metadata (may be None if not in PDF)
     meta = reader.metadata
     document_title: Optional[str] = None
     document_author: Optional[str] = None
@@ -60,29 +101,28 @@ def load_pdf_as_documents(
         if meta.author is not None:
             document_author = str(meta.author).strip() or None
 
-    docs: list[Document] = []
-    for page_index, page in enumerate(reader.pages):
-        page_number = page_index + 1  # 1-indexed
-        text = page.extract_text(extraction_mode=extraction_mode) or ""
-        text = text.strip()
+    mode = extraction_mode or "layout"
+    docs = _extract_with_mode(
+        reader, pdf_path, total_pages, mode, skip_empty_pages, document_title, document_author
+    )
 
-        if skip_empty_pages and not text:
-            continue
+    # If layout yielded very little, try plain and use the better result.
+    if mode == "layout" and total_pages > 0:
+        total_chars = sum(len(d.page_content) for d in docs)
+        if len(docs) < 2 or total_chars < _LAYOUT_MIN_CHARS_FOR_NO_FALLBACK:
+            docs_plain = _extract_with_mode(
+                reader,
+                pdf_path,
+                total_pages,
+                "plain",
+                skip_empty_pages,
+                document_title,
+                document_author,
+            )
+            total_chars_plain = sum(len(d.page_content) for d in docs_plain)
+            if len(docs_plain) > len(docs) or total_chars_plain > total_chars:
+                docs = docs_plain
 
-        doc_meta: dict = {
-            "source": str(pdf_path),
-            "file_name": pdf_path.name,
-            "page": page_number,
-            "total_pages": total_pages,
-        }
-        if document_title is not None:
-            doc_meta["document_title"] = document_title
-        if document_author is not None:
-            doc_meta["document_author"] = document_author
-
-        docs.append(Document(page_content=text, metadata=doc_meta))
-
-    # Basic text-based PDF handling: no text extracted from any page
     if total_pages > 0 and len(docs) == 0:
         raise ValueError(
             f"No text extracted from {pdf_path.name} ({total_pages} page(s)). "

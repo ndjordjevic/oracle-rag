@@ -196,6 +196,8 @@ The server uses `stdio` transport (standard for MCP), reading from stdin and wri
 
 - `query_pdf`: Query indexed PDFs and return answers with citations
 - `add_pdf`: Index a new PDF into the vector store
+- `list_pdfs`: List all indexed PDFs (document names and total chunk count)
+- `remove_pdf`: Remove a PDF and all its chunks and embeddings from the index (by document_id, e.g. file name from list_pdfs)
 - `list_pdfs`: List all indexed PDFs (books) in the Oracle-RAG index
 
 **Examples**

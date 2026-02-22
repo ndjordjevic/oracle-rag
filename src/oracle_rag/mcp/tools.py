@@ -188,3 +188,63 @@ def list_pdfs(
         "persist_directory": str(persist_path),
         "collection_name": collection,
     }
+
+
+@traceable(name="remove_pdf", run_type="tool")
+def remove_pdf(
+    document_id: str,
+    persist_dir: str = str(DEFAULT_PERSIST_DIR),
+    collection: str = DEFAULT_COLLECTION_NAME,
+) -> dict[str, Any]:
+    """Remove a PDF and all its chunks and embeddings from the Chroma index.
+
+    The document_id must match exactly the name shown in list_pdfs (e.g. the
+    PDF file name like "mybook.pdf"). All chunks and their embeddings for that
+    document are deleted from the vector store.
+
+    Args:
+        document_id: Document identifier to remove (same as in list_pdfs, typically the PDF file name).
+        persist_dir: Chroma persistence directory (default: "chroma_db").
+        collection: Chroma collection name (default: "oracle_rag").
+
+    Returns:
+        Dictionary with "deleted_chunks" (int), "document_id" (str),
+        "persist_directory", "collection_name".
+
+    Raises:
+        ValueError: If document_id is empty or collection is empty.
+        FileNotFoundError: If persist_dir does not exist.
+    """
+    if not document_id or not str(document_id).strip():
+        raise ValueError("document_id cannot be empty")
+    if not collection or not str(collection).strip():
+        raise ValueError("collection cannot be empty")
+
+    persist_path = Path(persist_dir).expanduser().resolve()
+    if not persist_path.exists():
+        raise FileNotFoundError(
+            f"Persistence directory does not exist: {persist_dir}"
+        )
+
+    store = get_chroma_store(
+        persist_directory=persist_dir,
+        collection_name=collection,
+    )
+
+    # Count chunks matching this document_id before delete
+    data = store._collection.get(
+        where={"document_id": document_id.strip()},
+        include=[],
+    )
+    ids = data.get("ids") or []
+    deleted_count = len(ids)
+
+    if ids:
+        store._collection.delete(where={"document_id": document_id.strip()})
+
+    return {
+        "deleted_chunks": deleted_count,
+        "document_id": document_id.strip(),
+        "persist_directory": str(persist_path),
+        "collection_name": collection,
+    }
