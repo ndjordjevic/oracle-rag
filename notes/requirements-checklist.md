@@ -1,5 +1,12 @@
 # Oracle-RAG Requirements Checklist
 
+## Phase 0: Planning & Setup
+
+- [x] **Framework decision** — Start with LangChain for Phase 1
+- [x] **Project setup** — Structure, dependencies, dev environment
+
+---
+
 ## Phase 1: MVP - Core Functionality
 
 **Goal:** Get a working PDF RAG that can load PDFs, answer questions, and provide basic source citations.
@@ -56,24 +63,34 @@
   - Trace execution flow, timing, inputs/outputs, token counts
 
 ### MCP Server Integration
-- [ ] **Basic MCP tools**
-  - `query_pdf` - Query across all PDFs
-  - `add_pdf` - Add new PDF to index
+- [x] **Basic MCP tools** (Phase 1)
+  - [x] `query_pdf` - Query across all PDFs
+  - [x] `add_pdf` - Add new PDF to index
+  - [x] `remove_pdf` - Remove a PDF and its chunks from the index
+  - [x] `list_pdfs` - List indexed PDFs (document_id, optional metadata)
 
-### Technical Foundation
-- [ ] **Basic error handling**
-  - Handle basic PDF errors
-  - Handle embedding failures
-  - Basic error messages
+---
 
-- [ ] **Configuration**
+## Phase 1.5: Configuration, Persistence & Error Handling
+
+### Configuration & Persistence
+- [ ] **Configuration management**
+  - Config file (YAML/JSON/env)
   - Configurable chunk size and overlap
-  - Configurable embedding model
-  - Configurable LLM provider
+  - Configurable embedding model and LLM provider
 
 - [ ] **Persistence**
   - Persist vector store
-  - Handle restarts gracefully
+  - Test persistence across restarts
+  - Handle data directory setup
+
+- [ ] **Duplicate PDF detection**
+  - On add_pdf: check if document_id already in index; warn or offer replace to avoid duplicate chunks
+
+### Error Handling
+- [ ] **Basic error handling**
+  - Handle PDF loading, embedding, retrieval, LLM errors
+  - Basic error messages
 
 ---
 
@@ -128,15 +145,14 @@
   - Process and index automatically
   - Update existing documents (re-index if PDF changes)
 
-- [ ] **Remove documents**
+- [x] **Remove documents** (done in Phase 1 via `remove_pdf` MCP tool)
   - Delete PDF and all associated chunks
   - Remove embeddings from vector store
-  - Clean up metadata
 
-- [ ] **List documents**
+- [x] **List documents** (done in Phase 1 via `list_pdfs` MCP tool)
   - View all indexed PDFs
   - Show document metadata (name, pages, upload date)
-  - Show chunk count per document
+  - [ ] Show chunk count per document
 
 - [ ] **Document status**
   - Track processing status (pending, processing, completed, error)
@@ -154,9 +170,10 @@
 
 ### MCP Server Integration
 - [ ] **Additional MCP tools**
-  - `remove_pdf` - Remove PDF from index
-  - `list_pdfs` - List all indexed PDFs
-  - `query_specific_pdf` - Query within a specific PDF
+  - [x] `remove_pdf` — done in Phase 1
+  - [x] `list_pdfs` — done in Phase 1
+  - [ ] `query_specific_pdf` - Query within a specific PDF
+  - [ ] Per-document chunk count in list_pdfs output
 
 - [ ] **MCP resources**
   - Expose document metadata
@@ -178,13 +195,12 @@
 
 **Goal:** Add sophisticated retrieval strategies, multi-step reasoning, and advanced user experience features.
 
-### PDF Processing
-- [ ] **Advanced PDF handling**
-  - Handle scanned PDFs with OCR
-  - Support complex PDF structures (multi-column, tables)
-  - Better handling of images and diagrams
+### Evaluation & Retrieval
+- [ ] **Evaluation framework** (do before complex retrieval changes)
+  - Evaluation dataset (question / expected-answer or relevance pairs)
+  - Measure retrieval quality (e.g. precision@k, recall) and answer quality
+  - Use metrics to validate hybrid search, re-ranking, multi-query before/after
 
-### Vector Store & Retrieval
 - [ ] **Advanced retrieval strategies**
   - Hybrid search (semantic + keyword, if supported)
   - Re-ranking for better relevance
@@ -195,7 +211,21 @@
   - Fallback strategies if retrieval quality is low
   - Re-query with different parameters if needed
 
+### PDF Processing - Advanced
+- [ ] **OCR support**
+  - [x] Research OCR solutions (ocrmypdf + Tesseract used externally)
+  - [ ] Integrate OCR into pipeline (detect image-only pages, run OCR automatically or as option in add_pdf)
+  - [ ] Support complex PDF structures (multi-column, tables)
+  - [ ] Better handling of images and diagrams
+
 ### Response Generation
+- [ ] **Prompt engineering iteration**
+  - Evaluate and iterate on RAG prompt using evaluation dataset
+  - Test different system messages, few-shot examples, or chain-of-thought
+
+- [ ] **Context window management**
+  - Handle context window limits (truncate, summarize, or select fewer chunks when context exceeds model limit)
+
 - [ ] **Streaming responses**
   - Stream answer generation token by token
   - Better user experience for long answers
@@ -237,6 +267,34 @@
 
 **Goal:** Production-grade reliability, monitoring, and advanced optimizations.
 
+### Deployment & Operations
+- [ ] **Deployment packaging**
+  - Docker image, or installable CLI via `pip install oracle-rag`, or hosted MCP server
+- [ ] **Backup and restore**
+  - Chroma index backup and restore (export/import) for migration and recovery
+
+### Monitoring & Observability
+- [ ] **Metrics & logging**
+  - Query performance metrics
+  - Retrieval quality metrics
+  - Comprehensive logging and error tracking
+- [ ] **Usage analytics** (optional)
+  - Query patterns, most-queried documents, response quality
+
+### Security & Access Control
+- [ ] **Security features**
+  - Document-level access control
+  - Query authentication
+  - Audit logging
+  - Security review
+
+### Scalability
+- [ ] **Performance optimization**
+  - Optimize batch processing
+  - Caching strategies
+  - Test scalability with hundreds of PDFs
+  - Consider distributed vector store if needed
+
 ### Advanced Features
 - [ ] **Advanced query understanding**
   - Query intent detection
@@ -248,26 +306,9 @@
   - Handle document updates intelligently
   - Version-aware retrieval
 
-### Technical Excellence
-- [ ] **Monitoring & Observability**
-  - Query performance metrics
-  - Retrieval quality metrics
-  - Error tracking and alerting
-
-- [ ] **Advanced configuration**
-  - Dynamic configuration updates
-  - A/B testing support
-  - Feature flags
-
-- [ ] **Security & Access Control**
-  - Document-level access control
-  - Query authentication
-  - Audit logging
-
-- [ ] **Scalability**
-  - Distributed vector store support
-  - Horizontal scaling
-  - Load balancing
+### Future / If Needed
+- Horizontal scaling, load balancing, distributed vector store — when serving many concurrent users
+- A/B testing, feature flags — when running experiments in production
 
 ---
 
