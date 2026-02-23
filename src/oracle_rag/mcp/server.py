@@ -16,6 +16,9 @@ from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf, remove_pdf
 # Load environment variables
 load_dotenv()
 
+# Disable Chroma telemetry — avoids PostHog INFO messages in Cursor Output
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+
 # Configure logging to stderr so it appears in Cursor's Output panel for this MCP
 _log_handler = logging.StreamHandler(sys.stderr)
 _log_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
