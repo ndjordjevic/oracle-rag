@@ -8,54 +8,44 @@ Oracle-RAG provides intelligent document querying and retrieval capabilities for
 
 ## Features
 
-- 📄 PDF document processing and indexing
-- 🔍 RAG with source citations
-- 🔌 MCP server: `query_pdf`, `add_pdf`, `remove_pdf`, `list_pdfs`
-- 🧠 Built with LangChain and Chroma
+- PDF document processing and indexing
+- RAG with source citations
+- MCP server: `query_pdf`, `add_pdf`, `remove_pdf`, `list_pdfs`
+- Built with LangChain and Chroma
 
 ## Installation
 
 ```bash
-pip install oracle-rag
+pipx install oracle-rag
 # or: uv tool install oracle-rag
 ```
 
-Requires Python 3.12+.
+Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated environment and put `oracle-rag-mcp` on your PATH.
 
 ## Quick Start
 
-### 1. Create a project folder and config
+### 1. Create config
 
 ```bash
-mkdir my-rag && cd my-rag
-echo "OPENAI_API_KEY=your_key_here" > .env
+mkdir -p ~/.oracle-rag
+echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
 ```
 
-The index (`chroma_db`) and `.env` will live in this folder.
+### 2. Add to Cursor MCP
 
-### 2. Add Oracle-RAG to Cursor MCP
-
-In **Cursor Settings** → **Tools & MCP** → **Add new MCP server**:
-
-- **Name:** `oracle-rag`
-- **Type:** Command
-- **Command:** `oracle-rag-mcp`
-- **Working directory:** `/path/to/my-rag` (the folder with your `.env`)
-
-Or add to `~/.cursor/mcp.json`:
+Add to `~/.cursor/mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "oracle-rag": {
-      "command": "oracle-rag-mcp",
-      "cwd": "/path/to/my-rag"
+      "command": "oracle-rag-mcp"
     }
   }
 }
 ```
 
-Restart Cursor. The `cwd` must point to a folder containing `.env` (with `OPENAI_API_KEY`) and where `chroma_db` will be created.
+Restart Cursor. That's it — no `cwd` needed. The server loads `.env` from `~/.oracle-rag/` (or `~/.config/oracle-rag/`) and stores the index in `~/.oracle-rag/chroma_db` by default.
 
 ### 3. Use in Cursor
 
@@ -63,26 +53,49 @@ Restart Cursor. The `cwd` must point to a folder containing `.env` (with `OPENAI
 - *"List the PDFs in Oracle-RAG"*
 - *"Query Oracle-RAG: What is this document about?"*
 
-## Config locations
+## Configuration
 
-When run via `oracle-rag-mcp`, `.env` is loaded from (first found):
+`.env` is loaded from (first match wins):
 
-- `{cwd}/.env`
-- `~/.config/oracle-rag/.env`
-- `~/.oracle-rag/.env`
+1. `{cwd}/.env`
+2. `~/.config/oracle-rag/.env`
+3. `~/.oracle-rag/.env`
 
-Optional: `ORACLE_RAG_CHUNK_SIZE`, `ORACLE_RAG_CHUNK_OVERLAP`. See `.env.example` in the repo.
+Environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENAI_API_KEY` | *(required)* | OpenAI API key |
+| `ORACLE_RAG_PERSIST_DIR` | `~/.oracle-rag/chroma_db` | Chroma vector store directory |
+| `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
+| `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
 
 ## Development
 
 ```bash
-git clone https://github.com/you/oracle-rag.git
+git clone https://github.com/ndjordjevic/oracle-rag.git
 cd oracle-rag
-uv sync
+uv sync --extra dev
 uv run pytest
 ```
 
-Run MCP server from source: `uv run python scripts/mcp_server.py` (use project root as `cwd` in Cursor).
+Run MCP server from source:
+
+```bash
+uv run oracle-rag-mcp
+```
+
+For local development in Cursor, add to your project's `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "oracle-rag": {
+      "command": "/path/to/oracle-rag/.venv/bin/oracle-rag-mcp"
+    }
+  }
+}
+```
 
 ## License
 

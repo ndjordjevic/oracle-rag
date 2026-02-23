@@ -10,6 +10,7 @@ import sys
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
+from oracle_rag.config import get_persist_dir
 from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf, remove_pdf
 
 # Load environment variables
@@ -55,7 +56,7 @@ def _log_tool_errors(fn):
 def query_pdf_tool(
     query: str,
     k: int = 5,
-    persist_dir: str = "chroma_db",
+    persist_dir: str = "",
     collection: str = "oracle_rag",
 ) -> dict:
     """Query indexed PDFs and return an answer with citations.
@@ -67,7 +68,7 @@ def query_pdf_tool(
     Args:
         query: Natural language question to ask about the indexed PDFs.
         k: Number of document chunks to retrieve (default: 5).
-        persist_dir: Chroma vector store persistence directory (default: "chroma_db").
+        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
 
     Returns:
@@ -75,14 +76,14 @@ def query_pdf_tool(
         - answer: The generated answer text
         - sources: List of source citations with document_id and page number
     """
-    return query_pdf(query=query, k=k, persist_dir=persist_dir, collection=collection)
+    return query_pdf(query=query, k=k, persist_dir=persist_dir or get_persist_dir(), collection=collection)
 
 
 @mcp.tool()
 @_log_tool_errors
 def add_pdf_tool(
     pdf_path: str,
-    persist_dir: str = "chroma_db",
+    persist_dir: str = "",
     collection: str = "oracle_rag",
 ) -> dict:
     """Add a PDF document to the index.
@@ -92,7 +93,7 @@ def add_pdf_tool(
 
     Args:
         pdf_path: Path to the PDF file to index.
-        persist_dir: Chroma vector store persistence directory (default: "chroma_db").
+        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
 
     Returns:
@@ -103,13 +104,13 @@ def add_pdf_tool(
         - persist_directory: Where the index is stored
         - collection_name: Collection name used
     """
-    return add_pdf(pdf_path=pdf_path, persist_dir=persist_dir, collection=collection)
+    return add_pdf(pdf_path=pdf_path, persist_dir=persist_dir or get_persist_dir(), collection=collection)
 
 
 @mcp.tool()
 @_log_tool_errors
 def list_pdfs_tool(
-    persist_dir: str = "chroma_db",
+    persist_dir: str = "",
     collection: str = "oracle_rag",
 ) -> dict:
     """List all indexed PDFs (books) in the Oracle-RAG index.
@@ -119,7 +120,7 @@ def list_pdfs_tool(
     available for querying.
 
     Args:
-        persist_dir: Chroma vector store persistence directory (default: "chroma_db").
+        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
 
     Returns:
@@ -129,14 +130,14 @@ def list_pdfs_tool(
         - persist_directory: Path to the Chroma store
         - collection_name: Collection name used
     """
-    return list_pdfs(persist_dir=persist_dir, collection=collection)
+    return list_pdfs(persist_dir=persist_dir or get_persist_dir(), collection=collection)
 
 
 @mcp.tool()
 @_log_tool_errors
 def remove_pdf_tool(
     document_id: str,
-    persist_dir: str = "chroma_db",
+    persist_dir: str = "",
     collection: str = "oracle_rag",
 ) -> dict:
     """Remove a PDF and all its chunks and embeddings from the Oracle-RAG index.
@@ -147,7 +148,7 @@ def remove_pdf_tool(
 
     Args:
         document_id: Document identifier to remove (same as in list_pdfs, e.g. "mybook.pdf").
-        persist_dir: Chroma vector store persistence directory (default: "chroma_db").
+        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
 
     Returns:
@@ -159,7 +160,7 @@ def remove_pdf_tool(
     """
     return remove_pdf(
         document_id=document_id,
-        persist_dir=persist_dir,
+        persist_dir=persist_dir or get_persist_dir(),
         collection=collection,
     )
 

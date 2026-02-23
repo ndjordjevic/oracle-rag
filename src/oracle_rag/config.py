@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -10,6 +11,13 @@ from oracle_rag.chunking.splitter import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SI
 
 # Ensure .env is loaded when config is first imported
 load_dotenv()
+
+DEFAULT_PERSIST_DIR = str(Path.home() / ".oracle-rag" / "chroma_db")
+
+
+def get_persist_dir() -> str:
+    """Return Chroma persist directory from ORACLE_RAG_PERSIST_DIR env var, or ~/.oracle-rag/chroma_db."""
+    return os.environ.get("ORACLE_RAG_PERSIST_DIR", DEFAULT_PERSIST_DIR)
 
 
 def get_chunk_size() -> int:

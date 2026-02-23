@@ -211,24 +211,28 @@ uv sync   # or pip install -e .
    - When prompted: username = `__token__`, password = your `pypi-...` token.
    - Or: `export UV_PUBLISH_TOKEN=pypi-your-token` then `uv publish`.
 
-### Test this deployment
+### Test this deployment (regular user flow)
 
-1. **Fresh install:** In a new venv or different machine:
+1. **Install:**
    ```bash
-   pip install oracle-rag
-   which oracle-rag-mcp   # or: uv run oracle-rag-mcp --help
+   pipx install oracle-rag
+   # or: uv tool install oracle-rag
    ```
-2. **Run MCP server:** From a folder with `.env` and (optionally) `chroma_db`:
+2. **Configure:**
+   ```bash
+   mkdir -p ~/.oracle-rag
+   echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
+   ```
+3. **Verify:**
    ```bash
    oracle-rag-mcp
    ```
    Server should start and wait for stdio input (Ctrl+C to stop).
-3. **Cursor MCP:** Add to `.cursor/mcp.json`:
+4. **Cursor MCP:** Add to `~/.cursor/mcp.json`:
    ```json
    "oracle-rag": {
-     "command": "oracle-rag-mcp",
-     "args": [],
-     "cwd": "/path/to/project"
+     "command": "oracle-rag-mcp"
    }
    ```
-   Restart Cursor; verify `add_pdf`, `list_pdfs`, `query_pdf` tools appear.
+   Restart Cursor; verify `add_pdf`, `list_pdfs`, `query_pdf`, `remove_pdf` tools appear.
+   No `cwd` needed — index is stored in `~/.oracle-rag/chroma_db` by default.
