@@ -151,6 +151,7 @@ Phase 1 complete = first release; package version in `pyproject.toml` is set to 
 - [x] **Document how others can start and use this MCP**
   - [x] PyPI install: `pip install oracle-rag` → `oracle-rag-mcp` CLI; config from cwd or `~/.config/oracle-rag/` (see `README.md`, `notes/distribution-options.md`)
   - [x] Cursor MCP config: command `oracle-rag-mcp` (no cwd needed; uses ~/.oracle-rag/ for .env and chroma_db)
+  - **Publish new version to PyPI:** Bump `version` in `pyproject.toml` → `git add -A && git commit -m "vX.Y.Z: ..." && git push` → `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z` → `uv build && uv publish` (use `__token__` + PyPI API token when prompted; or `uv cache clean` before `uv tool install oracle-rag --force` to get latest)
 
 ---
 

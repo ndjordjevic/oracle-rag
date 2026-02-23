@@ -22,6 +22,15 @@ pipx install oracle-rag
 
 Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated environment and put `oracle-rag-mcp` on your PATH.
 
+### Updating
+
+```bash
+pipx upgrade oracle-rag
+# or: uv cache clean && uv tool install oracle-rag --force
+```
+
+Restart Cursor after updating so the MCP server picks up the new version.
+
 ## Quick Start
 
 ### 1. Create config
