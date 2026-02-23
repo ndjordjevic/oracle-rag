@@ -10,6 +10,7 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
 from oracle_rag.chunking import chunk_documents
+from oracle_rag.config import get_chunk_overlap, get_chunk_size
 from oracle_rag.pdf.pypdf_loader import PathLike, load_pdf_as_documents
 from oracle_rag.vectorstore.chroma_client import (
     DEFAULT_COLLECTION_NAME,
@@ -38,6 +39,8 @@ def index_pdf(
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: str = DEFAULT_COLLECTION_NAME,
     embedding: Optional[Embeddings] = None,
+    chunk_size: Optional[int] = None,
+    chunk_overlap: Optional[int] = None,
 ) -> IndexResult:
     """Load, chunk, and index a single PDF into Chroma.
 
@@ -45,6 +48,7 @@ def index_pdf(
     - Load per-page `Document`s via `load_pdf_as_documents`.
     - Chunk them with `chunk_documents`.
     - Get (or create) a Chroma store via `get_chroma_store`.
+    - Delete any existing chunks for this document (by file name) to avoid duplicates.
     - Add chunk documents to the store (embeddings generated automatically).
 
     Args:
@@ -52,6 +56,8 @@ def index_pdf(
         persist_directory: Chroma persistence directory.
         collection_name: Chroma collection name.
         embedding: Optional embedding model; if None, uses default OpenAI embeddings.
+        chunk_size: Chunk size in chars; if None, uses ORACLE_RAG_CHUNK_SIZE env or 1000.
+        chunk_overlap: Chunk overlap in chars; if None, uses ORACLE_RAG_CHUNK_OVERLAP env or 200.
 
     Returns:
         IndexResult with basic stats about the indexed PDF.
@@ -60,14 +66,25 @@ def index_pdf(
     pdf_result = load_pdf_as_documents(pdf_path)
 
     # Turn per-page documents into chunk documents (preserving metadata).
-    chunk_docs: list[Document] = chunk_documents(pdf_result.documents)
+    size = chunk_size if chunk_size is not None else get_chunk_size()
+    overlap = chunk_overlap if chunk_overlap is not None else get_chunk_overlap()
+    chunk_docs: list[Document] = chunk_documents(
+        pdf_result.documents,
+        chunk_size=size,
+        chunk_overlap=overlap,
+    )
 
-    # Get/create the Chroma store and add chunk documents.
+    # Get/create the Chroma store.
     store = get_chroma_store(
         persist_directory=persist_directory,
         collection_name=collection_name,
         embedding=embedding,
     )
+
+    # Replace existing chunks for this document to avoid duplicates.
+    document_id = pdf_path.name
+    store._collection.delete(where={"document_id": document_id})
+
     if chunk_docs:
         store.add_documents(chunk_docs)
 

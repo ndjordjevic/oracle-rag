@@ -5,7 +5,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from oracle_rag.indexing import index_pdf
+
+# Load .env from project root
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 def main() -> None:

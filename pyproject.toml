@@ -13,12 +13,15 @@ dependencies = [
     "langchain-text-splitters>=1.1.0",
     "mcp>=1.26.0",
     "pypdf>=6.6.1",
-    "pytest>=8.0.0",
     "python-dotenv>=1.2.1",
 ]
 
+[project.scripts]
+oracle-rag-mcp = "oracle_rag.cli:main"
+
 [project.optional-dependencies]
 dev = [
+    "pytest>=8.0.0",
     "ruff>=0.6.1",
     "mypy>=1.11.1",
 ]

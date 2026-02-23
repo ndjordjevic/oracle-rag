@@ -16,8 +16,8 @@ These notes document:
 
 ### Planning & Decision Documents
 
-- **[implementation-checklist.md](implementation-checklist.md)** - Master implementation checklist tracking all phases (MVP → Enhanced → Advanced → Production)
-- **[requirements-checklist.md](requirements-checklist.md)** - Requirements tracking aligned with implementation phases
+- **[implementation-checklist.md](implementation-checklist.md)** - Master checklist tracking all phases, requirements, and progress (MVP → Enhanced → Advanced → Production)
+- **[distribution-options.md](distribution-options.md)** - Options for distributing Oracle-RAG to users (PyPI, Docker, cloud, etc.) without cloning the repo
 - **[langchain-rationale.md](langchain-rationale.md)** - Why LangChain was chosen for Phase 1 MVP
 - **[langgraph-rationale.md](langgraph-rationale.md)** - LangGraph evaluation and future migration plans
 

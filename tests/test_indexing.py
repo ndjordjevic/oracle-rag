@@ -79,3 +79,102 @@ def test_query_index_uses_existing_store(tmp_path: Path) -> None:
     assert len(docs) > 0
     assert isinstance(docs[0], Document)
 
+
+def test_index_pdf_replaces_duplicate(tmp_path: Path) -> None:
+    """Indexing the same PDF twice replaces old chunks; no duplicates."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping indexing test")
+
+    persist_dir = tmp_path / "chroma_idx"
+    coll = "test_replace"
+    emb = _MockEmbeddings()
+
+    result1 = index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name=coll,
+        embedding=emb,
+    )
+    store = get_chroma_store(
+        persist_directory=str(persist_dir),
+        collection_name=coll,
+        embedding=emb,
+    )
+    data1 = store._collection.get(include=[])
+    count1 = len(data1.get("ids") or [])
+
+    # Index same PDF again — should replace, not add
+    result2 = index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name=coll,
+        embedding=emb,
+    )
+    data2 = store._collection.get(include=[])
+    count2 = len(data2.get("ids") or [])
+
+    assert count2 == count1, "Re-indexing should replace chunks, not duplicate"
+    assert result2.total_chunks == result1.total_chunks
+
+
+def test_index_pdf_uses_config_chunk_size_from_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """index_pdf uses ORACLE_RAG_CHUNK_SIZE / ORACLE_RAG_CHUNK_OVERLAP when not passed."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping indexing test")
+
+    persist_dir = tmp_path / "chroma_idx"
+    emb = _MockEmbeddings()
+
+    # Default config (no env set) → default chunk size
+    monkeypatch.delenv("ORACLE_RAG_CHUNK_SIZE", raising=False)
+    monkeypatch.delenv("ORACLE_RAG_CHUNK_OVERLAP", raising=False)
+    result_default = index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_config_default",
+        embedding=emb,
+    )
+
+    # Set env to smaller chunk size → index_pdf (without kwargs) should use it → more chunks
+    monkeypatch.setenv("ORACLE_RAG_CHUNK_SIZE", "200")
+    monkeypatch.setenv("ORACLE_RAG_CHUNK_OVERLAP", "0")
+    result_from_env = index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_config_env",
+        embedding=emb,
+    )
+    assert result_from_env.total_chunks > result_default.total_chunks
+
+
+def test_index_pdf_respects_chunk_size_override(tmp_path: Path) -> None:
+    """index_pdf uses explicit chunk_size/chunk_overlap when passed."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping indexing test")
+
+    persist_dir = tmp_path / "chroma_idx"
+    result_default = index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_default",
+        embedding=_MockEmbeddings(),
+    )
+    result_small = index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_small",
+        embedding=_MockEmbeddings(),
+        chunk_size=200,
+        chunk_overlap=0,
+    )
+    # Smaller chunks → more chunks for the same content
+    assert result_small.total_chunks > result_default.total_chunks
+

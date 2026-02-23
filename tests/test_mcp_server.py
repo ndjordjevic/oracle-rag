@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf
+from oracle_rag.mcp import server as mcp_server
 
 
 # --- list_pdfs ---
@@ -97,6 +98,20 @@ def test_add_pdf_not_pdf_raises(tmp_path: Path) -> None:
         add_pdf(pdf_path=str(txt_file))
 
 
+def test_add_pdf_pdf_loading_error_propagates(tmp_path: Path) -> None:
+    """add_pdf propagates PDF loading / indexing errors (e.g. no text extracted)."""
+    pdf_file = tmp_path / "bad.pdf"
+    pdf_file.write_bytes(b"not a real pdf")
+    with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("oracle_rag.mcp.tools.index_pdf", side_effect=ValueError("No text extracted")):
+            with pytest.raises(ValueError, match="No text extracted"):
+                add_pdf(
+                    pdf_path=str(pdf_file),
+                    persist_dir=str(tmp_path),
+                    collection="test_coll",
+                )
+
+
 def test_add_pdf_success(tmp_path: Path) -> None:
     """add_pdf returns indexing result when PDF exists and index_pdf succeeds."""
     pdf_file = tmp_path / "sample.pdf"
@@ -155,6 +170,23 @@ def test_query_pdf_missing_persist_dir_raises() -> None:
         query_pdf(query="test", persist_dir="/nonexistent/chroma_db")
 
 
+def test_query_pdf_chain_error_propagates(tmp_path: Path) -> None:
+    """query_pdf propagates retrieval/LLM errors from the RAG chain."""
+    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
+    mock_chain = MagicMock()
+    mock_chain.invoke.side_effect = RuntimeError("OpenAI API rate limit")
+
+    with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("oracle_rag.mcp.tools.get_chat_model"):
+            with patch("oracle_rag.mcp.tools.get_rag_chain", return_value=mock_chain):
+                with pytest.raises(RuntimeError, match="OpenAI API rate limit"):
+                    query_pdf(
+                        query="test",
+                        persist_dir=str(tmp_path),
+                        collection="test_coll",
+                    )
+
+
 def test_query_pdf_success(tmp_path: Path) -> None:
     """query_pdf returns answer and sources when chain runs successfully."""
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
@@ -182,3 +214,15 @@ def test_query_pdf_success(tmp_path: Path) -> None:
     assert result["sources"][0] == {"document_id": "doc.pdf", "page": 1}
     assert result["sources"][1] == {"document_id": "doc.pdf", "page": 2}
     mock_chain.invoke.assert_called_once_with({"query": "What is the answer?", "k": 3})
+
+
+# --- Error handling: propagate + log ---
+
+
+def test_server_tool_logs_on_failure() -> None:
+    """When a tool raises, the server decorator logs the exception then re-raises."""
+    mock_log = MagicMock()
+    with patch.object(mcp_server, "_log", mock_log):
+        with pytest.raises(ValueError, match="Query cannot be empty"):
+            mcp_server.query_pdf_tool(query="")
+    mock_log.exception.assert_called_once()

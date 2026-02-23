@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import functools
+import logging
 import os
 import sys
 
@@ -13,18 +15,43 @@ from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf, remove_pdf
 # Load environment variables
 load_dotenv()
 
+# Configure logging to stderr so it appears in Cursor's Output panel for this MCP
+_log_handler = logging.StreamHandler(sys.stderr)
+_log_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+_log = logging.getLogger("oracle_rag.mcp")
+_log.setLevel(logging.INFO)
+_log.propagate = False
+if not _log.handlers:
+    _log.addHandler(_log_handler)
+
+# Suppress MCP SDK's verbose INFO logs ("Processing request of type ...") — they clutter
+# Cursor's Output and get tagged as [error] because they go to stderr
+logging.getLogger("mcp").setLevel(logging.WARNING)
+
 # Verify required environment variables
 if not os.environ.get("OPENAI_API_KEY"):
-    print(
-        "Warning: OPENAI_API_KEY not set. MCP tools will fail without it.",
-        file=sys.stderr,
-    )
+    _log.warning("OPENAI_API_KEY not set. MCP tools will fail without it.")
 
 # Create FastMCP server instance
 mcp = FastMCP("Oracle-RAG", json_response=True)
 
 
+def _log_tool_errors(fn):
+    """Decorator: log exceptions to stderr (Cursor Output) then re-raise so client gets the error."""
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception:
+            _log.exception("Tool %s failed", fn.__name__)
+            raise
+
+    return wrapper
+
+
 @mcp.tool()
+@_log_tool_errors
 def query_pdf_tool(
     query: str,
     k: int = 5,
@@ -52,6 +79,7 @@ def query_pdf_tool(
 
 
 @mcp.tool()
+@_log_tool_errors
 def add_pdf_tool(
     pdf_path: str,
     persist_dir: str = "chroma_db",
@@ -79,6 +107,7 @@ def add_pdf_tool(
 
 
 @mcp.tool()
+@_log_tool_errors
 def list_pdfs_tool(
     persist_dir: str = "chroma_db",
     collection: str = "oracle_rag",
@@ -104,6 +133,7 @@ def list_pdfs_tool(
 
 
 @mcp.tool()
+@_log_tool_errors
 def remove_pdf_tool(
     document_id: str,
     persist_dir: str = "chroma_db",
