@@ -25,9 +25,9 @@ _log.propagate = False
 if not _log.handlers:
     _log.addHandler(_log_handler)
 
-# Suppress MCP SDK's verbose INFO logs ("Processing request of type ...") — they clutter
-# Cursor's Output and get tagged as [error] because they go to stderr
-logging.getLogger("mcp").setLevel(logging.WARNING)
+# Suppress verbose INFO logs from dependencies — they go to stderr and show as [error] in Cursor
+for _name in ("mcp", "chromadb", "posthog", "openai", "httpx", "httpcore"):
+    logging.getLogger(_name).setLevel(logging.WARNING)
 
 # Verify required environment variables
 if not os.environ.get("OPENAI_API_KEY"):

@@ -1,6 +1,6 @@
 [project]
 name = "oracle-rag"
-version = "1.1.1"
+version = "1.1.2"
 description = "A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed to be wrapped as an MCP server"
 requires-python = ">=3.12"
 dependencies = [
