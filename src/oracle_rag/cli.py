@@ -8,12 +8,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from oracle_rag.mcp.server import mcp
-
 
 def _load_env() -> None:
-    """Load .env from global config first, then cwd (cwd overrides)."""
-    # Order: global first, then cwd — dotenv won't override, so cwd/.env takes precedence
+    """Load .env from well-known paths before any other imports touch env vars."""
     paths = [
         Path.home() / ".config" / "oracle-rag" / ".env",
         Path.home() / ".oracle-rag" / ".env",
@@ -22,7 +19,6 @@ def _load_env() -> None:
     for p in paths:
         if p.exists():
             load_dotenv(p)
-    # Also try default search (cwd and parents) for project-based usage
     load_dotenv()
 
 
@@ -37,5 +33,7 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+
+    from oracle_rag.mcp.server import mcp
 
     mcp.run(transport="stdio")

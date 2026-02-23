@@ -29,8 +29,10 @@ if not _log.handlers:
     _log.addHandler(_log_handler)
 
 # Suppress verbose INFO logs from dependencies — they go to stderr and show as [error] in Cursor
-for _name in ("mcp", "chromadb", "posthog", "openai", "httpx", "httpcore", "pypdf"):
+for _name in ("mcp", "chromadb", "posthog", "openai", "httpx", "httpcore"):
     logging.getLogger(_name).setLevel(logging.WARNING)
+# pypdf logs "Rotated text discovered" at WARNING level — suppress entirely
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 # pypdf also uses warnings module for "Rotated text discovered"
 import warnings
 warnings.filterwarnings("ignore", message=".*Rotated text.*")
