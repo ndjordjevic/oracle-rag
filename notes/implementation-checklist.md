@@ -150,7 +150,7 @@ Phase 1 complete = first release; package version in `pyproject.toml` is set to 
 
 - [x] **Document how others can start and use this MCP**
   - [x] PyPI install: `pip install oracle-rag` → `oracle-rag-mcp` CLI; config from cwd or `~/.config/oracle-rag/` (see `README.md`, `notes/distribution-options.md`)
-  - [x] Cursor MCP config: command `oracle-rag-mcp`, cwd = folder with `.env` and `chroma_db`
+  - [x] Cursor MCP config: command `oracle-rag-mcp` (no cwd needed; uses ~/.oracle-rag/ for .env and chroma_db)
 
 ---
 

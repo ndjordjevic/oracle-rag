@@ -23,7 +23,7 @@ oracle-rag-mcp   # if we add a CLI entry point
 
 **Cons:**
 - Requires Python 3.12+ on the user's machine
-- User must configure Cursor MCP to run `oracle-rag-mcp` (or `python -m oracle_rag.mcp`) with correct cwd for `.env` and `chroma_db`
+- User must configure Cursor MCP to run `oracle-rag-mcp` (no cwd needed; .env and chroma_db use ~/.oracle-rag/)
 
 **Implementation:**
 - Add `[project.scripts]` to `pyproject.toml`, e.g. `oracle-rag-mcp = "oracle_rag.mcp:main"` (or point to a small CLI that loads `.env` from cwd or `~/.config/oracle-rag/`)
@@ -198,7 +198,7 @@ uv sync   # or pip install -e .
 ## Implementation Checklist (for PyPI)
 
 - [x] Add `[project.scripts]` entry point for `oracle-rag-mcp`
-- [x] Configure default paths for config: `.env` loaded from cwd, `~/.config/oracle-rag/`, `~/.oracle-rag/`; `chroma_db` in cwd by default
+- [x] Configure default paths: `.env` from `~/.config/oracle-rag/`, `~/.oracle-rag/`, cwd; `chroma_db` at `~/.oracle-rag/chroma_db` by default
 - [x] Document `pip install oracle-rag` and Cursor MCP config in README
 - [x] Create PyPI account; `uv build` and `uv publish`
 - [ ] Optional: GitHub Action to publish on tag (e.g. `v1.0.1`)
