@@ -200,5 +200,35 @@ uv sync   # or pip install -e .
 - [x] Add `[project.scripts]` entry point for `oracle-rag-mcp`
 - [x] Configure default paths for config: `.env` loaded from cwd, `~/.config/oracle-rag/`, `~/.oracle-rag/`; `chroma_db` in cwd by default
 - [x] Document `pip install oracle-rag` and Cursor MCP config in README
-- [ ] Create PyPI account; `uv build` and `uv publish`
+- [x] Create PyPI account; `uv build` and `uv publish`
 - [ ] Optional: GitHub Action to publish on tag (e.g. `v1.0.1`)
+
+### How to publish
+
+1. **Build:** `uv build` (creates `dist/` with sdist and wheel).
+2. **API token required:** PyPI no longer accepts username/password. Create a token at [pypi.org/manage/account/token/](https://pypi.org/manage/account/token/).
+3. **Publish:** `uv publish`.
+   - When prompted: username = `__token__`, password = your `pypi-...` token.
+   - Or: `export UV_PUBLISH_TOKEN=pypi-your-token` then `uv publish`.
+
+### Test this deployment
+
+1. **Fresh install:** In a new venv or different machine:
+   ```bash
+   pip install oracle-rag
+   which oracle-rag-mcp   # or: uv run oracle-rag-mcp --help
+   ```
+2. **Run MCP server:** From a folder with `.env` and (optionally) `chroma_db`:
+   ```bash
+   oracle-rag-mcp
+   ```
+   Server should start and wait for stdio input (Ctrl+C to stop).
+3. **Cursor MCP:** Add to `.cursor/mcp.json`:
+   ```json
+   "oracle-rag": {
+     "command": "oracle-rag-mcp",
+     "args": [],
+     "cwd": "/path/to/project"
+   }
+   ```
+   Restart Cursor; verify `add_pdf`, `list_pdfs`, `query_pdf` tools appear.
