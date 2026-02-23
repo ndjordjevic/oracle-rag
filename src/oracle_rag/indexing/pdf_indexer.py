@@ -85,8 +85,12 @@ def index_pdf(
     document_id = pdf_path.name
     store._collection.delete(where={"document_id": document_id})
 
+    # Add in batches to avoid OpenAI/Chroma batch size limits (e.g. token or record limits)
+    batch_size = 100
     if chunk_docs:
-        store.add_documents(chunk_docs)
+        for i in range(0, len(chunk_docs), batch_size):
+            batch = chunk_docs[i : i + batch_size]
+            store.add_documents(batch)
 
     return IndexResult(
         source_path=pdf_result.source_path,
