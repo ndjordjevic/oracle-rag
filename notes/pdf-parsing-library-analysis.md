@@ -59,7 +59,8 @@ PDFs typically **do not contain a reliable semantic layer** for “sections” /
 
 ### Phase 2 (if we need better structure)
 
-Add **`pdfplumber`** as an optional “high-fidelity extraction” backend for:
+Add `**pdfplumber**` as an optional “high-fidelity extraction” backend for:
+
 - better layout preservation,
 - table-heavy PDFs,
 - and extracting richer signals (coordinates, fonts, etc.) to support “section/heading” heuristics.

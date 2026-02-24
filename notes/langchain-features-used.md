@@ -14,10 +14,6 @@
 | **LCEL / Runnables** | `langchain_core.runnables.RunnablePassthrough`, `RunnableLambda` | RAG chain wiring: assign retrieval (`query_index`), context formatting, and answer generation in `get_rag_chain()`. |
 | **Output parsing** | `langchain_core.output_parsers.StrOutputParser` | Converts Chat model output to plain string as the `answer` field in the RAG result. |
 
-## LangGraph
-
-Not used yet. Phase 0 decision: start with LangChain for the RAG pipeline; LangGraph may be used later for workflows with state (e.g. MCP or multi-step flows).
-
 ---
 
 ## LangChain features not used (so far)

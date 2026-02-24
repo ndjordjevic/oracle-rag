@@ -12,7 +12,6 @@ How others can use Oracle-RAG MCP **without cloning the GitHub repo**. Options r
 ```bash
 pip install oracle-rag
 # or: uv tool install oracle-rag
-oracle-rag-mcp   # if we add a CLI entry point
 ```
 
 **Pros:**
@@ -25,36 +24,16 @@ oracle-rag-mcp   # if we add a CLI entry point
 - Requires Python 3.12+ on the user's machine
 - User must configure Cursor MCP to run `oracle-rag-mcp` (no cwd needed; .env and chroma_db use ~/.oracle-rag/)
 
-**Implementation:**
-- Add `[project.scripts]` to `pyproject.toml`, e.g. `oracle-rag-mcp = "oracle_rag.mcp:main"` (or point to a small CLI that loads `.env` from cwd or `~/.config/oracle-rag/`)
-- Decide where config and `chroma_db` live when installed globally (e.g. `~/.local/share/oracle-rag/` or current working directory)
-- Publish: `uv build` → `uv publish` (or `twine upload`)
+**Implementation (current state):**
+- `[project.scripts]` in `pyproject.toml` exposes `oracle-rag-mcp = "oracle_rag.cli:main"`.
+- Config is loaded from `~/.config/oracle-rag/.env`, `~/.oracle-rag/.env`, or `{cwd}/.env`; the Chroma index defaults to `~/.oracle-rag/chroma_db` (overridable via `ORACLE_RAG_PERSIST_DIR`).
+- Publish flow: bump `version` in `pyproject.toml` → `git commit && git tag vX.Y.Z && git push --tags` → `uv build` → `uv publish` (using PyPI API token).
 
 ---
 
-## 2. pipx run (no permanent install)
-
-**What:** Users run `pipx run oracle-rag` without installing. Similar to `npx` for Node.
-
-**User flow:**
-```bash
-pipx run oracle-rag   # downloads, runs in temp env, exits
-```
-
-**Pros:**
-- No permanent install; good for trying the tool
-- Isolated from system Python
-
-**Cons:**
-- Requires `pipx` and Python
-- Each run fetches/caches the package; first run can be slow
-- MCP servers are long-lived (Cursor spawns them), so `pipx run` is less natural than `pipx install` for this use case
-
-**Best for:** Quick try-before-install. For daily use, `pipx install oracle-rag` is better.
-
 ---
 
-## 3. GitHub Release (zip / tarball)
+## 2. GitHub Release (zip / tarball)
 
 **What:** Attach a source archive (`.zip`, `.tar.gz`) or a built wheel (`.whl`) to GitHub Releases.
 
@@ -78,7 +57,7 @@ uv sync   # or pip install -e .
 
 ---
 
-## 4. Docker Image
+## 3. Docker Image
 
 **What:** Package as a Docker image. Users run `docker run <image>`.
 
@@ -99,7 +78,7 @@ uv sync   # or pip install -e .
 
 ---
 
-## 5. Cloud Hosting (Remote MCP Server)
+## 4. Cloud Hosting (Remote MCP Server)
 
 **What:** Deploy the MCP server to a cloud provider. Users connect from Cursor or other clients to a remote URL (no local install).
 
@@ -127,7 +106,7 @@ uv sync   # or pip install -e .
 
 ---
 
-## 6. Standalone Executable (PyInstaller / Nuitka)
+## 5. Standalone Executable (PyInstaller / Nuitka)
 
 **What:** Build a single binary (e.g. `oracle-rag-mcp.exe` on Windows, `oracle-rag-mcp` on macOS/Linux). No Python install needed.
 
@@ -146,7 +125,7 @@ uv sync   # or pip install -e .
 
 ---
 
-## 7. System Package Managers (Homebrew, Chocolatey, apt)
+## 6. System Package Managers (Homebrew, Chocolatey, apt)
 
 **What:** Package for Homebrew (macOS), Chocolatey (Windows), or apt (Linux).
 
@@ -165,7 +144,7 @@ uv sync   # or pip install -e .
 
 ---
 
-## 8. Cursor / MCP Marketplace (if available)
+## 7. Cursor / MCP Marketplace (if available)
 
 **What:** If Cursor (or another MCP client) adds a marketplace, users could add Oracle-RAG with one click.
 
@@ -177,8 +156,7 @@ uv sync   # or pip install -e .
 
 | Option | User effort | Your effort | Best for |
 |--------|-------------|-------------|----------|
-| **PyPI (pip install)** | Low | Low | Python users; standard distribution |
-| **pipx (run)** | Low | Low | Quick try |
+| **PyPI (pip install / pipx / uv tool)** | Low | Low | Python users; standard distribution |
 | **GitHub Release (zip)** | Medium | Low | Users who prefer a zip over pip |
 | **Docker** | Medium | Medium | Users with Docker; cloud deploy |
 | **Cloud hosting** | Very low | High | Teams; no local install |

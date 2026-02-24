@@ -305,6 +305,17 @@ if __name__ == "__main__":
     mcp.run(transport="streamable-http")
 ```
 
+## Decisions (current implementation)
+
+- **Language & SDK:** Python with the official `mcp` SDK.
+- **Server framework:** `FastMCP` (decorator-based) instead of the low-level server API.
+- **Transport:** `stdio` for real use (Cursor, uv tool install); `streamable-http` only for local testing/Inspector.
+- **Entry point:** `oracle-rag-mcp` script from `pyproject.toml` (`oracle_rag.cli:main`), which:
+  - Loads `.env` from `~/.config/oracle-rag/.env`, `~/.oracle-rag/.env`, then `{cwd}/.env`.
+  - Verifies `OPENAI_API_KEY` is set before starting the MCP server.
+- **Persistence defaults:** Chroma persist dir `~/.oracle-rag/chroma_db` (overridable via `ORACLE_RAG_PERSIST_DIR`); collection name `oracle_rag`.
+- **Tools exposed:** `query_pdf_tool`, `add_pdf_tool`, `list_pdfs_tool`, `remove_pdf_tool` as thin wrappers around the existing Oracle-RAG functions.
+
 ## Error Handling
 
 MCP tools should:

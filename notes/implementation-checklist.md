@@ -19,8 +19,6 @@
 
 **Goal:** Working PDF RAG that can load PDFs, answer questions, and provide basic source citations.
 
-Phase 1 complete = first release; package version in `pyproject.toml` is set to `1.0.0` and tagged as `v1.0.0` in git.
-
 ### PDF Processing
 - [x] **PDF Library Selection**
   - [x] Research PDF parsing libraries (PyPDF2, pdfplumber, pypdf, etc.)
@@ -122,17 +120,6 @@ Phase 1 complete = first release; package version in `pyproject.toml` is set to 
   - [x] Handle LLM generation errors — propagate; logged and returned to client
   - [x] Add basic error messages — tools validate and raise with clear messages; `_log_tool_errors` decorator logs to stderr (Cursor Output) then re-raises
 
-  **Approach (MCP / Cursor):**
-  - **Return to caller:** Keep raising from tools (ValueError, FileNotFoundError, etc.). The MCP SDK turns these into error responses so the Cursor agent (or any MCP client) receives a clear error message and can retry or report to the user.
-  - **Log to server output:** Use Python `logging` with a handler to stderr (or log in a central place). Cursor’s “Output” panel for the oracle-rag MCP shows the server process’s stderr, so errors will appear there for debugging. Option: wrap tool calls in a decorator or server-level try/except that logs the exception (tool name, message, optional traceback at DEBUG) then re-raises, so every tool gets logging without duplicating try/except.
-  - **Summary:** Raise → client gets the error; log (e.g. `logging.error(...)`) → Output window shows it.
-
-  **How to test** (`tests/test_mcp_server.py`):
-  - **Validation / input errors:** `test_add_pdf_empty_path_raises`, `test_add_pdf_file_not_found_raises`, `test_query_pdf_empty_query_raises`, `test_query_pdf_missing_persist_dir_raises`, etc. — assert tools raise with clear messages.
-  - **PDF loading errors:** `test_add_pdf_pdf_loading_error_propagates` — mock `index_pdf` to raise (e.g. `ValueError("No text extracted")`), assert exception propagates.
-  - **Retrieval / LLM errors:** `test_query_pdf_chain_error_propagates` — mock `chain.invoke` to raise (e.g. `RuntimeError("OpenAI API rate limit")`), assert exception propagates.
-  - **Log then re-raise:** `test_server_tool_logs_on_failure` — patch server `_log`, trigger a tool failure, assert `_log.exception` was called and exception is re-raised.
-
 ### Testing - MVP
 - [x] **Basic Testing**
   - [x] Test PDF loading with sample PDF (`tests/test_pypdf_loader.py`)
@@ -148,10 +135,12 @@ Phase 1 complete = first release; package version in `pyproject.toml` is set to 
   - [x] Test error handling (PDF load failures, embedding/retrieval/LLM errors return clear messages; CLI and MCP) — `test_mcp_server.py` covers validation errors; errors propagate and are logged via `_log_tool_errors`
   - [x] Test duplicate PDF detection (add same PDF twice: replace; verify no duplicate chunks) — `test_index_pdf_replaces_duplicate`
 
+### Deployment & Distribution - MVP
 - [x] **Document how others can start and use this MCP**
   - [x] PyPI install: `pip install oracle-rag` → `oracle-rag-mcp` CLI; config from cwd or `~/.config/oracle-rag/` (see `README.md`, `notes/distribution-options.md`)
   - [x] Cursor MCP config: command `oracle-rag-mcp` (no cwd needed; uses ~/.oracle-rag/ for .env and chroma_db)
   - **Publish new version to PyPI:** Bump `version` in `pyproject.toml` → `git add -A && git commit -m "vX.Y.Z: ..." && git push` → `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z` → `uv build && uv publish` (use `__token__` + PyPI API token when prompted; or `uv cache clean` before `uv tool install oracle-rag --force` to get latest)
+  - [ ] Github action to publish to PyPI on a new tag/release
 
 ---
 
