@@ -9,7 +9,7 @@ import pytest
 
 from langchain_core.documents import Document
 
-from oracle_rag.rag import RAG_PROMPT, format_docs, format_sources, get_rag_chain
+from oracle_rag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
 from oracle_rag.llm import get_chat_model
 
 
@@ -76,7 +76,7 @@ def test_rag_prompt_has_context_and_question() -> None:
 
 
 def test_rag_chain_invoke(tmp_path: Path) -> None:
-    """Full RAG chain: index a PDF, run a query, get answer and sources."""
+    """Full RAG pipeline: index a PDF, run a query, get answer and sources."""
     from dotenv import load_dotenv
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY"):
@@ -98,16 +98,16 @@ def test_rag_chain_invoke(tmp_path: Path) -> None:
         embedding=get_embedding_model(),
     )
     llm = get_chat_model()
-    chain = get_rag_chain(
+    result = run_rag(
+        "What is this document about? One short sentence.",
         llm,
+        k=3,
         persist_directory=str(persist_dir),
         collection_name="rag_test",
         embedding=get_embedding_model(),
-        k=3,
     )
-    result = chain.invoke({"query": "What is this document about? One short sentence."})
-    assert "answer" in result
-    assert "sources" in result
-    assert isinstance(result["answer"], str)
-    assert len(result["answer"].strip()) > 0
-    assert isinstance(result["sources"], list)
+    assert hasattr(result, "answer")
+    assert hasattr(result, "sources")
+    assert isinstance(result.answer, str)
+    assert len(result.answer.strip()) > 0
+    assert isinstance(result.sources, list)

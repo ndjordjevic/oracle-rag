@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langsmith import traceable
 
 from oracle_rag.indexing.pdf_indexer import query_index
 from oracle_rag.rag.formatting import format_docs, format_sources
@@ -32,54 +31,41 @@ class RAGResult:
     sources: list[dict[str, str | int]]
 
 
-def get_rag_chain(
+@traceable(name="run_rag", run_type="chain")
+def run_rag(
+    query: str,
     llm: BaseChatModel,
     *,
+    k: int = 5,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: str = DEFAULT_COLLECTION_NAME,
     embedding: Optional[Embeddings] = None,
-    k: int = 5,
-):
-    """Build a RAG chain using RunnablePassthrough: retrieve, format context, prompt, generate, add citations.
+) -> RAGResult:
+    """Run a 2-step RAG pipeline: retrieve chunks, format context, prompt LLM, return answer with citations.
 
-    Chain input: dict with "query" (str) and optional "k" (int).
-    Chain output: dict with "answer" (str) and "sources" (list of {document_id, page}).
+    Plain Python implementation (no LCEL). Uses @traceable for LangSmith per-step tracing.
 
     Args:
+        query: Natural language question to answer.
         llm: Chat model for generation (e.g. from get_chat_model()).
+        k: Number of chunks to retrieve (default: 5).
         persist_directory: Chroma persistence directory (must match indexing).
         collection_name: Chroma collection name (must match indexing).
         embedding: Optional embedding model for retrieval; if None, uses default.
-        k: Default number of chunks to retrieve.
 
     Returns:
-        A runnable that accepts {"query": str, "k": int?} and returns {"answer": str, "sources": [...]}.
+        RAGResult with answer (str) and sources (list of {document_id, page}).
     """
-
-    def retrieve(state: dict[str, Any]) -> list[Document]:
-        return query_index(
-            state["query"],
-            k=state.get("k", k),
-            persist_directory=persist_directory,
-            collection_name=collection_name,
-            embedding=embedding,
-        )
-
-    # Assign documents first so context/question can use them in the next step.
-    chain = (
-        RunnablePassthrough.assign(documents=retrieve)
-        | RunnablePassthrough.assign(
-            context=lambda x: format_docs(x["documents"]),
-            question=lambda x: x["query"],
-        )
-        | RunnablePassthrough.assign(
-            answer=RAG_PROMPT | llm | StrOutputParser(),
-        )
-        | RunnableLambda(
-            lambda x: {
-                "answer": x["answer"],
-                "sources": format_sources(x["documents"]),
-            }
-        )
+    docs = query_index(
+        query,
+        k=k,
+        persist_directory=persist_directory,
+        collection_name=collection_name,
+        embedding=embedding,
     )
-    return chain
+    messages = RAG_PROMPT.invoke(
+        {"context": format_docs(docs), "question": query}
+    ).messages
+    response = llm.invoke(messages)
+    answer = response.content if hasattr(response, "content") else str(response)
+    return RAGResult(answer=answer, sources=format_sources(docs))

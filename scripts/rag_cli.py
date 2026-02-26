@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from oracle_rag.embeddings import get_embedding_model
 from oracle_rag.llm import get_chat_model
-from oracle_rag.rag import get_rag_chain
+from oracle_rag.rag import run_rag
 
 
 def main() -> None:
@@ -45,20 +45,20 @@ def main() -> None:
     persist_dir = Path(args.persist_dir).expanduser().resolve()
     embedding = get_embedding_model()
     llm = get_chat_model()
-    chain = get_rag_chain(
+
+    result = run_rag(
+        args.query,
         llm,
+        k=args.k,
         persist_directory=persist_dir,
         collection_name=args.collection,
         embedding=embedding,
-        k=args.k,
     )
 
-    result = chain.invoke({"query": args.query, "k": args.k})
-
-    print(result["answer"])
-    if result.get("sources"):
+    print(result.answer)
+    if result.sources:
         print("\nSources:")
-        for s in result["sources"]:
+        for s in result.sources:
             print(f"  - {s.get('document_id', '?')} (p. {s.get('page', '?')})")
 
 

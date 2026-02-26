@@ -11,8 +11,7 @@
 | **Core** | `langchain_core.embeddings.Embeddings` | Type for injectable embedding (e.g. mock in tests). |
 | **Chat models** | `langchain_openai.ChatOpenAI` | LLM client for answer generation; used directly (`get_chat_model`) and inside the RAG chain. |
 | **Prompts** | `langchain_core.prompts.ChatPromptTemplate` | RAG prompt with system + human messages (`RAG_PROMPT`), templated with `{context}` and `{question}`. |
-| **LCEL / Runnables** | `langchain_core.runnables.RunnablePassthrough`, `RunnableLambda` | RAG chain wiring: assign retrieval (`query_index`), context formatting, and answer generation in `get_rag_chain()`. |
-| **Output parsing** | `langchain_core.output_parsers.StrOutputParser` | Converts Chat model output to plain string as the `answer` field in the RAG result. |
+| **Plain Python + LangSmith** | `langsmith.traceable` | RAG pipeline (`run_rag`) is a plain Python function decorated with `@traceable` for per-step LangSmith tracing. Replaces LCEL. |
 
 ---
 

@@ -171,14 +171,15 @@ def test_query_pdf_missing_persist_dir_raises() -> None:
 
 
 def test_query_pdf_chain_error_propagates(tmp_path: Path) -> None:
-    """query_pdf propagates retrieval/LLM errors from the RAG chain."""
+    """query_pdf propagates retrieval/LLM errors from run_rag."""
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
-    mock_chain = MagicMock()
-    mock_chain.invoke.side_effect = RuntimeError("OpenAI API rate limit")
 
     with patch("oracle_rag.mcp.tools.get_embedding_model"):
         with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch("oracle_rag.mcp.tools.get_rag_chain", return_value=mock_chain):
+            with patch(
+                "oracle_rag.mcp.tools.run_rag",
+                side_effect=RuntimeError("OpenAI API rate limit"),
+            ):
                 with pytest.raises(RuntimeError, match="OpenAI API rate limit"):
                     query_pdf(
                         query="test",
@@ -188,20 +189,23 @@ def test_query_pdf_chain_error_propagates(tmp_path: Path) -> None:
 
 
 def test_query_pdf_success(tmp_path: Path) -> None:
-    """query_pdf returns answer and sources when chain runs successfully."""
+    """query_pdf returns answer and sources when run_rag succeeds."""
+    from oracle_rag.rag import RAGResult
+
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
-    mock_chain = MagicMock()
-    mock_chain.invoke.return_value = {
-        "answer": "The answer is 42.",
-        "sources": [
-            {"document_id": "doc.pdf", "page": 1},
-            {"document_id": "doc.pdf", "page": 2},
-        ],
-    }
+    mock_run_rag = MagicMock(
+        return_value=RAGResult(
+            answer="The answer is 42.",
+            sources=[
+                {"document_id": "doc.pdf", "page": 1},
+                {"document_id": "doc.pdf", "page": 2},
+            ],
+        )
+    )
 
     with patch("oracle_rag.mcp.tools.get_embedding_model"):
         with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch("oracle_rag.mcp.tools.get_rag_chain", return_value=mock_chain):
+            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
                 result = query_pdf(
                     query="What is the answer?",
                     k=3,
@@ -213,7 +217,10 @@ def test_query_pdf_success(tmp_path: Path) -> None:
     assert len(result["sources"]) == 2
     assert result["sources"][0] == {"document_id": "doc.pdf", "page": 1}
     assert result["sources"][1] == {"document_id": "doc.pdf", "page": 2}
-    mock_chain.invoke.assert_called_once_with({"query": "What is the answer?", "k": 3})
+    mock_run_rag.assert_called_once()
+    call_args, call_kwargs = mock_run_rag.call_args
+    assert call_args[0] == "What is the answer?"
+    assert call_kwargs["k"] == 3
 
 
 # --- Error handling: propagate + log ---

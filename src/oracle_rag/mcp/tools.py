@@ -10,7 +10,7 @@ from langsmith import traceable
 from oracle_rag.embeddings import get_embedding_model
 from oracle_rag.indexing import IndexResult, index_pdf
 from oracle_rag.llm import get_chat_model
-from oracle_rag.rag import get_rag_chain
+from oracle_rag.rag import run_rag
 from oracle_rag.vectorstore import get_chroma_store
 from oracle_rag.vectorstore.chroma_client import (
     DEFAULT_COLLECTION_NAME,
@@ -54,30 +54,26 @@ def query_pdf(
             "Index some PDFs first using add_pdf."
         )
 
-    # Initialize models
     embedding = get_embedding_model()
     llm = get_chat_model()
 
-    # Get RAG chain and invoke
-    chain = get_rag_chain(
+    result = run_rag(
+        query,
         llm,
+        k=k,
         persist_directory=str(persist_path),
         collection_name=collection,
         embedding=embedding,
-        k=k,
     )
 
-    result = chain.invoke({"query": query, "k": k})
-
-    # Convert to JSON-serializable format
     return {
-        "answer": result["answer"],
+        "answer": result.answer,
         "sources": [
             {
                 "document_id": str(s.get("document_id", "unknown")),
                 "page": int(s.get("page", 0)),
             }
-            for s in result.get("sources", [])
+            for s in result.sources
         ],
     }
 

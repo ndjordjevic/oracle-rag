@@ -69,7 +69,7 @@
   - [x] Implement context formatting (`format_docs`, numbered with doc/page for citations)
   - [x] Implement generation step (prompt | llm | StrOutputParser)
   - [x] Implement response formatting with citations (`format_sources`, `RAGResult`-like output)
-  - [x] Build LangChain chain (RunnablePassthrough pattern in `get_rag_chain()`; CLI: `scripts/rag_cli.py`)
+  - [x] Build RAG pipeline (plain Python `run_rag()` with `@traceable`; CLI: `scripts/rag_cli.py`)
 
 - [x] **Observability & Development Tools**
   - [x] Setup LangSmith (tracing, observability; see `notes/langsmith-setup.md`)
@@ -85,7 +85,7 @@
   - [x] Create entry point script (`scripts/mcp_server.py`)
 
 - [x] **Basic MCP Tools**
-  - [x] Implement `query_pdf` tool (wraps `get_rag_chain()`)
+  - [x] Implement `query_pdf` tool (wraps `run_rag()`)
   - [x] Implement `add_pdf` tool (wraps `index_pdf()`)
   - [x] Implement `remove_pdf` tool (remove PDF and all its chunks/embeddings from Chroma)
   - [x] Implement `list_pdfs` tool (list all indexed books in Oracle-RAG)
@@ -140,7 +140,7 @@
   - [x] PyPI install: `pip install oracle-rag` → `oracle-rag-mcp` CLI; config from cwd or `~/.config/oracle-rag/` (see `README.md`, `notes/distribution-options.md`)
   - [x] Cursor MCP config: command `oracle-rag-mcp` (no cwd needed; uses ~/.oracle-rag/ for .env and chroma_db)
   - **Publish new version to PyPI:** Bump `version` in `pyproject.toml` → `git add -A && git commit -m "vX.Y.Z: ..." && git push` → `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z` → `uv build && uv publish` (use `__token__` + PyPI API token when prompted; or `uv cache clean` before `uv tool install oracle-rag --force` to get latest)
-  - [ ] Github action to publish to PyPI on a new tag/release
+  - [x] Github action to publish to PyPI on a new tag/release
 
 ---
 
@@ -148,18 +148,25 @@
 
 **Goal:** Document management, better metadata, improved retrieval, modernize the RAG chain.
 
-### Configuration - Enhanced
-- [ ] **Embedding and LLM configuration**
-  - [ ] Make embedding model configurable (env or config file)
-  - [ ] Make LLM provider configurable (env or config file)
+### Releases - GitHub
+- [x] **Manual GitHub Release for stable versions**
+  - [x] When ready (e.g. after Phase 2 milestone), pick the latest `vX.Y.Z` tag and create a GitHub Release with notes (no assets).
+  - [x] Prefer a **manual** release (not per-tag) so only meaningful milestones get a Release page.
+  - [x] CLI option: `gh release create vX.Y.Z --notes \"Summary of changes\"` (requires GitHub CLI + auth).
 
 ### RAG Chain Rewrite
-- [ ] **Replace LCEL with plain Python + LangGraph**
-  - [ ] Rewrite LCEL chain (`RunnablePassthrough`/`RunnableLambda`) as a plain Python function for readability
-  - [ ] Add `@traceable` decorator (from `langsmith`) to preserve per-step LangSmith tracing
-  - [ ] Evaluate wrapping as a LangGraph `StateGraph` for Studio support and future extensibility
-  - [ ] Update tests to work with the new implementation
-  - *Context*: LangChain maintainers confirmed LCEL/Runnables are effectively deprecated in favor of LangGraph + `create_agent`. Plain Python is clearer for a deterministic RAG pipeline.
+- [x] **Replace LCEL with plain Python (2-step RAG pattern)** ✅
+  - [x] Rewrite `get_rag_chain()` as a plain Python function `run_rag(query, ...) -> RAGResult`:
+    - `docs = query_index(query, k=k, ...)`
+    - `messages = RAG_PROMPT.invoke({"context": format_docs(docs), "question": query}).messages`
+    - `answer = llm.invoke(messages).content`
+    - return `RAGResult(answer=answer, sources=format_sources(docs))`
+  - [x] Decorate with `@traceable` from `langsmith` for per-step LangSmith tracing (replaces LCEL auto-tracing)
+  - [x] Remove imports: `RunnablePassthrough`, `RunnableLambda`, `StrOutputParser`
+  - [x] `ChatPromptTemplate` stays — call with `.invoke({"context": ..., "question": ...})`
+  - [x] Update `query_pdf` MCP tool to call `run_rag()` directly instead of `chain.invoke()`
+  - [x] Update tests to work with the new plain-function implementation
+  - *Context*: LangChain docs (2025+) show plain Python + `@traceable` as the recommended pattern for deterministic 2-step RAG (always retrieve → generate). `RunnablePassthrough`/`RunnableLambda`/`StrOutputParser` are no longer recommended. `AgentMiddleware` + `create_agent` is for agentic RAG where the LLM decides when to retrieve — not our case.
 
 ### PDF Processing - Enhanced
 - [ ] **Multiple PDF Support**
@@ -188,8 +195,8 @@
   - [ ] Test metadata filtering
 
 - [ ] **Retriever abstraction (oracle-rag 2.0)**
-  - [ ] Use LangChain Retriever (`store.as_retriever()`) in RAG chain instead of `query_index`
-  - [ ] Refactor `get_rag_chain()` to accept a retriever runnable
+  - [ ] Use LangChain Retriever (`store.as_retriever()`) in RAG pipeline instead of `query_index`
+  - [ ] Refactor `run_rag()` to accept a retriever
 
 ### Document Management
 - [ ] **Document Operations**
@@ -198,6 +205,15 @@
   - [ ] Implement document status tracking
   - [ ] Implement document update/re-indexing
   - [ ] Add document metadata display (e.g. chunk count per document in list_pdfs)
+
+---
+
+## Phase 3: Advanced Configuration & Deployment
+
+### Configuration - Enhanced
+- [ ] **Embedding and LLM configuration**
+  - [ ] Make embedding model configurable (env or config file)
+  - [ ] Make LLM provider configurable (env or config file)
 
 ### Response Generation - Enhanced
 - [ ] **Response metadata**
@@ -408,25 +424,22 @@
 
 ## Framework Evaluation
 
-### Phase 1: LangChain + LCEL ✅ (current)
+### Phase 1: LangChain + Plain Python RAG ✅ (current)
 - PDF processing, chunking, embeddings, vector store with Chroma
-- RAG chain via LCEL (`RunnablePassthrough`, `RunnableLambda`)
-- LangSmith observability (automatic with LCEL)
+- RAG pipeline via plain Python `run_rag()` with `@traceable` (2-step: retrieve → generate)
+- LangSmith observability via `@traceable` decorator
 - MCP tool integration
 
-> **Note:** LCEL/Runnables are effectively deprecated per LangChain maintainers (not formally removed yet, but no longer recommended). The Phase 1 chain works and won't break, but should be migrated in Phase 2.
+### Phase 2: Complete ✅
+- Plain Python `run_rag()` replaces LCEL; `ChatPromptTemplate` stays; `RunnablePassthrough`/`RunnableLambda`/`StrOutputParser` removed
 
-### Phase 2: Plain Python + LangGraph evaluation ⚠️
-- Rewrite LCEL chain as plain Python for readability
-- Evaluate LangGraph `StateGraph` as the orchestration layer
-- Use `@traceable` from LangSmith to preserve per-step tracing
-- LangGraph enables LangChain Studio support
-
-### Phase 3: LangGraph (if adopted in Phase 2)
+### Phase 3: Advanced Configuration + LangGraph
+- Embedding and LLM configuration (swap providers, tune chunk settings)
 - Query classification with conditional routing
 - Multi-step reasoning with state persistence
 - Retrieval quality checks with fallback logic
 - Conversation history management
 - Iterative refinement workflows
+- Evaluate wrapping as a LangGraph `StateGraph` for Studio support and future extensibility
 
-**Recommendation:** LangChain maintainers recommend LangGraph + `create_agent` as the current pattern. For a deterministic RAG pipeline, LangGraph `StateGraph` is the most relevant migration target.
+**Note:** LangChain docs recommend plain Python + `@traceable` for a deterministic 2-step RAG. `AgentMiddleware` + `create_agent` is for agentic RAG (LLM decides when to retrieve). LangGraph `StateGraph` is the right target if the pipeline needs routing, loops, or Studio visibility — deferred to Phase 3.
