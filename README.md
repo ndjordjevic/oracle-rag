@@ -58,9 +58,10 @@ Restart Cursor. That's it — no `cwd` needed. The server loads `.env` from `~/.
 
 ### 3. Use in Cursor
 
-- *"Add the PDF at /path/to/doc.pdf to Oracle-RAG"*
-- *"List the PDFs in Oracle-RAG"*
-- *"Query Oracle-RAG: What is this document about?"*
+- *"Add the PDF at /path/to/doc.pdf to Oracle-RAG"*  → `add_pdf_tool`
+- *"Add these PDFs to Oracle-RAG: [/path/a.pdf, /path/b.pdf, /path/c.pdf]"*  → `add_pdfs_tool`
+- *"List the PDFs in Oracle-RAG"*  → `list_pdfs_tool`
+- *"Query Oracle-RAG: What is this document about?"*  → `query_pdf_tool`
 
 ## Configuration
 

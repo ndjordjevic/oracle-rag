@@ -155,24 +155,14 @@
   - [x] CLI option: `gh release create vX.Y.Z --notes \"Summary of changes\"` (requires GitHub CLI + auth).
 
 ### RAG Chain Rewrite
-- [x] **Replace LCEL with plain Python (2-step RAG pattern)** ✅
-  - [x] Rewrite `get_rag_chain()` as a plain Python function `run_rag(query, ...) -> RAGResult`:
-    - `docs = query_index(query, k=k, ...)`
-    - `messages = RAG_PROMPT.invoke({"context": format_docs(docs), "question": query}).messages`
-    - `answer = llm.invoke(messages).content`
-    - return `RAGResult(answer=answer, sources=format_sources(docs))`
-  - [x] Decorate with `@traceable` from `langsmith` for per-step LangSmith tracing (replaces LCEL auto-tracing)
-  - [x] Remove imports: `RunnablePassthrough`, `RunnableLambda`, `StrOutputParser`
-  - [x] `ChatPromptTemplate` stays — call with `.invoke({"context": ..., "question": ...})`
-  - [x] Update `query_pdf` MCP tool to call `run_rag()` directly instead of `chain.invoke()`
-  - [x] Update tests to work with the new plain-function implementation
-  - *Context*: LangChain docs (2025+) show plain Python + `@traceable` as the recommended pattern for deterministic 2-step RAG (always retrieve → generate). `RunnablePassthrough`/`RunnableLambda`/`StrOutputParser` are no longer recommended. `AgentMiddleware` + `create_agent` is for agentic RAG where the LLM decides when to retrieve — not our case.
+- [x] **Replace LCEL with plain Python (2-step RAG)**
+  - *Done*: `run_rag()` plain function + `@traceable` now powers the RAG pipeline (retrieve → format context → generate answer + sources). LCEL (`RunnablePassthrough`/`RunnableLambda`/`StrOutputParser`) has been removed in favor of this pattern from the LangChain docs.
 
 ### PDF Processing - Enhanced
-- [ ] **Multiple PDF Support**
-  - [ ] Implement batch PDF loading
-  - [ ] Handle duplicate content detection
-  - [ ] Test with multiple PDFs
+- [x] **Multiple PDF Support**
+  - [x] Implement batch PDF loading (new `add_pdfs` MCP tool)
+  - [x] Handle duplicate content detection
+  - [x] Test with multiple PDFs (unit coverage for partial success/failure)
 
 - [ ] **Enhanced Metadata**
   - [ ] Extract section/heading information
@@ -337,6 +327,7 @@
   - [ ] Scalable to hundreds of PDFs
   - [ ] Optimized batch processing
   - [ ] Implement caching strategies
+  - [ ] Parallelize batch indexing (`add_pdfs`) with threads (e.g. `ThreadPoolExecutor`) while keeping per-file error reporting
 
 ### Testing - Advanced
 - [ ] **Advanced Testing**

@@ -132,6 +132,73 @@ def add_pdf(
     }
 
 
+@traceable(name="add_pdfs", run_type="tool")
+def add_pdfs(
+    pdf_paths: list[str],
+    persist_dir: str = str(DEFAULT_PERSIST_DIR),
+    collection: str = DEFAULT_COLLECTION_NAME,
+) -> dict[str, Any]:
+    """Add multiple PDFs to the index in one call.
+
+    Continues indexing even if some files fail validation or indexing.
+
+    Args:
+        pdf_paths: List of PDF file paths to index.
+        persist_dir: Chroma persistence directory (default: "chroma_db").
+        collection: Chroma collection name (default: "oracle_rag").
+
+    Returns:
+        Dictionary containing indexed file results, failed file errors, and totals.
+
+    Raises:
+        ValueError: If pdf_paths is empty or collection is invalid.
+    """
+    if not pdf_paths:
+        raise ValueError("pdf_paths cannot be empty")
+    if not collection or not str(collection).strip():
+        raise ValueError("collection cannot be empty")
+
+    embedding = get_embedding_model()
+    indexed: list[dict[str, Any]] = []
+    failed: list[dict[str, str]] = []
+
+    for raw_path in pdf_paths:
+        try:
+            if not raw_path or not str(raw_path).strip():
+                raise ValueError("pdf_path cannot be empty")
+
+            pdf_file = Path(raw_path).expanduser().resolve()
+            if not pdf_file.exists():
+                raise FileNotFoundError(f"PDF file not found: {raw_path}")
+            if pdf_file.suffix.lower() != ".pdf":
+                raise ValueError(f"File is not a PDF: {raw_path}")
+
+            result: IndexResult = index_pdf(
+                pdf_file,
+                persist_directory=persist_dir,
+                collection_name=collection,
+                embedding=embedding,
+            )
+            indexed.append(
+                {
+                    "source_path": str(result.source_path),
+                    "total_pages": result.total_pages,
+                    "total_chunks": result.total_chunks,
+                }
+            )
+        except Exception as e:
+            failed.append({"pdf_path": str(raw_path), "error": str(e)})
+
+    return {
+        "indexed": indexed,
+        "failed": failed,
+        "total_indexed": len(indexed),
+        "total_failed": len(failed),
+        "persist_directory": str(Path(persist_dir).expanduser().resolve()),
+        "collection_name": collection,
+    }
+
+
 @traceable(name="list_pdfs", run_type="tool")
 def list_pdfs(
     persist_dir: str = str(DEFAULT_PERSIST_DIR),

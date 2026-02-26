@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 from oracle_rag.config import get_persist_dir
-from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf, remove_pdf
+from oracle_rag.mcp.tools import add_pdf, add_pdfs, list_pdfs, query_pdf, remove_pdf
 
 # Load environment variables
 load_dotenv()
@@ -113,6 +113,33 @@ def add_pdf_tool(
         - collection_name: Collection name used
     """
     return add_pdf(pdf_path=pdf_path, persist_dir=persist_dir or get_persist_dir(), collection=collection)
+
+
+@mcp.tool()
+@_log_tool_errors
+def add_pdfs_tool(
+    pdf_paths: list[str],
+    persist_dir: str = "",
+    collection: str = "oracle_rag",
+) -> dict:
+    """Add multiple PDF documents to the index in one call.
+
+    This tool indexes each PDF independently and returns both successful and failed
+    files so one bad file does not fail the whole batch.
+
+    Args:
+        pdf_paths: List of PDF paths to index.
+        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
+        collection: Chroma collection name (default: "oracle_rag").
+
+    Returns:
+        Dictionary containing indexed entries, failed entries, and totals.
+    """
+    return add_pdfs(
+        pdf_paths=pdf_paths,
+        persist_dir=persist_dir or get_persist_dir(),
+        collection=collection,
+    )
 
 
 @mcp.tool()

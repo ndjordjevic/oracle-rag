@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from oracle_rag.mcp.tools import add_pdf, list_pdfs, query_pdf
+from oracle_rag.mcp.tools import add_pdf, add_pdfs, list_pdfs, query_pdf
 from oracle_rag.mcp import server as mcp_server
 
 
@@ -136,6 +136,41 @@ def test_add_pdf_success(tmp_path: Path) -> None:
     assert result["total_chunks"] == 12
     assert result["collection_name"] == "test_coll"
     assert "persist_directory" in result
+
+
+def test_add_pdfs_empty_paths_raises() -> None:
+    """add_pdfs raises ValueError when path list is empty."""
+    with pytest.raises(ValueError, match="pdf_paths cannot be empty"):
+        add_pdfs(pdf_paths=[])
+
+
+def test_add_pdfs_partial_success(tmp_path: Path) -> None:
+    """add_pdfs indexes valid files and reports failures per file."""
+    good_pdf = tmp_path / "good.pdf"
+    bad_ext = tmp_path / "bad.txt"
+    good_pdf.touch()
+    bad_ext.touch()
+
+    fake_result = MagicMock()
+    fake_result.source_path = good_pdf
+    fake_result.total_pages = 3
+    fake_result.total_chunks = 7
+
+    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
+        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+            result = add_pdfs(
+                pdf_paths=[str(good_pdf), str(bad_ext), str(tmp_path / "missing.pdf")],
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+            )
+
+    assert result["total_indexed"] == 1
+    assert result["total_failed"] == 2
+    assert result["collection_name"] == "test_coll"
+    assert len(result["indexed"]) == 1
+    assert result["indexed"][0]["source_path"] == str(good_pdf)
+    assert len(result["failed"]) == 2
+    mock_index.assert_called_once()
 
 
 # --- query_pdf ---
