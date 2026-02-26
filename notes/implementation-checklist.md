@@ -161,14 +161,13 @@
 ### PDF Processing - Enhanced
 - [x] **Multiple PDF Support**
   - [x] Implement batch PDF loading (new `add_pdfs` MCP tool)
-  - [x] Handle duplicate content detection
   - [x] Test with multiple PDFs (unit coverage for partial success/failure)
 
 - [ ] **Enhanced Metadata**
-  - [ ] Extract section/heading information
-  - [ ] Extract document metadata (author, creation date)
-  - [ ] Add upload timestamps
-  - [ ] Store document size information
+  - [x] Add explicit section/heading labels to chunk metadata (`section` key; heading-like lines detected and carried forward)
+  - [ ] Store additional document metadata (e.g. creation date) and surface it in tools
+  - [ ] Add upload timestamps for indexed documents
+  - [ ] Store document size stats (pages, bytes, total chunks) per document
 
 ### Chunking - Enhanced
 - [ ] **Intelligent Chunking**
@@ -265,6 +264,9 @@
   - [ ] Add re-query logic with different parameters
 
 ### Response Generation - Advanced
+- [ ] **Use of Rich Metadata**
+  - [ ] Design how metadata fields (`section`, `chunk_index`, document_title/author, size stats) should influence retrieval, ranking, and/or answer formatting (e.g. section-aware answers, filters, section-aware citations)
+
 - [ ] **Prompt engineering iteration**
   - [ ] Evaluate and iterate on RAG prompt template using evaluation dataset
   - [ ] Test different system messages, few-shot examples, or chain-of-thought instructions
@@ -321,6 +323,10 @@
   - [ ] Integrate OCR into pipeline (detect image-only pages, run OCR automatically or offer as option in add_pdf)
   - [ ] Handle complex PDF structures (multi-column, tables)
   - [ ] Handle images and diagrams
+
+- [ ] **Richer PDF Structure Signals**
+  - [ ] Use PDF outline/bookmarks (when present) as an additional source of section/heading labels
+  - [ ] Experiment with font size/style per text span (e.g. via pdfplumber or PyMuPDF/fitz) to treat larger-font lines as headings in chunk metadata
 
 ### Performance
 - [ ] **Performance Optimization**

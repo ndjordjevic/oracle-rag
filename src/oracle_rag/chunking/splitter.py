@@ -16,6 +16,31 @@ DEFAULT_CHUNK_OVERLAP = 200
 HEADING_LINE_MAX_LEN = 60
 
 
+def _is_heading_line(line: str) -> bool:
+    """True if the line looks like a section heading.
+
+    Heuristic:
+    - short (<= HEADING_LINE_MAX_LEN chars)
+    - no trailing sentence punctuation (. ! ?)
+    - does not contain characters typical of code/register names (one of # / = ;)"""
+    stripped = line.strip()
+    if not stripped:
+        return False
+    # Filter out very code-y lines (e.g. MOVE.W #$00F0, $DFF... // comment)
+    if re.search(r"[#/=;]", stripped):
+        return False
+    return (
+        len(stripped) <= HEADING_LINE_MAX_LEN
+        and not bool(re.search(r"[.!?]\s*$", stripped))
+    )
+
+
+def _extract_heading_from_chunk(content: str) -> str | None:
+    """Return the first line if it looks like a heading, else None."""
+    first_line = content.split("\n")[0].strip() if content else ""
+    return first_line if _is_heading_line(first_line) else None
+
+
 def _ensure_heading_paragraph_breaks(text: str) -> str:
     """Insert \\n\\n before lines that look like section headings so they start a new segment.
 
@@ -64,6 +89,7 @@ def chunk_documents(
     page, total_pages, document_title/author when present) and gets:
     - chunk_index: 0-based index of this chunk within the same page
     - document_id: stable document identifier (from document_id_key, default file_name)
+    - section: explicit section/heading label when the chunk starts with or follows a heading-like line
 
     Args:
         documents: LangChain Documents (e.g. from load_pdf_as_documents).
@@ -94,9 +120,14 @@ def chunk_documents(
             doc = Document(page_content=content, metadata=dict(doc.metadata))
         doc_id = doc.metadata.get(document_id_key) or doc.metadata.get("source", "")
         split_chunks = splitter.split_documents([doc])
+        current_section = ""
         for idx, chunk in enumerate(split_chunks):
             meta = dict(chunk.metadata)
             meta["chunk_index"] = idx
             meta["document_id"] = doc_id
+            heading = _extract_heading_from_chunk(chunk.page_content)
+            if heading is not None:
+                current_section = heading
+            meta["section"] = current_section
             chunks.append(Document(page_content=chunk.page_content, metadata=meta))
     return chunks
