@@ -8,10 +8,12 @@ Oracle-RAG provides intelligent document querying and retrieval capabilities for
 
 ## Features
 
-- PDF document processing and indexing
-- RAG with source citations
-- MCP server: `query_pdf`, `add_pdf`, `remove_pdf`, `list_pdfs`
-- Built with LangChain and Chroma
+- **PDF processing** — Index single or multiple PDFs; batch add via `add_pdfs`
+- **RAG with citations** — Ask questions, get answers with source (document + page)
+- **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
+- **Metadata filtering** — Query by document, page range, or tag
+- **MCP tools** — `query_pdf`, `add_pdf`, `add_pdfs`, `list_pdfs`, `remove_pdf`
+- **Built with** — LangChain, Chroma, OpenAI embeddings
 
 ## Installation
 
@@ -58,10 +60,16 @@ Restart Cursor. That's it — no `cwd` needed. The server loads `.env` from `~/.
 
 ### 3. Use in Cursor
 
-- *"Add the PDF at /path/to/doc.pdf to Oracle-RAG"*  → `add_pdf_tool`
-- *"Add these PDFs to Oracle-RAG: [/path/a.pdf, /path/b.pdf, /path/c.pdf]"*  → `add_pdfs_tool`
-- *"List the PDFs in Oracle-RAG"*  → `list_pdfs_tool`
-- *"Query Oracle-RAG: What is this document about?"*  → `query_pdf_tool`
+| Action | Tool |
+|--------|------|
+| Add a PDF | `add_pdf_tool` — optionally with `tag` (e.g. `AMIGA`) |
+| Add multiple PDFs | `add_pdfs_tool` — optionally with `tags` (one per PDF) |
+| List indexed PDFs | `list_pdfs_tool` — shows documents, chunk counts, tags, upload times |
+| Query with filters | `query_pdf_tool` — filter by `document_id`, `page_min`/`page_max`, or `tag` |
+| Remove a PDF | `remove_pdf_tool` |
+
+**Example:** *"Add /path/to/amiga-book.pdf with tag AMIGA"* → `add_pdf_tool(pdf_path="...", tag="AMIGA")`  
+*"What are AGA chips? Search only AMIGA-tagged docs"* → `query_pdf_tool(query="...", tag="AMIGA")`
 
 ## Configuration
 
@@ -79,6 +87,19 @@ Environment variables:
 | `ORACLE_RAG_PERSIST_DIR` | `~/.oracle-rag/chroma_db` | Chroma vector store directory |
 | `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
 | `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
+
+## Query Filtering
+
+`query_pdf_tool` supports optional filters to narrow retrieval:
+
+| Parameter | Description |
+|-----------|-------------|
+| `document_id` | Search only in this PDF (e.g. `mybook.pdf` from `list_pdfs`) |
+| `page_min`, `page_max` | Restrict to page range (single page: `page_min=16`, `page_max=16`) |
+| `tag` | Search only documents with this tag (e.g. `AMIGA`, `PI_PICO`) |
+
+Filters can be combined. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  
+`query_pdf_tool(query="...", document_id="RP-008276-DS-1-getting-started-with-pico.pdf", page_min=16, page_max=17)`.
 
 ## Development
 

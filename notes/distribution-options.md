@@ -27,7 +27,7 @@ pip install oracle-rag
 **Implementation (current state):**
 - `[project.scripts]` in `pyproject.toml` exposes `oracle-rag-mcp = "oracle_rag.cli:main"`.
 - Config is loaded from `~/.config/oracle-rag/.env`, `~/.oracle-rag/.env`, or `{cwd}/.env`; the Chroma index defaults to `~/.oracle-rag/chroma_db` (overridable via `ORACLE_RAG_PERSIST_DIR`).
-- Publish flow: bump `version` in `pyproject.toml` → `git commit && git tag vX.Y.Z && git push --tags` → `uv build` → `uv publish` (using PyPI API token).
+- Publish flow: bump `version` in `pyproject.toml` → `git commit` → `git tag -a vX.Y.Z -m "Release vX.Y.Z"` → `git push origin main` → `git push origin vX.Y.Z`. A GitHub Action publishes to PyPI on tag push. For manual publish (e.g. if the Action fails): run `uv build && uv publish` locally.
 
 ---
 
@@ -179,9 +179,13 @@ uv sync   # or pip install -e .
 - [x] Configure default paths: `.env` from `~/.config/oracle-rag/`, `~/.oracle-rag/`, cwd; `chroma_db` at `~/.oracle-rag/chroma_db` by default
 - [x] Document `pip install oracle-rag` and Cursor MCP config in README
 - [x] Create PyPI account; `uv build` and `uv publish`
-- [ ] Optional: GitHub Action to publish on tag (e.g. `v1.0.1`)
+- [x] GitHub Action to publish to PyPI on tag push
 
 ### How to publish
+
+**Normal flow (recommended):** Bump `version` in `pyproject.toml` → commit → tag → push. The GitHub Action publishes to PyPI automatically when you push a tag (e.g. `v2.0.0`).
+
+**Manual publish (fallback, e.g. if the Action fails):**
 
 1. **Build:** `uv build` (creates `dist/` with sdist and wheel).
 2. **API token required:** PyPI no longer accepts username/password. Create a token at [pypi.org/manage/account/token/](https://pypi.org/manage/account/token/).
