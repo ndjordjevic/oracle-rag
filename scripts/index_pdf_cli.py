@@ -28,6 +28,11 @@ def main() -> None:
         default="oracle_rag",
         help="Chroma collection name (default: oracle_rag)",
     )
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="Optional tag for this document (e.g. amiga)",
+    )
     args = parser.parse_args()
 
     pdf_path = Path(args.pdf_path).expanduser().resolve()
@@ -35,6 +40,7 @@ def main() -> None:
         pdf_path,
         persist_directory=args.persist_dir,
         collection_name=args.collection,
+        tag=args.tag,
     )
 
     print(f"Indexed PDF: {result.source_path}")

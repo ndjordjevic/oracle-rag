@@ -68,13 +68,13 @@ def test_list_pdfs_handles_empty_metadatas(tmp_path: Path) -> None:
 
 
 def test_list_pdfs_includes_document_details_when_present(tmp_path: Path) -> None:
-    """list_pdfs returns document_details (upload_timestamp, pages, bytes, chunks) when chunks have them."""
+    """list_pdfs returns document_details (upload_timestamp, pages, bytes, chunks, tag) when chunks have them."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     mock_store = MagicMock()
     mock_store.get.return_value = {
         "metadatas": [
-            {"document_id": "doc.pdf", "upload_timestamp": "2025-01-15T12:00:00Z", "doc_pages": 56, "doc_bytes": 12345, "doc_total_chunks": 224},
-            {"document_id": "doc.pdf", "upload_timestamp": "2025-01-15T12:00:00Z", "doc_pages": 56, "doc_bytes": 12345, "doc_total_chunks": 224},
+            {"document_id": "doc.pdf", "upload_timestamp": "2025-01-15T12:00:00Z", "doc_pages": 56, "doc_bytes": 12345, "doc_total_chunks": 224, "tag": "amiga"},
+            {"document_id": "doc.pdf", "upload_timestamp": "2025-01-15T12:00:00Z", "doc_pages": 56, "doc_bytes": 12345, "doc_total_chunks": 224, "tag": "amiga"},
         ]
     }
 
@@ -87,6 +87,7 @@ def test_list_pdfs_includes_document_details_when_present(tmp_path: Path) -> Non
         "pages": 56,
         "bytes": 12345,
         "chunks": 224,
+        "tag": "amiga",
     }
 
 
@@ -148,7 +149,7 @@ def test_add_pdf_success(tmp_path: Path) -> None:
     fake_result.persist_directory = tmp_path / "chroma_db"
     fake_result.collection_name = "test_coll"
 
-    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result):
+    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
         with patch("oracle_rag.mcp.tools.get_embedding_model"):
             result = add_pdf(
                 pdf_path=str(pdf_file),
@@ -161,6 +162,43 @@ def test_add_pdf_success(tmp_path: Path) -> None:
     assert result["total_chunks"] == 12
     assert result["collection_name"] == "test_coll"
     assert "persist_directory" in result
+    mock_index.assert_called_once_with(
+        pdf_file,
+        persist_directory=str(tmp_path),
+        collection_name="test_coll",
+        embedding=mock_index.call_args[1]["embedding"],
+        tag=None,
+    )
+
+
+def test_add_pdf_with_tag_passes_tag_to_index(tmp_path: Path) -> None:
+    """add_pdf passes tag to index_pdf when provided."""
+    pdf_file = tmp_path / "sample.pdf"
+    pdf_file.touch()
+    fake_result = MagicMock()
+    fake_result.source_path = pdf_file
+    fake_result.total_pages = 5
+    fake_result.total_chunks = 12
+    fake_result.persist_directory = tmp_path / "chroma_db"
+    fake_result.collection_name = "test_coll"
+
+    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
+        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+            add_pdf(
+                pdf_path=str(pdf_file),
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+                tag="amiga",
+            )
+
+    mock_index.assert_called_once()
+    assert mock_index.call_args[1]["tag"] == "amiga"
+
+
+def test_add_pdfs_tags_length_mismatch_raises() -> None:
+    """add_pdfs raises when tags length does not match pdf_paths."""
+    with pytest.raises(ValueError, match="tags must have same length"):
+        add_pdfs(pdf_paths=["a.pdf", "b.pdf"], tags=["amiga"])
 
 
 def test_add_pdfs_empty_paths_raises() -> None:

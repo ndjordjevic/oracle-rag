@@ -59,6 +59,32 @@ def test_index_pdf_smoke(tmp_path: Path) -> None:
     assert "doc_total_chunks" in meta
 
 
+def test_index_pdf_with_tag(tmp_path: Path) -> None:
+    """Index with tag; chunks have tag in metadata."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping indexing test")
+
+    persist_dir = tmp_path / "chroma_idx"
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_tag",
+        embedding=_MockEmbeddings(),
+        tag="amiga",
+    )
+
+    store = get_chroma_store(
+        persist_directory=str(persist_dir),
+        collection_name="test_tag",
+        embedding=_MockEmbeddings(),
+    )
+    docs = store.similarity_search("test", k=2)
+    assert len(docs) > 0
+    assert docs[0].metadata.get("tag") == "amiga"
+
+
 def test_query_index_uses_existing_store(tmp_path: Path) -> None:
     """query_index returns results from an already-indexed Chroma store."""
     repo_root = Path(__file__).resolve().parents[1]

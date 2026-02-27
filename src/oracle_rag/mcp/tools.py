@@ -83,6 +83,7 @@ def add_pdf(
     pdf_path: str,
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
     collection: str = DEFAULT_COLLECTION_NAME,
+    tag: str | None = None,
 ) -> dict[str, Any]:
     """Add a PDF to the index.
 
@@ -90,6 +91,7 @@ def add_pdf(
         pdf_path: Path to the PDF file to index.
         persist_dir: Chroma persistence directory (default: "chroma_db").
         collection: Chroma collection name (default: "oracle_rag").
+        tag: Optional single tag for this document (e.g. "amiga"); stored on all chunks for filtering.
 
     Returns:
         Dictionary with indexing results: source_path, total_pages, total_chunks,
@@ -120,6 +122,7 @@ def add_pdf(
         persist_directory=persist_dir,
         collection_name=collection,
         embedding=embedding,
+        tag=tag.strip() if tag and str(tag).strip() else None,
     )
 
     # Convert to JSON-serializable format
@@ -137,6 +140,7 @@ def add_pdfs(
     pdf_paths: list[str],
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
     collection: str = DEFAULT_COLLECTION_NAME,
+    tags: list[str] | None = None,
 ) -> dict[str, Any]:
     """Add multiple PDFs to the index in one call.
 
@@ -146,6 +150,7 @@ def add_pdfs(
         pdf_paths: List of PDF file paths to index.
         persist_dir: Chroma persistence directory (default: "chroma_db").
         collection: Chroma collection name (default: "oracle_rag").
+        tags: Optional list of tags, one per PDF (same order as pdf_paths). Empty string = no tag.
 
     Returns:
         Dictionary containing indexed file results, failed file errors, and totals.
@@ -157,12 +162,14 @@ def add_pdfs(
         raise ValueError("pdf_paths cannot be empty")
     if not collection or not str(collection).strip():
         raise ValueError("collection cannot be empty")
+    if tags is not None and len(tags) != len(pdf_paths):
+        raise ValueError("tags must have same length as pdf_paths when provided")
 
     embedding = get_embedding_model()
     indexed: list[dict[str, Any]] = []
     failed: list[dict[str, str]] = []
 
-    for raw_path in pdf_paths:
+    for i, raw_path in enumerate(pdf_paths):
         try:
             if not raw_path or not str(raw_path).strip():
                 raise ValueError("pdf_path cannot be empty")
@@ -173,11 +180,15 @@ def add_pdfs(
             if pdf_file.suffix.lower() != ".pdf":
                 raise ValueError(f"File is not a PDF: {raw_path}")
 
+            doc_tag: str | None = None
+            if tags is not None and i < len(tags) and tags[i] and str(tags[i]).strip():
+                doc_tag = str(tags[i]).strip()
             result: IndexResult = index_pdf(
                 pdf_file,
                 persist_directory=persist_dir,
                 collection_name=collection,
                 embedding=embedding,
+                tag=doc_tag,
             )
             indexed.append(
                 {
@@ -256,6 +267,8 @@ def list_pdfs(
                 details["bytes"] = meta["doc_bytes"]
             if meta.get("doc_total_chunks") is not None:
                 details["chunks"] = meta["doc_total_chunks"]
+            if meta.get("tag") is not None and str(meta.get("tag", "")).strip():
+                details["tag"] = str(meta["tag"]).strip()
             if details:
                 document_details[doc_id] = details
 

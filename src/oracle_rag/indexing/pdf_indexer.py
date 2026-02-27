@@ -42,6 +42,7 @@ def index_pdf(
     embedding: Optional[Embeddings] = None,
     chunk_size: Optional[int] = None,
     chunk_overlap: Optional[int] = None,
+    tag: Optional[str] = None,
 ) -> IndexResult:
     """Load, chunk, and index a single PDF into Chroma.
 
@@ -59,6 +60,7 @@ def index_pdf(
         embedding: Optional embedding model; if None, uses default OpenAI embeddings.
         chunk_size: Chunk size in chars; if None, uses ORACLE_RAG_CHUNK_SIZE env or 1000.
         chunk_overlap: Chunk overlap in chars; if None, uses ORACLE_RAG_CHUNK_OVERLAP env or 200.
+        tag: Optional single tag for this document (e.g. "amiga"); stored on all chunks for filtering.
 
     Returns:
         IndexResult with basic stats about the indexed PDF.
@@ -92,6 +94,8 @@ def index_pdf(
         doc.metadata["doc_pages"] = doc_pages
         doc.metadata["doc_bytes"] = doc_bytes
         doc.metadata["doc_total_chunks"] = doc_total_chunks
+        if tag is not None and str(tag).strip():
+            doc.metadata["tag"] = str(tag).strip()
 
     # Replace existing chunks for this document to avoid duplicates.
     document_id = pdf_path.name

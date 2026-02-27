@@ -17,7 +17,7 @@ def test_chunk_documents_empty() -> None:
 
 
 def test_chunk_documents_preserves_metadata() -> None:
-    """Chunks keep source metadata and get chunk_index and document_id."""
+    """Chunks keep source metadata and get chunk_index, document_id, and start_index."""
     repo_root = Path(__file__).resolve().parents[1]
     sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
     if not sample_pdf.exists():
@@ -34,10 +34,12 @@ def test_chunk_documents_preserves_metadata() -> None:
         assert "document_id" in chunk.metadata
         assert "chunk_index" in chunk.metadata
         assert "section" in chunk.metadata
+        assert "start_index" in chunk.metadata
         assert chunk.metadata["file_name"] == sample_pdf.name
         assert chunk.metadata["document_id"] == sample_pdf.name
         assert chunk.metadata["chunk_index"] >= 0
         assert isinstance(chunk.metadata["section"], str)
+        assert isinstance(chunk.metadata["start_index"], int)
         assert chunk.page_content.strip()
 
 
@@ -52,6 +54,7 @@ def test_chunk_documents_single_short_doc() -> None:
     assert chunks[0].metadata["chunk_index"] == 0
     assert chunks[0].metadata["document_id"] == "file.pdf"
     assert chunks[0].metadata["page"] == 1
+    assert chunks[0].metadata["start_index"] == 0
     assert chunks[0].page_content == "Short text."
 
 
@@ -67,6 +70,12 @@ def test_chunk_documents_long_doc_splits() -> None:
     for i, chunk in enumerate(chunks):
         assert chunk.metadata["chunk_index"] == i
         assert chunk.metadata["document_id"] == "file.pdf"
+        assert "start_index" in chunk.metadata
+        assert isinstance(chunk.metadata["start_index"], int)
+        assert chunk.metadata["start_index"] >= 0
+    # start_index should be strictly increasing (no overlap in start positions)
+    start_indices = [c.metadata["start_index"] for c in chunks]
+    assert start_indices == sorted(start_indices)
     combined_len = sum(len(c.page_content) for c in chunks)
     assert combined_len >= len(long_text) - 100
 

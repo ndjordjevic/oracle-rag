@@ -90,6 +90,7 @@ def chunk_documents(
     - chunk_index: 0-based index of this chunk within the same page
     - document_id: stable document identifier (from document_id_key, default file_name)
     - section: explicit section/heading label when the chunk starts with or follows a heading-like line
+    - start_index: character offset in the page content where this chunk begins (for source traceability)
 
     Args:
         documents: LangChain Documents (e.g. from load_pdf_as_documents).
@@ -110,6 +111,7 @@ def chunk_documents(
         chunk_overlap=chunk_overlap,
         length_function=len,
         is_separator_regex=False,
+        add_start_index=True,
     )
 
     chunks: list[Document] = []

@@ -169,30 +169,21 @@
   - [x] Store document size stats (pages, bytes, total chunks) per document (stored on chunks, aggregated per document in list_pdfs)
 
 ### Chunking - Enhanced
-- [ ] **Intelligent Chunking**
-  - [ ] Improve chunking to respect paragraph boundaries
-  - [ ] Better handling of document structure
-  - [ ] Add section/heading metadata to chunks
-  - [ ] Add character offsets to chunks
+- [x] **Section/heading metadata** — done (heading-like lines detected; `section` key added to chunk metadata)
+- [x] **Character offsets** — enable `add_start_index=True` on `RecursiveCharacterTextSplitter`; each chunk gets `start_index` metadata (char offset in page)
 
 ### Vector Store - Enhanced
+- [x] **Document Tag** (single tag per document)
+  - [x] Add optional per-document tag at indexing time (e.g. `tag: "amiga"`)
+  - [x] Persist tag on all chunks for that document (queryable via metadata filters)
+  - [x] Expose tag in `list_pdfs` output (per-document details)
+
 - [ ] **Metadata Filtering**
   - [ ] Implement filter by document
   - [ ] Implement filter by page range
   - [ ] Implement filter by section
-  - [ ] Test metadata filtering
-
-- [ ] **Retriever abstraction (oracle-rag 2.0)**
-  - [ ] Use LangChain Retriever (`store.as_retriever()`) in RAG pipeline instead of `query_index`
-  - [ ] Refactor `run_rag()` to accept a retriever
-
-### Document Management
-- [ ] **Document Operations**
-  - [x] Implement document removal (delete PDF and chunks) — done in Phase 1 via `remove_pdf` MCP tool
-  - [x] Implement document listing — done in Phase 1 via `list_pdfs` MCP tool
-  - [ ] Implement document status tracking
-  - [ ] Implement document update/re-indexing
-  - [ ] Add document metadata display (e.g. chunk count per document in list_pdfs)
+  - [ ] Implement filter by tag
+  - [ ] Test metadata filtering (including tag)
 
 ---
 
@@ -210,10 +201,7 @@
 
 ### MCP Server - Enhanced
 - [ ] **Additional MCP Tools**
-  - [x] Implement `remove_pdf` tool — done in Phase 1
-  - [x] Implement `list_pdfs` tool — done in Phase 1
   - [ ] Implement `query_specific_pdf` tool (filter retrieval to a single document by name)
-  - [ ] Add per-document chunk count to list_pdfs output
 
 - [ ] **MCP Resources** (read-only data by URI)
   - [ ] Expose list of indexed documents as resource
@@ -222,6 +210,16 @@
 
 - [ ] **MCP Prompts** (pre-built templates with parameters)
   - [ ] e.g. “Ask about this document”, “Summarize” with parameters
+
+### Retriever Abstraction
+- [ ] **Retriever abstraction (oracle-rag 2.0)**
+  - [ ] Use LangChain Retriever (`store.as_retriever()`) in RAG pipeline instead of `query_index`
+  - [ ] Refactor `run_rag()` to accept a retriever
+
+### Document Management - Enhanced
+- [ ] **Document Operations** (advanced)
+  - [ ] Implement document status tracking
+  - [ ] Implement document update/re-indexing (beyond remove + re-add)
 
 ### Error Handling - Enhanced
 - [ ] **Advanced Error Handling**
@@ -264,7 +262,7 @@
 
 ### Response Generation - Advanced
 - [ ] **Use of Rich Metadata**
-  - [ ] Design how metadata fields (`section`, `chunk_index`, document_title/author, size stats) should influence retrieval, ranking, and/or answer formatting (e.g. section-aware answers, filters, section-aware citations)
+  - [ ] Design how metadata fields (`section`, `chunk_index`, `start_index`, document_title/author, size stats) should influence retrieval, ranking, and/or answer formatting (e.g. section-aware answers, filters, section-aware citations, jump-to-source in UI)
 
 - [ ] **Prompt engineering iteration**
   - [ ] Evaluate and iterate on RAG prompt template using evaluation dataset
@@ -326,6 +324,17 @@
 - [ ] **Richer PDF Structure Signals**
   - [ ] Use PDF outline/bookmarks (when present) as an additional source of section/heading labels
   - [ ] Experiment with font size/style per text span (e.g. via pdfplumber or PyMuPDF/fitz) to treat larger-font lines as headings in chunk metadata
+
+### Chunking - Advanced
+- [ ] **Chunk size tuning** (needs evaluation framework first)
+  - [ ] Tune chunk size to ~512 tokens (~2000 chars) with 10-20% overlap
+  - [ ] Benchmark retrieval quality before/after with evaluation dataset
+- [ ] **Parent-child retrieval**
+  - [ ] Embed small chunks (128-256 tokens) for precise matching, return larger parent chunks (1000-2000 tokens) for context
+  - [ ] Evaluate LangChain `ParentDocumentRetriever` (requires secondary storage layer)
+- [ ] **Structure-aware chunking**
+  - [ ] Detect and preserve tables as atomic chunks (avoid splitting mid-table)
+  - [ ] Detect and preserve code blocks as atomic chunks
 
 ### Performance
 - [ ] **Performance Optimization**

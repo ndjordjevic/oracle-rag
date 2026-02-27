@@ -93,6 +93,7 @@ def add_pdf_tool(
     pdf_path: str,
     persist_dir: str = "",
     collection: str = "oracle_rag",
+    tag: str = "",
 ) -> dict:
     """Add a PDF document to the index.
 
@@ -103,6 +104,7 @@ def add_pdf_tool(
         pdf_path: Path to the PDF file to index.
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
+        tag: Optional single tag for this document (e.g. "amiga"); stored on all chunks for filtering.
 
     Returns:
         Dictionary containing indexing results:
@@ -112,7 +114,12 @@ def add_pdf_tool(
         - persist_directory: Where the index is stored
         - collection_name: Collection name used
     """
-    return add_pdf(pdf_path=pdf_path, persist_dir=persist_dir or get_persist_dir(), collection=collection)
+    return add_pdf(
+        pdf_path=pdf_path,
+        persist_dir=persist_dir or get_persist_dir(),
+        collection=collection,
+        tag=tag or None,
+    )
 
 
 @mcp.tool()
@@ -121,6 +128,7 @@ def add_pdfs_tool(
     pdf_paths: list[str],
     persist_dir: str = "",
     collection: str = "oracle_rag",
+    tags: list[str] | None = None,
 ) -> dict:
     """Add multiple PDF documents to the index in one call.
 
@@ -131,6 +139,7 @@ def add_pdfs_tool(
         pdf_paths: List of PDF paths to index.
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
+        tags: Optional list of tags, one per PDF (same order as pdf_paths). Empty string = no tag.
 
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
@@ -139,6 +148,7 @@ def add_pdfs_tool(
         pdf_paths=pdf_paths,
         persist_dir=persist_dir or get_persist_dir(),
         collection=collection,
+        tags=tags,
     )
 
 
@@ -164,7 +174,7 @@ def list_pdfs_tool(
         - total_chunks: Total number of chunks in the index
         - persist_directory: Path to the Chroma store
         - collection_name: Collection name used
-        - document_details: Per-document stats (upload_timestamp, pages, bytes, chunks) when available
+        - document_details: Per-document stats (upload_timestamp, pages, bytes, chunks, tag) when available
     """
     return list_pdfs(persist_dir=persist_dir or get_persist_dir(), collection=collection)
 
