@@ -85,6 +85,88 @@ def test_index_pdf_with_tag(tmp_path: Path) -> None:
     assert docs[0].metadata.get("tag") == "amiga"
 
 
+def test_query_index_filter_by_page_range(tmp_path: Path) -> None:
+    """query_index with page_min/page_max returns only chunks in that page range."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping indexing test")
+
+    persist_dir = tmp_path / "chroma_idx"
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_page_filter",
+        embedding=_MockEmbeddings(),
+    )
+
+    # Filter to single page (e.g. page 1 only)
+    docs = query_index(
+        "test",
+        k=10,
+        persist_directory=str(persist_dir),
+        collection_name="test_page_filter",
+        embedding=_MockEmbeddings(),
+        page_min=1,
+        page_max=1,
+    )
+    assert len(docs) > 0
+    for d in docs:
+        assert d.metadata.get("page") == 1
+
+    # Filter to non-existent page range — no results
+    empty = query_index(
+        "test",
+        k=5,
+        persist_directory=str(persist_dir),
+        collection_name="test_page_filter",
+        embedding=_MockEmbeddings(),
+        page_min=999,
+        page_max=999,
+    )
+    assert len(empty) == 0
+
+
+def test_query_index_filter_by_tag(tmp_path: Path) -> None:
+    """query_index with tag filter returns only chunks from documents with that tag."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping indexing test")
+
+    persist_dir = tmp_path / "chroma_idx"
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_tag_filter",
+        embedding=_MockEmbeddings(),
+        tag="PI_PICO",
+    )
+
+    docs = query_index(
+        "test",
+        k=10,
+        persist_directory=str(persist_dir),
+        collection_name="test_tag_filter",
+        embedding=_MockEmbeddings(),
+        tag="PI_PICO",
+    )
+    assert len(docs) > 0
+    for d in docs:
+        assert d.metadata.get("tag") == "PI_PICO"
+
+    # Filter by non-existent tag — no results
+    empty = query_index(
+        "test",
+        k=5,
+        persist_directory=str(persist_dir),
+        collection_name="test_tag_filter",
+        embedding=_MockEmbeddings(),
+        tag="nonexistent",
+    )
+    assert len(empty) == 0
+
+
 def test_query_index_filter_by_document(tmp_path: Path) -> None:
     """query_index with document_id filter returns only chunks from that document."""
     repo_root = Path(__file__).resolve().parents[1]

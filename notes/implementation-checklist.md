@@ -178,11 +178,10 @@
   - [x] Persist tag on all chunks for that document (queryable via metadata filters)
   - [x] Expose tag in `list_pdfs` output (per-document details)
 
-- [ ] **Metadata Filtering**
+- [x] **Metadata Filtering**
   - [x] Implement filter by document (optional `document_id` on query_index, run_rag, query_pdf)
-  - [ ] Implement filter by page range
-  - [ ] Implement filter by section
-  - [ ] Implement filter by tag
+  - [x] Implement filter by page range (optional `page_min`, `page_max`; single page: page_min=64, page_max=64)
+  - [x] Implement filter by tag (optional `tag` on query_index, run_rag, query_pdf)
 
 ---
 
@@ -327,6 +326,9 @@
 - [ ] **Richer PDF Structure Signals**
   - [ ] Use PDF outline/bookmarks (when present) as an additional source of section/heading labels
   - [ ] Experiment with font size/style per text span (e.g. via pdfplumber or PyMuPDF/fitz) to treat larger-font lines as headings in chunk metadata
+
+- [ ] **Filter by section** (after section recognition is improved)
+  - [ ] Implement filter by section in query_index, run_rag, query_pdf (depends on reliable `section` metadata from Richer PDF Structure Signals)
 
 ### Chunking - Advanced
 - [ ] **Chunk size tuning** (needs evaluation framework first)

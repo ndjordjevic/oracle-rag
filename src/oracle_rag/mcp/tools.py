@@ -25,6 +25,9 @@ def query_pdf(
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
     collection: str = DEFAULT_COLLECTION_NAME,
     document_id: str | None = None,
+    page_min: int | None = None,
+    page_max: int | None = None,
+    tag: str | None = None,
 ) -> dict[str, Any]:
     """Query indexed PDFs and return an answer with citations.
 
@@ -34,6 +37,9 @@ def query_pdf(
         persist_dir: Chroma persistence directory (default: "chroma_db").
         collection: Chroma collection name (default: "oracle_rag").
         document_id: Optional document ID to filter retrieval (e.g. PDF file name from list_pdfs).
+        page_min: Optional start of page range (inclusive). Use with page_max.
+        page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
+        tag: Optional tag to filter retrieval (e.g. "PI_PICO" from list_pdfs document_details).
 
     Returns:
         Dictionary with "answer" (str) and "sources" (list of dicts with document_id and page).
@@ -48,6 +54,10 @@ def query_pdf(
         raise ValueError("k must be an integer between 1 and 100")
     if not collection or not str(collection).strip():
         raise ValueError("collection cannot be empty")
+    if (page_min is not None) != (page_max is not None):
+        raise ValueError("page_min and page_max must be provided together for page range filter")
+    if page_min is not None and page_max is not None and page_min > page_max:
+        raise ValueError("page_min must be <= page_max")
 
     persist_path = Path(persist_dir).expanduser().resolve()
     if not persist_path.exists():
@@ -60,6 +70,7 @@ def query_pdf(
     llm = get_chat_model()
 
     doc_id_filter = document_id.strip() if document_id and str(document_id).strip() else None
+    tag_filter = tag.strip() if tag and str(tag).strip() else None
     result = run_rag(
         query,
         llm,
@@ -68,6 +79,9 @@ def query_pdf(
         collection_name=collection,
         embedding=embedding,
         document_id=doc_id_filter,
+        page_min=page_min,
+        page_max=page_max,
+        tag=tag_filter,
     )
 
     return {

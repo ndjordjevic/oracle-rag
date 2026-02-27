@@ -45,7 +45,29 @@ def main() -> None:
         default=None,
         help="Filter retrieval to this document ID (e.g. PDF file name)",
     )
+    parser.add_argument(
+        "--page-min",
+        type=int,
+        default=None,
+        help="Start of page range (inclusive). Use with --page-max.",
+    )
+    parser.add_argument(
+        "--page-max",
+        type=int,
+        default=None,
+        help="End of page range (inclusive). Single page: --page-min 64 --page-max 64",
+    )
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="Filter retrieval to documents with this tag (e.g. PI_PICO)",
+    )
     args = parser.parse_args()
+
+    if (args.page_min is not None) != (args.page_max is not None):
+        parser.error("--page-min and --page-max must be provided together")
+    if args.page_min is not None and args.page_max is not None and args.page_min > args.page_max:
+        parser.error("--page-min must be <= --page-max")
 
     persist_dir = Path(args.persist_dir).expanduser().resolve()
     embedding = get_embedding_model()
@@ -59,6 +81,9 @@ def main() -> None:
         collection_name=args.collection,
         embedding=embedding,
         document_id=args.document,
+        page_min=args.page_min,
+        page_max=args.page_max,
+        tag=args.tag,
     )
 
     print(result.answer)

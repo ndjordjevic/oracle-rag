@@ -322,6 +322,89 @@ def test_query_pdf_success(tmp_path: Path) -> None:
     assert call_kwargs.get("document_id") is None
 
 
+def test_query_pdf_page_range_validation(tmp_path: Path) -> None:
+    """query_pdf raises when page_min or page_max is provided without the other."""
+    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
+    with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("oracle_rag.mcp.tools.get_chat_model"):
+            with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
+                query_pdf(
+                    query="test",
+                    persist_dir=str(tmp_path),
+                    page_min=1,
+                )
+            with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
+                query_pdf(
+                    query="test",
+                    persist_dir=str(tmp_path),
+                    page_max=10,
+                )
+            with pytest.raises(ValueError, match="page_min must be <= page_max"):
+                query_pdf(
+                    query="test",
+                    persist_dir=str(tmp_path),
+                    page_min=10,
+                    page_max=1,
+                )
+
+
+def test_query_pdf_with_page_range(tmp_path: Path) -> None:
+    """query_pdf passes page_min and page_max to run_rag when provided."""
+    from oracle_rag.rag import RAGResult
+
+    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
+    mock_run_rag = MagicMock(
+        return_value=RAGResult(
+            answer="Page 16 content.",
+            sources=[{"document_id": "pico.pdf", "page": 16}],
+        )
+    )
+
+    with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("oracle_rag.mcp.tools.get_chat_model"):
+            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                query_pdf(
+                    query="OpenOCD?",
+                    k=3,
+                    persist_dir=str(tmp_path),
+                    collection="test_coll",
+                    document_id="pico.pdf",
+                    page_min=16,
+                    page_max=16,
+                )
+
+    mock_run_rag.assert_called_once()
+    assert mock_run_rag.call_args[1]["page_min"] == 16
+    assert mock_run_rag.call_args[1]["page_max"] == 16
+
+
+def test_query_pdf_with_tag_filter(tmp_path: Path) -> None:
+    """query_pdf passes tag to run_rag when provided."""
+    from oracle_rag.rag import RAGResult
+
+    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
+    mock_run_rag = MagicMock(
+        return_value=RAGResult(
+            answer="From PI_PICO docs.",
+            sources=[{"document_id": "pico.pdf", "page": 1}],
+        )
+    )
+
+    with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("oracle_rag.mcp.tools.get_chat_model"):
+            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                query_pdf(
+                    query="GPIO?",
+                    k=3,
+                    persist_dir=str(tmp_path),
+                    collection="test_coll",
+                    tag="PI_PICO",
+                )
+
+    mock_run_rag.assert_called_once()
+    assert mock_run_rag.call_args[1]["tag"] == "PI_PICO"
+
+
 def test_query_pdf_with_document_id_filter(tmp_path: Path) -> None:
     """query_pdf passes document_id to run_rag when provided."""
     from oracle_rag.rag import RAGResult

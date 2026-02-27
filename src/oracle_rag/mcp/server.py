@@ -67,6 +67,9 @@ def query_pdf_tool(
     persist_dir: str = "",
     collection: str = "oracle_rag",
     document_id: str = "",
+    page_min: int | None = None,
+    page_max: int | None = None,
+    tag: str = "",
 ) -> dict:
     """Query indexed PDFs and return an answer with citations.
 
@@ -80,6 +83,9 @@ def query_pdf_tool(
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
         document_id: Optional document ID to filter retrieval (e.g. PDF file name from list_pdfs).
+        page_min: Optional start of page range (inclusive). Use with page_max.
+        page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
+        tag: Optional tag to filter retrieval (e.g. "PI_PICO" from list_pdfs document_details).
 
     Returns:
         Dictionary containing:
@@ -92,6 +98,9 @@ def query_pdf_tool(
         persist_dir=persist_dir or get_persist_dir(),
         collection=collection,
         document_id=document_id or None,
+        page_min=page_min,
+        page_max=page_max,
+        tag=tag or None,
     )
 
 

@@ -41,6 +41,9 @@ def run_rag(
     collection_name: str = DEFAULT_COLLECTION_NAME,
     embedding: Optional[Embeddings] = None,
     document_id: Optional[str] = None,
+    page_min: Optional[int] = None,
+    page_max: Optional[int] = None,
+    tag: Optional[str] = None,
 ) -> RAGResult:
     """Run a 2-step RAG pipeline: retrieve chunks, format context, prompt LLM, return answer with citations.
 
@@ -54,6 +57,9 @@ def run_rag(
         collection_name: Chroma collection name (must match indexing).
         embedding: Optional embedding model for retrieval; if None, uses default.
         document_id: Optional document ID to filter retrieval (e.g. PDF file name).
+        page_min: Optional start of page range (inclusive). Use with page_max.
+        page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
+        tag: Optional tag to filter retrieval (e.g. "PI_PICO").
 
     Returns:
         RAGResult with answer (str) and sources (list of {document_id, page}).
@@ -65,6 +71,9 @@ def run_rag(
         collection_name=collection_name,
         embedding=embedding,
         document_id=document_id,
+        page_min=page_min,
+        page_max=page_max,
+        tag=tag,
     )
     messages = RAG_PROMPT.invoke(
         {"context": format_docs(docs), "question": query}

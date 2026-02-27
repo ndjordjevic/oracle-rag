@@ -117,6 +117,32 @@ def index_pdf(
     )
 
 
+def _build_retrieval_filter(
+    document_id: Optional[str] = None,
+    page_min: Optional[int] = None,
+    page_max: Optional[int] = None,
+    tag: Optional[str] = None,
+) -> Optional[dict]:
+    """Build Chroma where filter from document_id, page range, and/or tag.
+
+    Single page: page_min=64, page_max=64 filters to page 64 only.
+    Tag filter returns only chunks with that tag (documents indexed with tag).
+    """
+    conditions: list[dict] = []
+    if document_id and str(document_id).strip():
+        conditions.append({"document_id": document_id.strip()})
+    if page_min is not None and page_max is not None:
+        conditions.append({"page": {"$gte": page_min}})
+        conditions.append({"page": {"$lte": page_max}})
+    if tag and str(tag).strip():
+        conditions.append({"tag": tag.strip()})
+    if not conditions:
+        return None
+    if len(conditions) == 1:
+        return conditions[0]
+    return {"$and": conditions}
+
+
 def query_index(
     query: str,
     *,
@@ -125,6 +151,9 @@ def query_index(
     collection_name: str = DEFAULT_COLLECTION_NAME,
     embedding: Optional[Embeddings] = None,
     document_id: Optional[str] = None,
+    page_min: Optional[int] = None,
+    page_max: Optional[int] = None,
+    tag: Optional[str] = None,
 ) -> list[Document]:
     """Run a similarity search over the indexed chunks in Chroma.
 
@@ -136,6 +165,11 @@ def query_index(
         embedding: Optional embedding model; if None, uses default OpenAI embeddings.
         document_id: Optional document ID to filter by (e.g. PDF file name). Only chunks
             from this document are considered for retrieval.
+        page_min: Optional start of page range (inclusive). Use with page_max.
+        page_max: Optional end of page range (inclusive). Use with page_min.
+            Single page: page_min=64, page_max=64 filters to page 64 only.
+        tag: Optional tag to filter by (e.g. "PI_PICO"). Only chunks from documents
+            indexed with this tag are considered.
 
     Returns:
         List of matching chunk `Document`s from the vector store.
@@ -146,6 +180,11 @@ def query_index(
         collection_name=collection_name,
         embedding=embedding,
     )
-    filter_dict = {"document_id": document_id} if document_id and str(document_id).strip() else None
+    filter_dict = _build_retrieval_filter(
+        document_id=document_id,
+        page_min=page_min,
+        page_max=page_max,
+        tag=tag,
+    )
     return store.similarity_search(query, k=k, filter=filter_dict)
 
