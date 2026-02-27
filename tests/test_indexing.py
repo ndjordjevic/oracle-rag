@@ -52,6 +52,11 @@ def test_index_pdf_smoke(tmp_path: Path) -> None:
     docs = store.similarity_search("test", k=2)
     assert len(docs) > 0
     assert isinstance(docs[0], Document)
+    meta = docs[0].metadata
+    assert "upload_timestamp" in meta
+    assert "doc_pages" in meta
+    assert "doc_bytes" in meta
+    assert "doc_total_chunks" in meta
 
 
 def test_query_index_uses_existing_store(tmp_path: Path) -> None:

@@ -49,6 +49,7 @@ def test_list_pdfs_returns_documents_from_store(tmp_path: Path) -> None:
     assert result["documents"] == ["a.pdf", "b.pdf"]
     assert result["total_chunks"] == 3
     assert result["collection_name"] == "test_coll"
+    assert "document_details" in result
     mock_store.get.assert_called_once_with(include=["metadatas"])
 
 
@@ -63,6 +64,30 @@ def test_list_pdfs_handles_empty_metadatas(tmp_path: Path) -> None:
 
     assert result["documents"] == []
     assert result["total_chunks"] == 0
+    assert result["document_details"] == {}
+
+
+def test_list_pdfs_includes_document_details_when_present(tmp_path: Path) -> None:
+    """list_pdfs returns document_details (upload_timestamp, pages, bytes, chunks) when chunks have them."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    mock_store = MagicMock()
+    mock_store.get.return_value = {
+        "metadatas": [
+            {"document_id": "doc.pdf", "upload_timestamp": "2025-01-15T12:00:00Z", "doc_pages": 56, "doc_bytes": 12345, "doc_total_chunks": 224},
+            {"document_id": "doc.pdf", "upload_timestamp": "2025-01-15T12:00:00Z", "doc_pages": 56, "doc_bytes": 12345, "doc_total_chunks": 224},
+        ]
+    }
+
+    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+        result = list_pdfs(persist_dir=str(tmp_path), collection="test_coll")
+
+    assert result["documents"] == ["doc.pdf"]
+    assert result["document_details"]["doc.pdf"] == {
+        "upload_timestamp": "2025-01-15T12:00:00Z",
+        "pages": 56,
+        "bytes": 12345,
+        "chunks": 224,
+    }
 
 
 # --- add_pdf ---

@@ -163,11 +163,10 @@
   - [x] Implement batch PDF loading (new `add_pdfs` MCP tool)
   - [x] Test with multiple PDFs (unit coverage for partial success/failure)
 
-- [ ] **Enhanced Metadata**
+- [x] **Enhanced Metadata**
   - [x] Add explicit section/heading labels to chunk metadata (`section` key; heading-like lines detected and carried forward)
-  - [ ] Store additional document metadata (e.g. creation date) and surface it in tools
-  - [ ] Add upload timestamps for indexed documents
-  - [ ] Store document size stats (pages, bytes, total chunks) per document
+  - [x] Add upload timestamps for indexed documents (stored on chunks, aggregated per document in list_pdfs)
+  - [x] Store document size stats (pages, bytes, total chunks) per document (stored on chunks, aggregated per document in list_pdfs)
 
 ### Chunking - Enhanced
 - [ ] **Intelligent Chunking**

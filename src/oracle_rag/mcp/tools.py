@@ -224,6 +224,7 @@ def list_pdfs(
             "total_chunks": 0,
             "persist_directory": str(persist_path),
             "collection_name": collection,
+            "document_details": {},
         }
 
     store = get_chroma_store(
@@ -234,22 +235,36 @@ def list_pdfs(
     metadatas = data.get("metadatas") or []
 
     doc_ids: set[str] = set()
+    document_details: dict[str, dict[str, Any]] = {}
     for meta in metadatas:
         if not isinstance(meta, dict):
             continue
-        doc_id = (
+        doc_id = str(
             meta.get("document_id")
             or meta.get("file_name")
             or meta.get("source")
             or "unknown"
         )
-        doc_ids.add(str(doc_id))
+        doc_ids.add(doc_id)
+        if doc_id not in document_details:
+            details: dict[str, Any] = {}
+            if meta.get("upload_timestamp") is not None:
+                details["upload_timestamp"] = meta["upload_timestamp"]
+            if meta.get("doc_pages") is not None:
+                details["pages"] = meta["doc_pages"]
+            if meta.get("doc_bytes") is not None:
+                details["bytes"] = meta["doc_bytes"]
+            if meta.get("doc_total_chunks") is not None:
+                details["chunks"] = meta["doc_total_chunks"]
+            if details:
+                document_details[doc_id] = details
 
     return {
         "documents": sorted(doc_ids),
         "total_chunks": len(metadatas),
         "persist_directory": str(persist_path),
         "collection_name": collection,
+        "document_details": {k: document_details[k] for k in sorted(document_details)},
     }
 
 

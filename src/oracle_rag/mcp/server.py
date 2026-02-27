@@ -164,6 +164,7 @@ def list_pdfs_tool(
         - total_chunks: Total number of chunks in the index
         - persist_directory: Path to the Chroma store
         - collection_name: Collection name used
+        - document_details: Per-document stats (upload_timestamp, pages, bytes, chunks) when available
     """
     return list_pdfs(persist_dir=persist_dir or get_persist_dir(), collection=collection)
 

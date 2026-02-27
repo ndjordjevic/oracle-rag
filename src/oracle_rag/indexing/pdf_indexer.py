@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Union
 
@@ -80,6 +81,17 @@ def index_pdf(
         collection_name=collection_name,
         embedding=embedding,
     )
+
+    # Add document-level metadata to each chunk (upload time, size stats).
+    doc_bytes = pdf_path.stat().st_size
+    upload_ts = datetime.now(timezone.utc).isoformat()
+    doc_pages = pdf_result.total_pages
+    doc_total_chunks = len(chunk_docs)
+    for doc in chunk_docs:
+        doc.metadata["upload_timestamp"] = upload_ts
+        doc.metadata["doc_pages"] = doc_pages
+        doc.metadata["doc_bytes"] = doc_bytes
+        doc.metadata["doc_total_chunks"] = doc_total_chunks
 
     # Replace existing chunks for this document to avoid duplicates.
     document_id = pdf_path.name
