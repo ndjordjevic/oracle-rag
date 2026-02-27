@@ -1,10 +1,10 @@
 # Oracle-RAG
 
-A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP (Model Context Protocol) server for Cursor and other AI assistants.
+A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP (Model Context Protocol) server for Cursor, VS Code (GitHub Copilot), and other AI assistants.
 
 ## Overview
 
-Oracle-RAG provides intelligent document querying and retrieval capabilities for PDF documents. Index PDFs, ask questions, and get answers with source citations—all via MCP tools in Cursor.
+Oracle-RAG provides intelligent document querying and retrieval capabilities for PDF documents. Index PDFs, ask questions, and get answers with source citations—all via MCP tools in your editor.
 
 ## Features
 
@@ -31,7 +31,7 @@ pipx upgrade oracle-rag
 # or: uv cache clean && uv tool install oracle-rag --force
 ```
 
-Restart Cursor after updating so the MCP server picks up the new version.
+Restart your editor after updating so the MCP server picks up the new version.
 
 ## Quick Start
 
@@ -42,9 +42,9 @@ mkdir -p ~/.oracle-rag
 echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
 ```
 
-### 2. Add to Cursor MCP
+### 2. Add MCP server
 
-Add to `~/.cursor/mcp.json`:
+**Cursor:** Add to `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -56,9 +56,23 @@ Add to `~/.cursor/mcp.json`:
 }
 ```
 
-Restart Cursor. That's it — no `cwd` needed. The server loads `.env` from `~/.oracle-rag/` (or `~/.config/oracle-rag/`) and stores the index in `~/.oracle-rag/chroma_db` by default.
+**VS Code (GitHub Copilot):** Run **MCP: Open User Configuration** from the Command Palette, then add:
 
-### 3. Use in Cursor
+```json
+{
+  "servers": {
+    "oracle-rag": {
+      "command": "oracle-rag-mcp"
+    }
+  }
+}
+```
+
+Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code. The server loads `.env` from `~/.oracle-rag/` (or `~/.config/oracle-rag/`) and stores the index in `~/.oracle-rag/chroma_db` by default.
+
+> **Note:** MCP in VS Code requires GitHub Copilot and VS Code 1.102+. Enterprise users may need an admin to enable "MCP servers in Copilot."
+
+### 3. Use in chat
 
 | Action | Tool |
 |--------|------|
@@ -68,8 +82,7 @@ Restart Cursor. That's it — no `cwd` needed. The server loads `.env` from `~/.
 | Query with filters | `query_pdf_tool` — filter by `document_id`, `page_min`/`page_max`, or `tag` |
 | Remove a PDF | `remove_pdf_tool` |
 
-**Example:** *"Add /path/to/amiga-book.pdf with tag AMIGA"* → `add_pdf_tool(pdf_path="...", tag="AMIGA")`  
-*"What are AGA chips? Search only AMIGA-tagged docs"* → `query_pdf_tool(query="...", tag="AMIGA")`
+Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"* or *"What are AGA chips? Search only AMIGA-tagged docs"*. The AI will invoke the tools for you.
 
 ## Configuration
 
@@ -116,11 +129,23 @@ Run MCP server from source:
 uv run oracle-rag-mcp
 ```
 
-For local development in Cursor, add to your project's `.cursor/mcp.json`:
+For local development, point the MCP config to your venv:
 
+**Cursor** (`.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
+    "oracle-rag": {
+      "command": "/path/to/oracle-rag/.venv/bin/oracle-rag-mcp"
+    }
+  }
+}
+```
+
+**VS Code** (`.vscode/mcp.json`):
+```json
+{
+  "servers": {
     "oracle-rag": {
       "command": "/path/to/oracle-rag/.venv/bin/oracle-rag-mcp"
     }
