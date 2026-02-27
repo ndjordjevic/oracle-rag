@@ -124,6 +124,7 @@ def query_index(
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: str = DEFAULT_COLLECTION_NAME,
     embedding: Optional[Embeddings] = None,
+    document_id: Optional[str] = None,
 ) -> list[Document]:
     """Run a similarity search over the indexed chunks in Chroma.
 
@@ -133,6 +134,8 @@ def query_index(
         persist_directory: Chroma persistence directory (must match indexing).
         collection_name: Chroma collection name (must match indexing).
         embedding: Optional embedding model; if None, uses default OpenAI embeddings.
+        document_id: Optional document ID to filter by (e.g. PDF file name). Only chunks
+            from this document are considered for retrieval.
 
     Returns:
         List of matching chunk `Document`s from the vector store.
@@ -143,5 +146,6 @@ def query_index(
         collection_name=collection_name,
         embedding=embedding,
     )
-    return store.similarity_search(query, k=k)
+    filter_dict = {"document_id": document_id} if document_id and str(document_id).strip() else None
+    return store.similarity_search(query, k=k, filter=filter_dict)
 

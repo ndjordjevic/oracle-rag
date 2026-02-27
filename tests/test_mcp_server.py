@@ -319,6 +319,34 @@ def test_query_pdf_success(tmp_path: Path) -> None:
     call_args, call_kwargs = mock_run_rag.call_args
     assert call_args[0] == "What is the answer?"
     assert call_kwargs["k"] == 3
+    assert call_kwargs.get("document_id") is None
+
+
+def test_query_pdf_with_document_id_filter(tmp_path: Path) -> None:
+    """query_pdf passes document_id to run_rag when provided."""
+    from oracle_rag.rag import RAGResult
+
+    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
+    mock_run_rag = MagicMock(
+        return_value=RAGResult(
+            answer="Filtered answer.",
+            sources=[{"document_id": "pico.pdf", "page": 1}],
+        )
+    )
+
+    with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("oracle_rag.mcp.tools.get_chat_model"):
+            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                query_pdf(
+                    query="GPIO?",
+                    k=3,
+                    persist_dir=str(tmp_path),
+                    collection="test_coll",
+                    document_id="RP-008276-DS-1-getting-started-with-pico.pdf",
+                )
+
+    mock_run_rag.assert_called_once()
+    assert mock_run_rag.call_args[1]["document_id"] == "RP-008276-DS-1-getting-started-with-pico.pdf"
 
 
 # --- Error handling: propagate + log ---

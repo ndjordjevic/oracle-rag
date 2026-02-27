@@ -40,6 +40,7 @@ def run_rag(
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: str = DEFAULT_COLLECTION_NAME,
     embedding: Optional[Embeddings] = None,
+    document_id: Optional[str] = None,
 ) -> RAGResult:
     """Run a 2-step RAG pipeline: retrieve chunks, format context, prompt LLM, return answer with citations.
 
@@ -52,6 +53,7 @@ def run_rag(
         persist_directory: Chroma persistence directory (must match indexing).
         collection_name: Chroma collection name (must match indexing).
         embedding: Optional embedding model for retrieval; if None, uses default.
+        document_id: Optional document ID to filter retrieval (e.g. PDF file name).
 
     Returns:
         RAGResult with answer (str) and sources (list of {document_id, page}).
@@ -62,6 +64,7 @@ def run_rag(
         persist_directory=persist_directory,
         collection_name=collection_name,
         embedding=embedding,
+        document_id=document_id,
     )
     messages = RAG_PROMPT.invoke(
         {"context": format_docs(docs), "question": query}

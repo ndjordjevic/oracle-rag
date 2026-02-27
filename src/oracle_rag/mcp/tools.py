@@ -24,6 +24,7 @@ def query_pdf(
     k: int = 5,
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
     collection: str = DEFAULT_COLLECTION_NAME,
+    document_id: str | None = None,
 ) -> dict[str, Any]:
     """Query indexed PDFs and return an answer with citations.
 
@@ -32,6 +33,7 @@ def query_pdf(
         k: Number of chunks to retrieve (default: 5).
         persist_dir: Chroma persistence directory (default: "chroma_db").
         collection: Chroma collection name (default: "oracle_rag").
+        document_id: Optional document ID to filter retrieval (e.g. PDF file name from list_pdfs).
 
     Returns:
         Dictionary with "answer" (str) and "sources" (list of dicts with document_id and page).
@@ -57,6 +59,7 @@ def query_pdf(
     embedding = get_embedding_model()
     llm = get_chat_model()
 
+    doc_id_filter = document_id.strip() if document_id and str(document_id).strip() else None
     result = run_rag(
         query,
         llm,
@@ -64,6 +67,7 @@ def query_pdf(
         persist_directory=str(persist_path),
         collection_name=collection,
         embedding=embedding,
+        document_id=doc_id_filter,
     )
 
     return {

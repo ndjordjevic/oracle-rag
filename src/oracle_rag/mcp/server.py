@@ -66,6 +66,7 @@ def query_pdf_tool(
     k: int = 5,
     persist_dir: str = "",
     collection: str = "oracle_rag",
+    document_id: str = "",
 ) -> dict:
     """Query indexed PDFs and return an answer with citations.
 
@@ -78,13 +79,20 @@ def query_pdf_tool(
         k: Number of document chunks to retrieve (default: 5).
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
+        document_id: Optional document ID to filter retrieval (e.g. PDF file name from list_pdfs).
 
     Returns:
         Dictionary containing:
         - answer: The generated answer text
         - sources: List of source citations with document_id and page number
     """
-    return query_pdf(query=query, k=k, persist_dir=persist_dir or get_persist_dir(), collection=collection)
+    return query_pdf(
+        query=query,
+        k=k,
+        persist_dir=persist_dir or get_persist_dir(),
+        collection=collection,
+        document_id=document_id or None,
+    )
 
 
 @mcp.tool()

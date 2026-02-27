@@ -40,6 +40,11 @@ def main() -> None:
         default="oracle_rag",
         help="Chroma collection name (default: oracle_rag)",
     )
+    parser.add_argument(
+        "--document",
+        default=None,
+        help="Filter retrieval to this document ID (e.g. PDF file name)",
+    )
     args = parser.parse_args()
 
     persist_dir = Path(args.persist_dir).expanduser().resolve()
@@ -53,6 +58,7 @@ def main() -> None:
         persist_directory=persist_dir,
         collection_name=args.collection,
         embedding=embedding,
+        document_id=args.document,
     )
 
     print(result.answer)

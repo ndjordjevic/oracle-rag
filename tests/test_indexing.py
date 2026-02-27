@@ -85,6 +85,46 @@ def test_index_pdf_with_tag(tmp_path: Path) -> None:
     assert docs[0].metadata.get("tag") == "amiga"
 
 
+def test_query_index_filter_by_document(tmp_path: Path) -> None:
+    """query_index with document_id filter returns only chunks from that document."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping indexing test")
+
+    persist_dir = tmp_path / "chroma_idx"
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="test_filter",
+        embedding=_MockEmbeddings(),
+    )
+
+    # Filter by actual document_id — all results should be from that doc
+    docs = query_index(
+        "test",
+        k=10,
+        persist_directory=str(persist_dir),
+        collection_name="test_filter",
+        embedding=_MockEmbeddings(),
+        document_id="sample-text.pdf",
+    )
+    assert len(docs) > 0
+    for d in docs:
+        assert d.metadata.get("document_id") == "sample-text.pdf"
+
+    # Filter by non-existent document_id — no results
+    empty = query_index(
+        "test",
+        k=5,
+        persist_directory=str(persist_dir),
+        collection_name="test_filter",
+        embedding=_MockEmbeddings(),
+        document_id="nonexistent.pdf",
+    )
+    assert len(empty) == 0
+
+
 def test_query_index_uses_existing_store(tmp_path: Path) -> None:
     """query_index returns results from an already-indexed Chroma store."""
     repo_root = Path(__file__).resolve().parents[1]

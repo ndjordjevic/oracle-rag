@@ -179,11 +179,10 @@
   - [x] Expose tag in `list_pdfs` output (per-document details)
 
 - [ ] **Metadata Filtering**
-  - [ ] Implement filter by document
+  - [x] Implement filter by document (optional `document_id` on query_index, run_rag, query_pdf)
   - [ ] Implement filter by page range
   - [ ] Implement filter by section
   - [ ] Implement filter by tag
-  - [ ] Test metadata filtering (including tag)
 
 ---
 
@@ -254,6 +253,10 @@
   - [ ] Implement re-ranking
   - [ ] Implement multi-query expansion
   - [ ] Add query preprocessing
+
+- [ ] **Document name resolution**
+  - [ ] Accept fuzzy document references in queries (e.g. \"pico debug probe manual\") and resolve them to exact `document_id` values from `list_pdfs`
+  - [ ] Add a helper in MCP/CLI to suggest or auto-complete document names based on partial input
 
 - [ ] **Retrieval Quality**
   - [ ] Implement retrieval quality evaluation
