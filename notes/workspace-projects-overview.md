@@ -88,3 +88,52 @@ Educational series that builds RAG from first principles across 18 parts in 5 Ju
 - **Parts 15–18 (`rag_from_scratch_15_to_18.ipynb`):** Production patterns and considerations.
 
 **Value for Oracle-RAG:** This project is a conceptual grounding for reasoning about RAG behavior and trade-offs. Especially relevant topics include: indexing strategies (Parts 1–4), retrieval quality and routing (Parts 10–11), metadata filtering and query construction (Part 11), and production patterns (Parts 15–18). Use it as a reference when evaluating new features like hybrid search, re-ranking, query preprocessing, or chunk size tuning.
+
+---
+
+### `langsmith-cookbook` — LangSmith Cookbook (Observability, Evaluation, Feedback)
+
+Official [LangSmith Cookbook](https://github.com/langchain-ai/langsmith-cookbook) — practical recipes for debugging, evaluating, testing, and improving LLM applications with [LangSmith](https://smith.langchain.com/). The repo is **archived** (read-only as of Feb 2026) but remains a strong reference. Most content is Jupyter notebooks plus a few Streamlit/Next.js apps; each recipe is self-contained in a subfolder with optional `requirements.txt` and assets.
+
+**Section breakdown:**
+
+- **Tracing** (`tracing-examples/`) — Instrument apps for LangSmith without locking into LangChain: `@traceable` decorator (Python SDK), REST API for logging runs and nested spans, custom run names for chains/lambdas/agents, tracing nested tool calls via `run_manager.get_child()` and callbacks, and displaying trace links in Streamlit for quick jump-to-trace during development.
+- **LangChain Hub** (`hub-examples/`) — Use Hub prompts in pipelines: RetrievalQA chain with hub-loaded prompts, prompt versioning for deployment stability (pin specific versions vs. `latest`), and runnable prompt templates (edit in playground → save → integrate into runnable chains).
+- **Testing & Evaluation** (`testing-examples/`) — Dataset-driven evals and regression testing.
+  - **RAG:** Q&A correctness (labeled dataset + LLM-as-judge), dynamic data (evaluators that dereference labels), fixed-source RAG eval (evaluate generator with pre-supplied retrieved docs), and **RAGAS** integration (answer correctness, faithfulness, context relevancy, context recall, context precision — both generator and retriever, labeled and reference-free).
+  - **Chat:** Simulated-user evals (task-based scoring), single-turn evals within multi-turn conversation datasets.
+  - **Extraction / Agents / Multimodal:** Extraction chain (JSON similarity vs. labels), exact match, agent intermediate steps (expected trajectory), tool selection (precision + prompt writer for failures), multimodal (e.g. image classification).
+  - **Fundamentals:** Backtesting (production runs → dataset → compare new version), adding metrics to existing test projects (`compute_test_metrics`), naming test projects, exporting tests to CSV (`get_test_results`), downloading feedback and examples for reports.
+- **TypeScript testing** (`typescript-testing-examples/`) — Vision-based evals (e.g. GPT-4V for AI-generated UIs), traceable example; fewer examples than Python.
+- **Feedback** (`feedback-examples/`) — Capture and automate feedback on runs: Streamlit and Next.js chat apps with tracing and feedback; algorithmic feedback pipeline (batch evaluation of production runs); real-time automated feedback (async callback per run); **real-time RAG chatbot evaluation** (Streamlit) — relevance and faithfulness evaluators via `EvaluatorCallbackHandler`, non-blocking hallucination checks against retrieved docs; LangChain agent with web-search and human feedback.
+- **Optimization** (`optimization/`) — Use LangSmith to improve prompts and few-shot sets: prompt bootstrapping (rewrite system prompt from feedback + LLM optimizer), style-transfer example (Elvis-bot), automated few-shot bootstrapping (curate examples by performance, e.g. SCONE), iterative prompt optimization (Streamlit, few-shot + optimizer model), online few-shot (add good examples to dataset from evaluators).
+- **Fine-tuning** (`fine-tuning-examples/`) — Export run data for training: export to OpenAI fine-tuning format from LangSmith runs; Lilac-based dataset curation (near-duplicates, PII, etc.).
+- **Exploratory data analysis** (`exploratory-data-analysis/`) — ETL for LLM runs and feedback (export for analytics); Lilac to enrich, label, and organize datasets.
+- **Introduction** (`introduction/`) — High-level LangSmith intro, summarization, and online evaluation notebooks.
+
+**Key dependencies:** Per-recipe; commonly `langsmith`, `langchain`, `langchain-openai`, `langchain-anthropic`, Chroma (RAG examples), Streamlit/Next.js for apps; RAGAS recipes use `ragas`; fine-tuning/EDA use `lilac` where applicable.
+
+**Value for Oracle-RAG:** Use the cookbook when adding observability and evaluation: (1) **Tracing** — add `@traceable` or LangChain callbacks so MCP and RAG runs appear in LangSmith. (2) **RAG evaluation** — adopt the Q&A correctness or RAGAS patterns (faithfulness, context relevancy/recall/precision) and run them on a small dataset before/after retrieval or prompt changes. (3) **Real-time RAG feedback** — adapt the Streamlit real-time feedback example (relevance + faithfulness evaluators, `EvaluatorCallbackHandler`) to monitor production oracle-rag answers against retrieved chunks. (4) **Backtesting** — turn production MCP traces into a dataset and compare new chain versions. (5) **Prompt versioning** — if prompts move to LangChain Hub, use versioned fetches for stable deployments.
+
+---
+
+### `cookbooks` — LangChain Cookbooks (LangGraph + LangSmith patterns)
+
+Official [LangChain Cookbooks](https://github.com/langchain-ai/cookbooks) repo: curated code snippets and examples for **LangGraph** and **LangSmith** — design patterns, persistence, streaming, observability, and auth. Structure is **python/** (and **javascript/** placeholder). MIT licensed; actively maintained.
+
+**LangGraph (`python/langgraph/`):**
+
+- **Agents** — **basic-RAG**: stateless RAG agent with LangGraph + Chroma. **assistants-demo**: ReAct agent and supervisor/multi-agent with configuration, notebooks. **ecommerce-hierarchical-system**: top-level supervisor routing to BU supervisors (billing & payments, order management, promotions & loyalty), each with sub-agents and tools; `uv sync`, LangSmith tracing, `langgraph dev`; good reference for hierarchical routing. **arxiv-researcher**: multi-agent flow (high-level summary, detailed summary, application agent).
+- **Human-in-the-loop** — Examples for human interaction in graphs (folder present; see repo for current contents).
+- **MCP** — **mcp-auth-demo**: full user-auth flow for agents that call MCP with user credentials: Supabase auth → Supabase Vault for secrets → custom LangGraph auth middleware → MCP server authenticated with user-scoped GitHub PAT; tests for vault retrieval, MCP connection, middleware, and agent flow; aligns with [LangGraph Agent Authentication](https://langchain-ai.github.io/langgraph/how-tos/auth/). Relevant if oracle-rag or MCP servers ever need per-user or per-tenant credentials.
+- **Persistence** — **fault-tolerance**: two patterns — (1) **Partial failure / pending writes**: parallel nodes where some fail; successful node outputs saved as pending writes, only failed nodes retry, reducers merge state, checkpointing preserves work. (2) **Retry + fallbacks**: progressive retry (direct retry → simplified input → default result), graceful degradation. Uses SQLite checkpointer, `merge_dicts` and `add_messages` reducers. Useful for robust RAG/agent pipelines.
+- **Streaming** — **custom-streaming/log-analysis**: custom streaming example (log analysis).
+
+**LangSmith (`python/langsmith/`):**
+
+- **Observability** — **tracing/data-privacy/trace-content-redaction**: redact system prompts (or other content) in traces for privacy/compliance; notebook + `utils.py`. **tracing/otel**: OpenTelemetry tracing with Bedrock agents (`tracing_bedrock_agents_otel.ipynb`).
+- **evaluation/** and **prompt-engineering/** — Placeholders (`.gitkeep`); richer evaluation and prompt patterns live in `langsmith-cookbook`.
+
+**Key dependencies:** Per-example; commonly `langgraph`, `langchain`, `langchain-openai`, Chroma (basic-RAG), `uv` (ecommerce), Supabase (mcp-auth-demo). LangSmith/OTEL examples use `langsmith` and OpenTelemetry packages.
+
+**Value for Oracle-RAG:** (1) **RAG agent structure** — basic-RAG shows a minimal LangGraph + Chroma RAG agent; use as a template if you move oracle-rag into a graph. (2) **Fault tolerance** — persistence/fault-tolerance patterns (pending writes, retries + fallbacks) for retrieval or LLM steps that can fail. (3) **MCP auth** — if you add per-user or per-tenant MCP access, mcp-auth-demo shows Supabase + Vault + LangGraph auth middleware. (4) **Trace privacy** — data-privacy redaction example if you need to redact prompts or PII in LangSmith traces. (5) **Hierarchical routing** — ecommerce-hierarchical-system as a reference for routing to multiple “BU”-style sub-graphs (e.g. by document type or tag).

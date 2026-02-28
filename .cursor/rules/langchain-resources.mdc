@@ -12,12 +12,14 @@ alwaysApply: true
 
 ## Reference Projects
 
-Use these example projects for valid LangChain/LangGraph patterns with the newest API:
-- `/Users/nenaddjordjevic/PythonProjects/langchain-academy/`
-- `/Users/nenaddjordjevic/PythonProjects/lca-lc-foundations/`
-- `/Users/nenaddjordjevic/PythonProjects/lca-langchainV1-essentials/`
-- `/Users/nenaddjordjevic/PythonProjects/lca-langgraph-essentials/`
-- `/Users/nenaddjordjevic/PythonProjects/rag-from-scratch/` — RAG tutorial notebooks (to analyze)
+**Do not list projects here.** Use the workspace overview for the canonical list of reference projects, their structure, and how they relate to this project (oracle-rag):
+
+- **`notes/workspace-projects-overview.md`** — Read this file for:
+  - All workspace projects (langchain-academy, lca-lc-foundations, lca-langchainV1-essentials, lca-langgraph-essentials, rag-from-scratch, langsmith-cookbook, cookbooks)
+  - Module/lesson breakdowns and key dependencies per project
+  - "Value for Oracle-RAG" notes that explain which parts of each project are most relevant
+
+When you need example patterns, API usage, or RAG/agent references, consult the overview first to choose the right project and section, then use the paths and descriptions there to locate code.
 
 ## Guidelines
 
@@ -29,7 +31,7 @@ Use these example projects for valid LangChain/LangGraph patterns with the newes
 ## When Answering Questions
 
 - **Always cite sources**: Always cite the source documentation you're referencing, including URLs when available
-- **Search priority**: First search the listed documentation resources above. If information is not found there, you may search the internet
+- **Search priority**: For reference projects and patterns, read `notes/workspace-projects-overview.md` first. Then search the MCP documentation resources above. If information is not found there, you may search the internet
 - **Internet search citation**: When using information from internet searches, you must list the specific resources (URLs, websites, articles) where you found the information
 - **Strictly avoid hallucinations**: Never make up or guess information
 - **Be honest about uncertainty**: If information cannot be found in the available documentation resources or through internet search, explicitly state \"I don't know\" or \"I cannot find this information\" rather than speculating or inventing details
