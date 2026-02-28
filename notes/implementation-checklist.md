@@ -236,7 +236,7 @@
 
 ---
 
-## Phase 3: Advanced Features
+## Phase 4: Advanced Features
 
 **Goal:** Sophisticated retrieval strategies, multi-step reasoning, and advanced user experience.
 
@@ -246,16 +246,27 @@
   - [ ] Measure retrieval quality (e.g. precision@k, recall) and answer quality
   - [ ] Use metrics to validate hybrid search, re-ranking, multi-query before/after
 
-- [ ] **Advanced Retrieval Strategies**
+- [ ] **Advanced Retrieval Strategies** (ordered roughly simplest → hardest to implement)
   - [ ] Research hybrid search options
-  - [ ] Implement hybrid search (if supported by vector DB)
-  - [ ] Implement re-ranking
-  - [ ] Implement multi-query expansion
   - [ ] Add query preprocessing
+  - [ ] **Long-context impact (optional)** — Long-context LLMs often underuse information in the middle of the prompt (“lost in the middle”). When building context from retrieved docs: order so the most relevant chunks appear at the start and end of the context; consider limiting to a small number of top passages (e.g. 3–5) or reranking and taking top-K; avoid packing many weak passages. Ref: Lost in the middle; rag-from-scratch 18.
+  - [ ] Implement re-ranking
+  - [ ] **Re-ranking (optional)** — After retrieval, re-score and re-order documents before passing to the LLM. Options: (1) Dedicated reranker: retrieve more (e.g. k=10), then use a cross-encoder-style reranker (e.g. Cohere Re-Rank via LangChain `ContextualCompressionRetriever` + `CohereRerank`) to return top N; (2) RAG Fusion: multiple queries + reciprocal rank fusion to merge and rerank (see RAG Fusion bullet above). Ref: rag-from-scratch 15.
+  - [ ] Implement hybrid search (if supported by vector DB)
+  - [ ] **Query translation / multi-query** — Take the user query (e.g. from Cursor via MCP), generate 3–5 differently worded questions via LLM, run retrieval per question, merge results (e.g. unique union), then run RAG on merged context. Improves retrieval when the original query is ambiguous or poorly aligned with document embeddings; Cursor does not polish or expand the question before calling the MCP, so this belongs inside oracle-rag. Optionally follow with RAG Fusion (reciprocal rank fusion) for merging. Ref: LangChain query translation / multi-query (e.g. rag-from-scratch 5–9).
+  - [ ] **RAG Fusion: top-K after merge** — When using reciprocal rank fusion, the merged list is sorted by fused score; send only the top K docs (e.g. 10) to the LLM for context to limit prompt size and focus on best-ranked results.
+  - [ ] **Step back prompting (optional)** — Generate a more abstract/higher-level “step back” question from the user question via few-shot LLM (e.g. “What is task composition for LLM agents?” → “What is the process of task composition?”). Retrieve on both the original and the step back question; combine both contexts and pass to the final answer prompt. Use when docs mix high-level concepts and specifics (e.g. textbooks, technical docs); the step back pulls conceptual content that supports the specific answer. Ref: Google step back prompting; rag-from-scratch series.
+  - [ ] **HyDE (Hypothetical Document Embeddings, optional)** — Generate a hypothetical document that would answer the user question (e.g. prompt: "Write a passage to answer the following question"), embed that passage instead of the raw question, and run retrieval with it; then use retrieved docs + original question for the final RAG answer. Rationale: questions and documents sit in different regions of embedding space; a hypothetical doc is closer in style/length to real chunks and can improve retrieval. Tune the generation prompt per domain (e.g. "Write a technical manual section..."). Ref: HyDE paper; rag-from-scratch series.
+  - [ ] **Query decomposition (optional)** — For complex questions: decompose into sub-questions via LLM, run RAG per sub-question (parallel: independent answers then concatenate; or sequential/IRC-style: pass prior Q&A into each step), then combine into final answer. Use when the question is multi-part (e.g. “What are the components and how do they interact?”). Differs from multi-query (same question rephrased → merge retrievals → one answer). Ref: rag-from-scratch 5–9, Part 7.
+  - [ ] **ColBERT (optional)** — Token-level retrieval instead of one vector per chunk: tokenize doc and question, produce a vector per token (with positional weighting); score = sum over question tokens of max similarity to any document token (MaxSim). Avoids compressing a full chunk into one vector; can improve recall. Requires a ColBERT-style model and index (e.g. RAGatouille); latency and production readiness need evaluation. Consider for longer documents; check max token/context limits. Ref: ColBERT; rag-from-scratch 14.
+  - [ ] **CRAG (optional)** — Corrective RAG: evaluate retrieval quality (e.g. similarity-score distribution or a small evaluator) and route by confidence. Use tunable thresholds: if confidence is high, use retrieved docs as usual; if ambiguous, refine query or context; if low, skip retrieval and answer from LLM only or trigger fallback (e.g. web search). Reduces hallucinations when the retriever returns irrelevant docs. Can be implemented as a graph (e.g. LangGraph) with conditional edges. Ref: CRAG paper; rag-from-scratch 16; LangGraph CRAG examples.
+  - [ ] **Self-RAG (optional)** — Adaptive retrieval and self-reflection: the system decides whether to retrieve (no fixed retrieval every time), generates from retrieved passages when used, then critiques both the retrieved docs and its own answer (e.g. relevance, support, correctness) and can iterate. Improves factuality and citation accuracy; often implemented with a single model or graph that interleaves retrieval, generation, and reflection steps. Ref: Self-RAG paper; rag-from-scratch 17; LangGraph Self-RAG examples.
 
 - [ ] **Document name resolution**
   - [ ] Accept fuzzy document references in queries (e.g. \"pico debug probe manual\") and resolve them to exact `document_id` values from `list_pdfs`
   - [ ] Add a helper in MCP/CLI to suggest or auto-complete document names based on partial input
+
+- [ ] **Query structuring (optional)** — Convert natural language into structured metadata filters for the vector store. Define a Pydantic schema for available filters (e.g. document_id, tag, page_min, page_max); use LLM with structured output (function calling) so the user can say e.g. “only in the Pico manual” or “docs tagged AMIGA, pages 10–20” and get back a structured query object that drives `query_index(..., document_id=..., tag=..., page_min=..., page_max=...)`. Complements document name resolution by handling all filter types from one NL question. Ref: rag-from-scratch 11; LangChain query analysis / structured output.
 
 - [ ] **Retrieval Quality**
   - [ ] Implement retrieval quality evaluation
@@ -284,6 +295,7 @@
   - [ ] Link back to document sections
 
 ### Advanced Features
+- [ ] **Routing (optional)** — Route a question to the right data source or chain before retrieval. Two approaches: (1) **Logical routing**: LLM with structured output (Pydantic) chooses one of a few options (e.g. python_docs vs js_docs, or tag-based collections); (2) **Semantic routing**: embed question + candidate prompts, pick most similar. Useful when oracle-rag has multiple collections, tags, or retrieval strategies (e.g. route to multi-query vs HyDE). Ref: rag-from-scratch 10; LangChain routing docs.
 - [ ] **Query Classification** (Consider LangGraph migration)
   - [ ] Implement query type detection
   - [ ] Implement conditional routing based on query type
@@ -337,6 +349,8 @@
 - [ ] **Parent-child retrieval**
   - [ ] Embed small chunks (128-256 tokens) for precise matching, return larger parent chunks (1000-2000 tokens) for context
   - [ ] Evaluate LangChain `ParentDocumentRetriever` (requires secondary storage layer)
+- [ ] **Multi-representation indexing (optional)** — Decouple retrieval representation from generation content: at index time, produce a summary (or “proposition”) per document (or per section) via LLM, embed summaries in the vector store; store full raw documents in a separate doc store keyed by doc_id. At query time, similarity search on summaries → get doc_ids → fetch full document(s) from doc store → pass full doc(s) to LLM. Improves retrieval (summary optimized for matching) and gives long-context LLMs full-document context. Ref: proposition indexing; rag-from-scratch 12.
+- [ ] **RAPTOR / hierarchical indexing (optional)** — Build a hierarchical index: start with leaf chunks (or docs), cluster by embedding similarity, summarize each cluster with an LLM; recurse (cluster summaries → summarize again) until one root or a depth limit. Index all levels together in the same vector store (leaves + every summary level). High-level questions tend to match higher-level summary chunks; low-level questions match leaf chunks; improves coverage when K is small and the question needs information spread across many chunks. More complex indexing (clustering, recursive summarization). Ref: RAPTOR paper; rag-from-scratch 13.
 - [ ] **Structure-aware chunking**
   - [ ] Detect and preserve tables as atomic chunks (avoid splitting mid-table)
   - [ ] Detect and preserve code blocks as atomic chunks
@@ -358,7 +372,7 @@
 
 ---
 
-## Phase 4: Polish & Production Ready
+## Phase 5: Polish & Production Ready
 
 **Goal:** Production-grade reliability, monitoring, deployment, and advanced optimizations.
 
@@ -443,13 +457,17 @@
 ### Phase 2: Complete ✅
 - Plain Python `run_rag()` replaces LCEL; `ChatPromptTemplate` stays; `RunnablePassthrough`/`RunnableLambda`/`StrOutputParser` removed
 
-### Phase 3: Advanced Configuration + LangGraph
+### Phase 3: Advanced Configuration & Deployment
 - Embedding and LLM configuration (swap providers, tune chunk settings)
-- Query classification with conditional routing
-- Multi-step reasoning with state persistence
-- Retrieval quality checks with fallback logic
-- Conversation history management
-- Iterative refinement workflows
+- MCP resources/prompts, retriever abstraction, document management, error handling
+
+### Phase 4: Advanced Features
+- Query translation / multi-query, hybrid search, re-ranking
+- Query classification with conditional routing (consider LangGraph)
+- Multi-step reasoning, conversation history
 - Evaluate wrapping as a LangGraph `StateGraph` for Studio support and future extensibility
 
-**Note:** LangChain docs recommend plain Python + `@traceable` for a deterministic 2-step RAG. `AgentMiddleware` + `create_agent` is for agentic RAG (LLM decides when to retrieve). LangGraph `StateGraph` is the right target if the pipeline needs routing, loops, or Studio visibility — deferred to Phase 3.
+### Phase 5: Polish & Production Ready
+- Deployment, monitoring, security, scalability, documentation
+
+**Note:** LangChain docs recommend plain Python + `@traceable` for a deterministic 2-step RAG. `AgentMiddleware` + `create_agent` is for agentic RAG (LLM decides when to retrieve). LangGraph `StateGraph` is the right target if the pipeline needs routing, loops, or Studio visibility — deferred to Phase 3/4.
