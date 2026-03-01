@@ -18,6 +18,7 @@ from oracle_rag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
+from oracle_rag.vectorstore.retriever import build_retrieval_filter
 
 
 PathLike = Union[str, Path]
@@ -117,32 +118,6 @@ def index_pdf(
     )
 
 
-def _build_retrieval_filter(
-    document_id: Optional[str] = None,
-    page_min: Optional[int] = None,
-    page_max: Optional[int] = None,
-    tag: Optional[str] = None,
-) -> Optional[dict]:
-    """Build Chroma where filter from document_id, page range, and/or tag.
-
-    Single page: page_min=64, page_max=64 filters to page 64 only.
-    Tag filter returns only chunks with that tag (documents indexed with tag).
-    """
-    conditions: list[dict] = []
-    if document_id and str(document_id).strip():
-        conditions.append({"document_id": document_id.strip()})
-    if page_min is not None and page_max is not None:
-        conditions.append({"page": {"$gte": page_min}})
-        conditions.append({"page": {"$lte": page_max}})
-    if tag and str(tag).strip():
-        conditions.append({"tag": tag.strip()})
-    if not conditions:
-        return None
-    if len(conditions) == 1:
-        return conditions[0]
-    return {"$and": conditions}
-
-
 def query_index(
     query: str,
     *,
@@ -180,7 +155,7 @@ def query_index(
         collection_name=collection_name,
         embedding=embedding,
     )
-    filter_dict = _build_retrieval_filter(
+    filter_dict = build_retrieval_filter(
         document_id=document_id,
         page_min=page_min,
         page_max=page_max,

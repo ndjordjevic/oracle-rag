@@ -10,7 +10,9 @@ import pytest
 from langchain_core.documents import Document
 
 from oracle_rag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
+
 from oracle_rag.llm import get_chat_model
+from oracle_rag.vectorstore import create_retriever
 
 
 def test_format_docs_empty() -> None:
@@ -111,3 +113,43 @@ def test_rag_chain_invoke(tmp_path: Path) -> None:
     assert isinstance(result.answer, str)
     assert len(result.answer.strip()) > 0
     assert isinstance(result.sources, list)
+
+
+def test_run_rag_with_retriever(tmp_path: Path) -> None:
+    """run_rag accepts a retriever directly (uses create_retriever under the hood)."""
+    from dotenv import load_dotenv
+    load_dotenv()
+    if not os.environ.get("OPENAI_API_KEY"):
+        pytest.skip("OPENAI_API_KEY not set; skipping RAG test")
+
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present")
+
+    from oracle_rag.indexing import index_pdf
+    from oracle_rag.embeddings import get_embedding_model
+
+    persist_dir = tmp_path / "chroma_rag"
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="rag_test",
+        embedding=get_embedding_model(),
+    )
+    retriever = create_retriever(
+        k=3,
+        persist_directory=str(persist_dir),
+        collection_name="rag_test",
+        embedding=get_embedding_model(),
+    )
+    llm = get_chat_model()
+    result = run_rag(
+        "What is this document about? One short sentence.",
+        llm,
+        retriever=retriever,
+    )
+    assert hasattr(result, "answer")
+    assert hasattr(result, "sources")
+    assert isinstance(result.answer, str)
+    assert len(result.answer.strip()) > 0

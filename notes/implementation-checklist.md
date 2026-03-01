@@ -200,9 +200,9 @@
   - [x] “Ask about this document prompt” (`ask_about_documents`)
 
 ### Retriever Abstraction
-- [ ] **Retriever abstraction (oracle-rag 2.0)**
-  - [ ] Use LangChain Retriever (`store.as_retriever()`) in RAG pipeline instead of `query_index`
-  - [ ] Refactor `run_rag()` to accept a retriever
+- [x] **Retriever abstraction (oracle-rag 2.0)**
+  - [x] Use LangChain Retriever (`store.as_retriever()`) in RAG pipeline instead of `query_index`
+  - [x] Refactor `run_rag()` to accept a retriever
 
 ### Document Management - Enhanced
 - [ ] **Document Operations** (advanced)
