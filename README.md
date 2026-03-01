@@ -13,7 +13,9 @@ Oracle-RAG provides intelligent document querying and retrieval capabilities for
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
 - **Metadata filtering** — Query by document, page range, or tag
 - **MCP tools** — `query_pdf`, `add_pdf`, `add_pdfs`, `list_pdfs`, `remove_pdf`
-- **Built with** — LangChain, Chroma, OpenAI embeddings
+- **Configurable LLM** — OpenAI (default) or Anthropic (Claude); set via `ORACLE_RAG_LLM_PROVIDER` and model in `.env`
+- **Configurable embeddings** — OpenAI (default) or Cohere; set via `ORACLE_RAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
+- **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, Cohere
 
 ## Installation
 
@@ -39,7 +41,9 @@ Restart your editor after updating so the MCP server picks up the new version.
 
 ```bash
 mkdir -p ~/.oracle-rag
+# Default: OpenAI for both LLM and embeddings
 echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
+# Optional: use Anthropic (Claude) and/or Cohere — see Configuration below
 ```
 
 ### 2. Add MCP server
@@ -96,10 +100,21 @@ Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OPENAI_API_KEY` | *(required)* | OpenAI API key |
+| **LLM** | | |
+| `ORACLE_RAG_LLM_PROVIDER` | `openai` | `openai` or `anthropic` |
+| `ORACLE_RAG_LLM_MODEL` | *(provider default)* | e.g. `gpt-4o-mini`, `claude-haiku-4-5`, `claude-sonnet-4-6` |
+| `OPENAI_API_KEY` | *(required for OpenAI)* | OpenAI API key |
+| `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `ORACLE_RAG_LLM_PROVIDER=anthropic`) |
+| **Embeddings** | | |
+| `ORACLE_RAG_EMBEDDING_PROVIDER` | `openai` | `openai` or `cohere` |
+| `ORACLE_RAG_EMBEDDING_MODEL` | *(provider default)* | e.g. `text-embedding-3-small`, `embed-english-v3.0` |
+| `COHERE_API_KEY` | *(required for Cohere)* | Cohere API key; install with `pip install oracle-rag[cohere]` when using Cohere |
+| **Storage & chunking** | | |
 | `ORACLE_RAG_PERSIST_DIR` | `~/.oracle-rag/chroma_db` | Chroma vector store directory |
 | `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
 | `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
+
+**Note:** Embedding dimension depends on the provider (e.g. OpenAI 1536, Cohere 1024). If you switch embedding provider, use a different `collection` name when indexing/querying, or re-index into a new collection so dimensions match.
 
 ## Query Filtering
 

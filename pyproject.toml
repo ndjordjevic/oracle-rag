@@ -7,6 +7,7 @@ dependencies = [
     "chromadb>=1.4.1",
     "langchain-chroma>=0.1.0",
     "langchain>=1.2.10",
+    "langchain-anthropic>=0.3.0",
     "langchain-community>=0.4.1",
     "langchain-core>=1.2.11",
     "langchain-openai>=1.1.9",
@@ -16,15 +17,16 @@ dependencies = [
     "python-dotenv>=1.2.1",
 ]
 
-[project.scripts]
-oracle-rag-mcp = "oracle_rag.cli:main"
-
 [project.optional-dependencies]
+cohere = ["langchain-cohere>=0.2.0"]
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.6.1",
     "mypy>=1.11.1",
 ]
+
+[project.scripts]
+oracle-rag-mcp = "oracle_rag.cli:main"
 
 [tool.ruff]
 lint.select = [

@@ -14,6 +14,58 @@ load_dotenv()
 
 DEFAULT_PERSIST_DIR = str(Path.home() / ".oracle-rag" / "chroma_db")
 
+# LLM provider: openai | anthropic
+DEFAULT_LLM_PROVIDER = "openai"
+DEFAULT_LLM_MODEL_OPENAI = "gpt-4o-mini"
+# Anthropic models (set ORACLE_RAG_LLM_MODEL in .env). See https://docs.anthropic.com/en/docs/about-claude/models
+# Default: claude-haiku-4-5 (cheapest, fastest). Others: claude-sonnet-4-6, claude-opus-4-6
+DEFAULT_LLM_MODEL_ANTHROPIC = "claude-haiku-4-5"
+
+# Embedding provider: openai | cohere
+DEFAULT_EMBEDDING_PROVIDER = "openai"
+DEFAULT_EMBEDDING_MODEL_OPENAI = "text-embedding-3-small"
+DEFAULT_EMBEDDING_MODEL_COHERE = "embed-english-v3.0"
+
+
+def get_llm_provider() -> str:
+    """Return LLM provider from ORACLE_RAG_LLM_PROVIDER env (openai | anthropic)."""
+    val = os.environ.get("ORACLE_RAG_LLM_PROVIDER", DEFAULT_LLM_PROVIDER)
+    p = (val or "").strip().lower()
+    if p in ("openai", "anthropic"):
+        return p
+    return DEFAULT_LLM_PROVIDER
+
+
+def get_llm_model() -> str:
+    """Return LLM model name from ORACLE_RAG_LLM_MODEL env, or provider default."""
+    val = os.environ.get("ORACLE_RAG_LLM_MODEL")
+    if val and str(val).strip():
+        return str(val).strip()
+    provider = get_llm_provider()
+    if provider == "anthropic":
+        return DEFAULT_LLM_MODEL_ANTHROPIC
+    return DEFAULT_LLM_MODEL_OPENAI
+
+
+def get_embedding_provider() -> str:
+    """Return embedding provider from ORACLE_RAG_EMBEDDING_PROVIDER env (openai | cohere)."""
+    val = os.environ.get("ORACLE_RAG_EMBEDDING_PROVIDER", DEFAULT_EMBEDDING_PROVIDER)
+    p = (val or "").strip().lower()
+    if p in ("openai", "cohere"):
+        return p
+    return DEFAULT_EMBEDDING_PROVIDER
+
+
+def get_embedding_model_name() -> str:
+    """Return embedding model name from ORACLE_RAG_EMBEDDING_MODEL env, or provider default."""
+    val = os.environ.get("ORACLE_RAG_EMBEDDING_MODEL")
+    if val and str(val).strip():
+        return str(val).strip()
+    provider = get_embedding_provider()
+    if provider == "cohere":
+        return DEFAULT_EMBEDDING_MODEL_COHERE
+    return DEFAULT_EMBEDDING_MODEL_OPENAI
+
 
 def get_persist_dir() -> str:
     """Return Chroma persist directory from ORACLE_RAG_PERSIST_DIR env var, or ~/.oracle-rag/chroma_db."""

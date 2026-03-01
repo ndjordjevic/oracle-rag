@@ -188,9 +188,9 @@
 ## Phase 3: Advanced Configuration & Deployment
 
 ### Configuration - Enhanced
-- [ ] **Embedding and LLM configuration**
-  - [ ] Make embedding model configurable (env or config file)
-  - [ ] Make LLM provider configurable (env or config file)
+- [x] **Embedding and LLM configuration**
+  - [x] Make embedding model configurable (env or config file)
+  - [x] Make LLM provider configurable (env or config file)
 
 ### Response Generation - Enhanced
 - [ ] **Response metadata**
