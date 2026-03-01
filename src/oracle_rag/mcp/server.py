@@ -228,6 +228,41 @@ def remove_pdf_tool(
     )
 
 
+@mcp.resource(
+    "oracle-rag://documents",
+    title="Indexed documents list",
+    description="Read-only list of PDF documents currently indexed in Oracle-RAG (default collection).",
+)
+def _documents_resource() -> str:
+    """Return a plain-text list of indexed documents for the default collection."""
+    try:
+        result = list_pdfs(
+            persist_dir=get_persist_dir(),
+            collection="oracle_rag",
+        )
+        docs = result.get("documents", [])
+        total = result.get("total_chunks", 0)
+        lines = [f"Indexed documents ({total} chunks total):", ""]
+        for d in docs:
+            lines.append(f"  - {d}")
+        return "\n".join(lines) if lines else "No documents indexed."
+    except Exception as e:
+        return f"Error listing documents: {e}"
+
+
+@mcp.prompt()
+def ask_about_documents(question: str) -> str:
+    """Ask a question about the indexed PDF documents.
+
+    Use the query_pdf_tool to search the Oracle-RAG index and return an answer
+    with citations. The question will be sent as the user message to guide the AI.
+    """
+    return (
+        f"Using the Oracle-RAG indexed PDFs, please answer this question: {question}\n\n"
+        "Use the query_pdf_tool to retrieve relevant context before answering."
+    )
+
+
 def create_mcp_server() -> FastMCP:
     """Create and return the configured MCP server instance.
 

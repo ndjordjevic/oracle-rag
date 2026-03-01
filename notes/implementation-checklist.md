@@ -192,22 +192,12 @@
   - [x] Make embedding model configurable (env or config file)
   - [x] Make LLM provider configurable (env or config file)
 
-### Response Generation - Enhanced
-- [ ] **Response metadata**
-  - [ ] Track which chunks were used in generating the answer
-  - [ ] Include query timestamp in response
-
 ### MCP Server - Enhanced
-- [ ] **Additional MCP Tools**
-  - [ ] Implement `query_specific_pdf` tool (filter retrieval to a single document by name)
+- [x] **MCP Resources** (read-only data by URI)
+  - [x] Expose list of indexed documents as resource (`oracle-rag://documents`)
 
-- [ ] **MCP Resources** (read-only data by URI)
-  - [ ] Expose list of indexed documents as resource
-  - [ ] Expose chunk preview for a document as resource
-  - [ ] Expose document metadata as resource
-
-- [ ] **MCP Prompts** (pre-built templates with parameters)
-  - [ ] e.g. “Ask about this document”, “Summarize” with parameters
+- [x] **MCP Prompts** (pre-built templates with parameters)
+  - [x] “Ask about this document prompt” (`ask_about_documents`)
 
 ### Retriever Abstraction
 - [ ] **Retriever abstraction (oracle-rag 2.0)**

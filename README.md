@@ -13,6 +13,8 @@ Oracle-RAG provides intelligent document querying and retrieval capabilities for
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
 - **Metadata filtering** — Query by document, page range, or tag
 - **MCP tools** — `query_pdf`, `add_pdf`, `add_pdfs`, `list_pdfs`, `remove_pdf`
+- **MCP resource** — Read-only list of indexed documents (`oracle-rag://documents`); click in Cursor’s MCP panel to view
+- **MCP prompt** — `ask_about_documents` (parameter: question) for guided RAG queries
 - **Configurable LLM** — OpenAI (default) or Anthropic (Claude); set via `ORACLE_RAG_LLM_PROVIDER` and model in `.env`
 - **Configurable embeddings** — OpenAI (default) or Cohere; set via `ORACLE_RAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
 - **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, Cohere
@@ -85,6 +87,7 @@ Or create `.vscode/mcp.json` in your workspace for project-specific setup. Resta
 | List indexed PDFs | `list_pdfs_tool` — shows documents, chunk counts, tags, upload times |
 | Query with filters | `query_pdf_tool` — filter by `document_id`, `page_min`/`page_max`, or `tag` |
 | Remove a PDF | `remove_pdf_tool` |
+| View indexed documents (read-only) | Click **Resources** → `_documents_resource` in the MCP panel |
 
 Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"* or *"What are AGA chips? Search only AMIGA-tagged docs"*. The AI will invoke the tools for you.
 
