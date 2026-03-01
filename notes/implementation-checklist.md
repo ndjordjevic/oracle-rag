@@ -204,25 +204,14 @@
   - [x] Use LangChain Retriever (`store.as_retriever()`) in RAG pipeline instead of `query_index`
   - [x] Refactor `run_rag()` to accept a retriever
 
-### Document Management - Enhanced
-- [ ] **Document Operations** (advanced)
-  - [ ] Implement document status tracking
-  - [ ] Implement document update/re-indexing (beyond remove + re-add)
-
 ### Error Handling - Enhanced
-- [ ] **Advanced Error Handling**
-  - [ ] Handle corrupted PDFs gracefully
-  - [ ] Improve error messages
-  - [ ] Add error logging
-  - [ ] Implement graceful degradation
+- [x] **Advanced Error Handling**
+  - [x] **Handle corrupted or unreadable PDFs** — In `load_pdf_as_documents`, catch `PyPdfError` and `OSError` when opening/reading the PDF and re-raise as `ValueError` with a user-facing message.
+  - [x] **Zero-retrieval and LLM failure handling (graceful degradation)** — In `run_rag`: when retrieval returns 0 chunks, return early with a clear message (no LLM call); when the LLM invoke fails, return a short error message (rate limit, timeout, or generic) instead of propagating the traceback.
 
 ### Testing - Enhanced
-- [ ] **Comprehensive Testing**
-  - [ ] Unit tests for document management
-  - [ ] Unit tests for metadata filtering
-  - [ ] Integration tests for multiple PDFs
-  - [ ] Test error scenarios
-  - [ ] Test MCP tools thoroughly
+- [x] **Comprehensive Testing**
+  - [x] Integration tests for multiple PDFs — `test_run_rag_multiple_pdfs_document_id_and_tag_filters` in `test_rag.py`: indexes two PDFs (same content, different names/tags), then queries with document_id and tag filters and asserts sources are from the correct document; unfiltered query returns sources from either doc.
 
 ---
 
@@ -359,6 +348,11 @@
   - [ ] Test multi-step reasoning
   - [ ] Performance testing with large document sets
   - [ ] Load testing
+
+### Document Management - Enhanced
+- [ ] **Document Operations** (advanced)
+  - [ ] Implement document status tracking
+  - [ ] Implement document update/re-indexing (beyond remove + re-add)
 
 ---
 

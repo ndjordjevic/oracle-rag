@@ -49,6 +49,21 @@ def test_load_pdf_as_documents_metadata_keys() -> None:
             assert len(doc.metadata[key]) > 0
 
 
+def test_load_pdf_as_documents_corrupted_pdf_raises() -> None:
+    """Raises ValueError with user-facing message when PDF is corrupted or unreadable."""
+    from pypdf.errors import PyPdfError
+
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping corrupted-PDF test")
+
+    with patch("oracle_rag.pdf.pypdf_loader.PdfReader") as mock_reader:
+        mock_reader.side_effect = PyPdfError("Invalid PDF structure")
+        with pytest.raises(ValueError, match="PDF appears corrupted or unreadable"):
+            load_pdf_as_documents(sample_pdf)
+
+
 def test_load_pdf_as_documents_no_text_raises() -> None:
     """Raises ValueError when no text is extracted (e.g. image-only PDF)."""
     from pypdf import PageObject

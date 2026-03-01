@@ -82,9 +82,25 @@ def run_rag(
         )
         docs = retriever.invoke(query)
 
+    if not docs:
+        return RAGResult(
+            answer="No relevant passages found; try a different query or add more documents.",
+            sources=[],
+        )
+
     messages = RAG_PROMPT.invoke(
         {"context": format_docs(docs), "question": query}
     ).messages
-    response = llm.invoke(messages)
-    answer = response.content if hasattr(response, "content") else str(response)
-    return RAGResult(answer=answer, sources=format_sources(docs))
+    try:
+        response = llm.invoke(messages)
+        answer = response.content if hasattr(response, "content") else str(response)
+        return RAGResult(answer=answer, sources=format_sources(docs))
+    except Exception as e:
+        err = str(e).lower()
+        if "rate" in err or "limit" in err:
+            msg = "Answer generation failed: rate limit exceeded. Please try again later."
+        elif "timeout" in err:
+            msg = "Answer generation failed: request timed out. Please try again."
+        else:
+            msg = "Answer generation failed. Please try again."
+        return RAGResult(answer=msg, sources=[])

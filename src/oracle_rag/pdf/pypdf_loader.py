@@ -6,6 +6,7 @@ from typing import Iterable, Optional, Union
 
 from langchain_core.documents import Document
 from pypdf import PdfReader
+from pypdf.errors import PyPdfError
 
 
 PathLike = Union[str, Path]
@@ -89,47 +90,58 @@ def load_pdf_as_documents(
     if pdf_path.suffix.lower() != ".pdf":
         raise ValueError(f"Expected a .pdf file, got: {pdf_path.name}")
 
-    reader = PdfReader(str(pdf_path))
-    total_pages = len(reader.pages)
+    try:
+        reader = PdfReader(str(pdf_path))
+        total_pages = len(reader.pages)
 
-    meta = reader.metadata
-    document_title: Optional[str] = None
-    document_author: Optional[str] = None
-    if meta is not None:
-        if meta.title is not None:
-            document_title = str(meta.title).strip() or None
-        if meta.author is not None:
-            document_author = str(meta.author).strip() or None
+        meta = reader.metadata
+        document_title: Optional[str] = None
+        document_author: Optional[str] = None
+        if meta is not None:
+            if meta.title is not None:
+                document_title = str(meta.title).strip() or None
+            if meta.author is not None:
+                document_author = str(meta.author).strip() or None
 
-    mode = extraction_mode or "layout"
-    docs = _extract_with_mode(
-        reader, pdf_path, total_pages, mode, skip_empty_pages, document_title, document_author
-    )
-
-    # If layout yielded very little, try plain and use the better result.
-    if mode == "layout" and total_pages > 0:
-        total_chars = sum(len(d.page_content) for d in docs)
-        if len(docs) < 2 or total_chars < _LAYOUT_MIN_CHARS_FOR_NO_FALLBACK:
-            docs_plain = _extract_with_mode(
-                reader,
-                pdf_path,
-                total_pages,
-                "plain",
-                skip_empty_pages,
-                document_title,
-                document_author,
-            )
-            total_chars_plain = sum(len(d.page_content) for d in docs_plain)
-            if len(docs_plain) > len(docs) or total_chars_plain > total_chars:
-                docs = docs_plain
-
-    if total_pages > 0 and len(docs) == 0:
-        raise ValueError(
-            f"No text extracted from {pdf_path.name} ({total_pages} page(s)). "
-            "File may be image-only (scan) or empty; Phase 1 supports text-based PDFs only."
+        mode = extraction_mode or "layout"
+        docs = _extract_with_mode(
+            reader, pdf_path, total_pages, mode, skip_empty_pages, document_title, document_author
         )
 
-    return PdfLoadResult(source_path=pdf_path, documents=docs, total_pages=total_pages)
+        # If layout yielded very little, try plain and use the better result.
+        if mode == "layout" and total_pages > 0:
+            total_chars = sum(len(d.page_content) for d in docs)
+            if len(docs) < 2 or total_chars < _LAYOUT_MIN_CHARS_FOR_NO_FALLBACK:
+                docs_plain = _extract_with_mode(
+                    reader,
+                    pdf_path,
+                    total_pages,
+                    "plain",
+                    skip_empty_pages,
+                    document_title,
+                    document_author,
+                )
+                total_chars_plain = sum(len(d.page_content) for d in docs_plain)
+                if len(docs_plain) > len(docs) or total_chars_plain > total_chars:
+                    docs = docs_plain
+
+        if total_pages > 0 and len(docs) == 0:
+            raise ValueError(
+                f"No text extracted from {pdf_path.name} ({total_pages} page(s)). "
+                "File may be image-only (scan) or empty; Phase 1 supports text-based PDFs only."
+            )
+
+        return PdfLoadResult(source_path=pdf_path, documents=docs, total_pages=total_pages)
+    except (ValueError, FileNotFoundError):
+        raise
+    except PyPdfError as e:
+        raise ValueError(
+            f"PDF appears corrupted or unreadable: {pdf_path.name}. {e!s}"
+        ) from e
+    except OSError as e:
+        raise ValueError(
+            f"Could not read PDF file: {pdf_path.name}. {e!s}"
+        ) from e
 
 
 def iter_pdf_page_text(
