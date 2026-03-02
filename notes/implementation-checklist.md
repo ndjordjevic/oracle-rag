@@ -441,9 +441,12 @@
 ### Phase 2: Complete ✅
 - Plain Python `run_rag()` replaces LCEL; `ChatPromptTemplate` stays; `RunnablePassthrough`/`RunnableLambda`/`StrOutputParser` removed
 
-### Phase 3: Advanced Configuration & Deployment
-- Embedding and LLM configuration (swap providers, tune chunk settings)
-- MCP resources/prompts, retriever abstraction, document management, error handling
+### Phase 3: Advanced Configuration & Deployment ✅
+- Embedding and LLM configurable (env/config; swap providers, tune chunk settings)
+- MCP resources (`oracle-rag://documents`), MCP prompts (`ask_about_documents`)
+- Retriever abstraction: `store.as_retriever()`, `run_rag()` accepts optional retriever
+- Error handling: corrupted PDFs (user-facing ValueError), zero-retrieval and LLM failure (graceful degradation)
+- Testing: integration test for multiple PDFs with document_id/tag filters
 
 ### Phase 4: Advanced Features
 - Query translation / multi-query, hybrid search, re-ranking

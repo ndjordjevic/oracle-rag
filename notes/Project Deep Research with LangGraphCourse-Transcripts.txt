@@ -1,0 +1,464 @@
+=============================================
+File: LCA-ODR-M1-V1-Final.txt
+=============================================
+
+Lance: [00:00:00] Hi, my name's Lance and welcome to Deep Research with LangGraph. We've seen deep research emerge as one of the most popular Agent use cases. OpenAI, Gemini, Anthropic all have deep research agents and there's many open source implementations. These agents typically automate search and report generation across a wide variety of potential sources of context.
+
+Could be internal documents. It could be the open web and they can be steered in many different ways to produce different types of reports. Let's take a closer look now.
+
+The challenge is that research requires variable search strategies or levels of search depth, depending upon the request. And this is why agents have been utilized for this task. This is because agents simply utilize tool calling in a loop. They can direct their own processes, they can backtrack, they can condition their next step based upon the results of, for example, the [00:01:00] prior search. So agents are very flexible. And they're very well suited to this task of research.
+
+Now we have a repo called Open Deep Research. It's quite popular. It's one of LangChain's most popular open source repos. You can see the star history over time. We've worked on this for over nine months, testing different iterations. And this course will really walk you through some of our thinking and some of our learnings about how to build agents, in general and in particular for this research use case.
+
+Now, one of the really cool things is that we benchmarked our deep researcher on DeepResearch Bench. A public benchmark for deep research agents. You can see it's the best performing, open source, deep research implementation on this particular benchmark. You can see it's on par in terms of overall score with some of the larger labs.
+
+And what's nice is in this course, you're going to [00:02:00] learn the fundamentals of how we built this and the design decisions that went into each step. So really learn the philosophy for building agents in general and for this use case in particular. 
+
+Now, the flow of Open Deep Research follows three major steps, a scoping phase, a research phase, and a writing phase, and the course will be broken up to explain each of these in isolation. Lesson one, we'll talk about scoping. This will involve interaction with the user to clarify the research request and generation of a brief that captures the scope of research.
+
+We'll talk about the research agent itself. We'll cover how to build the agent, how to prompt the agent, and how to equip it with different tools, including MCP. We'll then talk through building a research supervisor resulting in a multi-agent system, and we'll talk a lot about the philosophy behind multi-agent systems.
+
+And finally, we'll put this all together into a full system, connecting scoping, research and writing to [00:03:00] give us Open Deep Research. What I want to highlight here is you're going to really learn about the design decisions rather than just a brute force code walkthrough. We'll talk a lot about building research agents in particular. We'll talk about the philosophy of multi-agent systems. We'll also talk about evaluation. So how do you evaluate each sub-component in isolation as you're building out a complex agent?
+
+Now, familiarity with LangGraph and LangSmith are beneficial for this course. I have some links here for LangGraph Quickstart, which gives you just some quick grounding on how LangGraph works. And I also link to some other courses that are more in depth for both LangGraph and LangSmith. But just some preexisting knowledge on LangGraph as well as the basics of LangSmith would be sufficient to understand everything we do in this course.
+
+And with that, let's get started.
+
+
+
+=============================================
+File: LCA-ODR-M2-V1-Scoping-Final.txt
+=============================================
+
+Lance Martin: [00:00:00] Now before diving into the notebooks, I just want to do a little bit of housekeeping. Here's the course repo. Make sure you've cloned it. Make sure you've installed dependencies. And make sure you set the relevant API keys you're going to be using in this course. In particular, note that you're going to be setting your LangSmith API key. And this is actually going to allow you to trace everything we do in the notebooks to LangSmith to a particular project. So you can see in detail everything that's happening under the hood with everything we're going to build. And LangSmith will allow you to run evaluations, as we're going to show, as we go through this. Then you can kick off the notebooks and follow along.
+
+So let's first talk about scoping the research. This will have two steps. We'll clarify the intent of research with the user. We'll generate a brief that our agent will use to seed and to steer the research process. Now, why do we do this? [00:01:00] A common challenge is that users rarely provide sufficient context in their initial research request. 
+
+So we're going to use a chat model prompted to gather more context from the user to help flesh out any ambiguities before we start research. We don't want to make assumptions and then do all this work and then have the user dissatisfied with the result because we didn't address what they meant. So that's really the goal of this clarification phase. And you can see we're going to import and show specific prompts as we go,
+
+so you understand how we're steering LLMs in the research process. This first prompt is clarify_with_user_instructions and this is the prompt we give to a chat model, to help gather the necessary context from the user about the research process.
+
+You can see one thing notable here. We're going to prompt this chat model to produce a structured output indicating whether or not clarification is needed as a boolean. A follow-up question, if so. [00:02:00] Otherwise a verification message saying, okay, we can start research. And we'll use this output schema to direct the downstream workflow about what to do next. And you'll see shortly that our chat model will actually produce an output that adheres to this particular schema, which makes it very easy for us to direct the downstream workflow.
+
+So here's where we'll define both the state and the schemas for this section. State objects are central in LangGraph. They basically serve as a mechanism to store and pass context between different phases of, in this case, our research workflow.
+
+And we'll also define any schemas that our workflow's going to use, as you'll see shortly. I do want to make a little housekeeping note that in this notebook we use writefile. This is going to take this code block and write it to this particular file. You'll see [00:03:00] this is convenient because as we run the notebooks, we're going to populate a set of files that can be used to launch a deployable LangGraph application, using LangGraph platform. 
+
+And all those files will be written to this source directory. So we'll define the LangGraph state ops we're going to use. We're going to use this AgentInputState, which inherits from MessagesState. This is just a prebuilt state object in LangGraph that has a single field messages, which we can append to. It's very common when you're building agents.
+
+The input then will just be a single messages field that the user will submit the research request to. And AgentState is the internal state of our workflow, which contains a number of other fields. Some of which we're going to use in this initial scoping phase, and others you'll see we use later on.
+
+These are schemas that we're going to use to produce structured outputs for certain steps in this [00:04:00] scoping workflow. So let's walk through it.
+
+Remember scope research really has two phases. User clarification and brief generation. So each of those steps will have an independent node.
+
+Now we'll see something pretty nice in LangGraph. Individual nodes are just functions. LangGraph nodes take in state, and return an update to state. In this case, you can see we pass in the state object, which is just AgentState, which we defined above. We are going to bind that schema that we defined above to our chat model. 
+
+We invoke the chat model with our prompt. And into the prompt, we pass in messages from state and the date. So what's going to happen here is we'll pass in the message history that indicates interaction between the user, and our system, and produce a response. The response will be a structured [00:05:00] output based upon this particular schema. And if the chat model determines that we need further clarification from the user, we then proceed to the end of this scoping workflow and we return the question to this messages field. This appends the question to messages, and that's then visible to the user. We'll see this below shortly. But if no clarification is needed, we go down here, we just proceed ahead to writing the research brief.
+
+In that case, we just append their verification message to messages and the user sees that. Now for brief writing, it's pretty straightforward. We bind a structured output to our model. In this case, a structured output is very simply a schema that contains a single field research brief. 
+
+We invoke the model with messages as well as the date, and we pass it to a prompt, which basically tells the chat model to convert this [00:06:00] list of messages into a well-structured research brief. That's all that's happening here, and we return that to our state object. Remember, we used AgentState. It has a field research_brief.
+
+It also has a field supervisor_messages. We return the brief to this research_brief field as well as to the supervisor_messages list. Now you'll see how those supervisor messages are used later, but for now, just remember that in this scoping phase, we produced a brief. We've written it to a messages list that our supervisor will then read,
+
+and decide what to do with. We also write it to this state key so we have it available to us for future use. And you can see here, we have our workflow. We perform the user clarification step. We conditionally route either to end, which will just return a question to the user, or to write a research brief if we're satisfied with the user's provided context.
+
+And [00:07:00] let's just test this out. Passing a message from a user. I want to research coffee shops in San Francisco. That clarify_with_user node determines that we need more information and it responds with a question right here. That's fine. The user then is prompted to provide follow up information. Let's assess coffee quality.
+
+You can see the follow up is here, and then, we pass this verification message back to our messages list so the user sees. We verify we have enough information and we can proceed. And here's a research brief. You can see it's just a nice summary of what we want to research.
+
+Remember that we set our LangSmith API key. So that means that everything we do here is traced to LangSmith. We can actually open up LangSmith. Check your tracing projects. This will be whatever you named the project. Using that LangSmith project environment variable. And you can see each of the chat model invocations [00:08:00] . And you can see here's the system prompt with a set of prior messages provided. And the model produces a structured output, which indicates whether it needs clarification, a follow-up question, and a verification message.
+
+In that second turn of interaction, we don't need further clarification. We provide this verification message indicating we have sufficient information. We proceeded to write the research brief, and you can look at that right here. And here's the resulting research brief.
+
+Now we've built just one component of our overall system. How do we know it's actually working as expected? This is where evaluation comes in, and it's very useful to run these evaluations on sub-components as you build out your system. So I'm going to show you how to do evaluation in LangSmith.
+
+First step is to build a small dataset. In this case, it can just be a set of conversations as inputs, and it can be ground truth criteria that we want [00:09:00] captured in a research brief based upon each conversation. That's what we lay out here. Now what's nice is we can test for two things. Does the brief capture all the criteria and does it invent or hallucinate any information outside of the provided criteria? So both of those matter. We want to make sure everything important is captured and nothing is hallucinated.
+
+And so our flow for evaluation here is going to be three steps. Create the dataset from the above examples. Write the evaluators. Run the experiment. And as you can see right here, the flow is going to be three steps. Create the dataset in LangSmith, write the evaluators and run the experiment using LangSmith's Evaluate API. We'll walk through all those now. The flow will look like this. Here's our dataset of input output examples.
+
+We're going to pass those input examples to scoping workflow in this case. We're going to get a research brief out. We're going to pass that [00:10:00] research brief to an evaluator. We're also going to pass that criteria to the evaluator and the evaluator's going to decide whether or not the brief meets the required criteria. And for that, we're going to use LLM-as-judge.
+
+Now this is a useful technique to use an LLM to actually judge whether or not the brief adheres to the criteria and it's going to produce a grade. So first the dataset creation. This is pretty routine. We're going to use a LangSmith client here. Our LANGSMITH_API_KEY is set. We'll define a dataset name and we can use this create dataset just to create the dataset if it doesn't already exist, and add our input, output examples.
+
+Remember we had conversation_1, criteria_1, conversation_2, and criteria_2. So great. We've created the dataset. We can go over to LangSmith. You can see there's a dataset now called deep_research_scoping, and you can see if you look at [00:11:00] examples, here's the input messages list and here's the output criteria.
+
+So we have a dataset. Now we need to create this evaluator. This is where there's some art involved because we use LLM-as-judge, which needs to be prompted carefully to serve as a judge, looking at the briefs and looking at the criteria. I link a nice article here, which you can check out. Which has some useful tips on creating LLM-as-judge evaluators. We employ a number of those here.
+
+As an example, binary pass fail judgments are often easier than complex multidimensional scoring. Well structured prompts as usual. And often providing examples to cover different scenarios is helpful. So those are some of the core pieces that are very useful here, but you can have a look at the article and review some of these additional tricks for writing high quality LLM-as-judge prompts. Here's an example of the prompt that we'll use to judge
+
+whether or not the [00:12:00] brief meets a specific criteria. And again, we're going to provide some guidelines indicating is the criteria actually captured in the brief? Does it mention it explicitly? And is it not captured? Is it missing? We give some examples.
+
+And we're going to pass this prompt to an LLM along with the criteria and the brief. And all the logic to do that grading is down here in these two functions. So in LangSmith, all we need to do to find an evaluator is just define a function.
+
+The function is going to receive two inputs. When using the Evaluate API, as we're going to show below, one represents the outputs of whatever we're trying to test. 
+
+The other is the reference outputs from the dataset. And we're going to pass these both into an LLM. You can see that right here. We're going to [00:13:00] define an LLM with structured output. Now this structured output is just a nice way to enforce the model, produces a score that we can easily capture and utilize and that criteria is defined right here.
+
+It's just a schema, which has simply a boolean is the criteria captured or not? Give some reasoning for your scoring. Provide the criteria text as further kind of verification for what you're actually evaluating. We bind that as a schema to our model.
+
+We run our model in batch across each element in our success criteria list. That's what we do right here. And the remaining code just basically computes a score for the fraction of correctly captured criteria over all criteria in the list. That's really it. There's going to be a percentage, and so that's the score that our evaluator is going to output. We provide this key,
+
+[00:14:00] which is the name for this particular score, and this thing that we returned from this function is going to be logged to LangSmith for us. Now we can follow that same process For hallucination. We use an LLM-as-judge to check whether anything the brief has hallucinated relative to the criteria. You can read through this prompt on your own, but the logic is really similar to what we talked about previously, and again, we just define a function for evaluation 
+
+as well as a schema to structure the output. We returned a dictionary with key, score and reasoning. And now here's where it all comes together. We use LangSmith's evaluate. We pass in a function which just runs our workflow.
+
+Now this function takes a dictionary of inputs. These inputs are going to come from our [00:15:00] dataset. And returns the output of the graph, which is just going to be the graph state object, which will be a dictionary.
+
+We pass in our evaluator functions. And we name our experiment. So what happens under the hood here is that evaluate is going to look at our dataset, take the input, and pass it to this target function, which runs our graph. It'll then take the outputs from this graph invocation, and pass it to each of the evaluators along with the reference outputs from the dataset.
+
+And so that flow is going to match exactly what you see in this diagram. The dataset inputs are past to our workflow in that target function. And then each of those evaluation functions just grabs the outputs from the target function, which runs our workflow in this particular case, as well as reference outputs from the [00:16:00] dataset.
+
+Those are both passed to an LMS judge in each of those evaluator functions, and they both return a dictionary that has a grade. You can see the dictionaries both have this key and score key.
+
+When we run this, we can open up this link. Here we can see the inputs, the reference outputs from our dataset, the outputs from our graph. See, this is just a state object.
+
+And both of our evaluators, no_assumption_score, success_criteria_score, with a grade for each one. Now notice that the names of those evaluators are passed in through this key. The score itself was passed in through score. And LangSmith renders those for us in the UI, as you just saw.
+
+Now, what happens when we run this is our workflows is just invoked and run in the notebook here, and this information is sent over to LangSmith, [00:17:00] and rendered in the UI all as you see here. So the evaluate function is going to iterate through those input examples for us, automatically
+
+pass them to our target function, which will produce outputs, log all that to LangSmith, along with the scores for the evaluators that we passed in to our evaluate function.
+
+What's nice is you can actually inspect each evaluator. Just click on this view evaluation run.
+
+You can then look at that LLM-as-judge evaluator that we used. You can see that it uses this schema to structure its output. Here's that prompt. You can look at how it's formatted. And what's really nice here is you can actually look at its score as well as its reasoning, which I like, so that we can audit these LMS judge evaluators very carefully.
+
+And so why do we do this? This is very useful to pressure test each component of your system as you build it. Like for example, you don't move forward to building an agent before you know [00:18:00] that scoping works as you expect, and you've tested it on a nice set of examples that are relevant for your application.
+
+So a nice thing to follow up with here quickly would be adding some examples to the dataset and testing them yourself. For example, you can add relevant mock conversations for your use case, and you can confirm that the system works as expected.
+
+So now with scoping in place and evaluated, we have confidence that this part of our workflow is working as expected and we can move on to the agent.
+
+
+
+=============================================
+File: LCA-ODR-M3-V1-ResearchAgent-Final.txt
+=============================================
+
+Lance: [00:00:00] Now let's build our research agent. Remember the scoping phase, clarified the user's intent, returned a brief. Now, research agents will gather context requested by that brief. And to do that, we're going to follow a very simple pattern. We're going to have an LLM bound to some number of search tools, calling tools in a loop.
+
+What that means is the LLM can make a request to call a search tool. That search tool will then be called and the results from search will be passed back to the LLM. The LLM can then reflect on those results and choose to perform another search. And this loop will proceed until the agent determines that no more search is needed. And will take all those tool calls and compress them into a final research summary. That's really the scope for the research [00:01:00] agent.
+
+Now, it's a deceptively simple architecture involving just calling tools in a loop until a termination condition. But prompting agents is actually quite tricky. In particular, when building Open Deep Research, we found that these research agents often will make excessive tool calls if they're not carefully prompted. Which is to say they'll just continue to wormhole down these research rabbit holes, which can cost a lot of extra time and tokens.
+
+So some tricks to address this, which we also draw from Anthropic's work on building effective agents and prompting specifically for agents when building deep researchers. The first trick is to think like the agent. What instructions would you give a new work colleague? In this particular case, reading the question carefully, starting with broader searches and progressively narrowing are intuitive instructions that we [00:02:00] also would give to our agent.
+
+Now one very useful trick that Anthropic mentions and we've also seen, is for applying concrete heuristics to prevent what we call spin out on excessive tool calls. Give your agent hard limits. Stop when you can answer confidently. Don't keep searching for perfection and give specific budgets. Two to three search tool calls for simpler queries, up to five for more complex. Always stop at five search tool calls. 
+
+These are just examples. You can modify the prompt accordingly for your own use case and for your own needs. But this is a very useful trick in general when building agents. Give it budgets and heuristics. Now, the third trick that we found quite useful is to instruct the agent to show its thinking.
+
+We're going to provide the agent with a think tool, which will assist in this process. This think tool has been shown by Anthropic to improve performance. I link to a nice report here. [00:03:00] And what's very nice about this is, it basically Interleaves tool calling with thinking in an explicit way.
+
+It also allows us as the developer to see the agent's thinking as it progresses through its research trajectory, as we'll show shortly. So I found this to be very useful for debugging and analyzing agent behavior.
+
+So these particular techniques helped us go from what we saw originally with problematic research trajectories. Like, okay, find the best coffee in SF as the first query. That first query would identify a number of coffee shops, and then it would search for each one of those sequentially. Spinning out into a very long search trajectory.
+
+A more efficient pattern is gathering a broad strokes overview of Best Coffee in SF, using the ThinkTool to analyze those results. And then narrowing with progressive searches until sufficient information is gathered to address the [00:04:00] question without spinning out into an excessive number of tool calls.
+
+And so here's the prompt we use to capture those instructions. You can see it's actually pretty simple and a philosophy I like. Restate the available tools. I do want to highlight that when you bind tools to an LLM, the tool descriptions will be visible to it. So you don't explicitly need to reiterate the tools in the system prompt, but I like to do it anyway as further reinforcement.
+
+We provide some instructions and heuristics, and we instruct the agent to show his thinking. That's really it. As a rule, I like to start with the simplest possible prompt that gets the job done and build from there.
+
+Now once we have the prompt defined, that's really the part that requires a lot of careful thinking. Defining the state and schemas is a little bit more mechanical. And I'll go through this a little bit more quickly. You're just [00:05:00] defining a state object for our agent.
+
+The key point to recognize here is it's going to have this researcher_messages key. It'll have this compressed_research key, which will be the resulting compression of all the research that the agent did. The agent output is just going to have the compressed research. As well as a list of all the raw resources it found and the message list.
+
+So we defined our prompt. We defined our state. Now we need to find a research tool. This is actually very important for building a research agent, and there's many choices for research tools you can consider. We use Tavily for this. Tavily's a nice search engine optimized for AI applications with a generous free tier. That's why I like it. It supports async as well as sync.
+
+But I also note some alternative search tools you can consider. Now, here's the key thing to recognize. If you go down to this function, tavily_search, you can see we [00:06:00] add this tool decorator and we add this parse_docstring to the decorator. So what's happening here?
+
+If we go over to the documentation for the tool decorator, you can see parse_docstring is here. We'll attempt to parse the parameter descriptions from the docstring. That's all we're doing here.
+
+The tool description will be grabbed from here. And the relevant arguments in this particular case, query, will be grabbed from the docstring. Note that max_results and topic will not be passed as arguments to the LLM. That's because these are things we actually don't want the LLM to populate. These are things that will come through configuration in many cases. In this particular implementation, I don't use configuration, so they're just going to default to the values I set here.
+
+But the point is, these are arguments that I want available in my function, but I don't want the LLM to produce, because the LLM might hallucinate random values for those. I want those to come in [00:07:00] through default settings or through graph configuration. That's why we use these InjectedToolArgs, which are injected at runtime.
+
+They're not produced by the model, an important concept to recognize. Beyond that, this is just a standard little python function that performs Tavily search, de-duplicate results, process the search results to summarize them, and format the output. You can look at the code above to see each of those steps. It's not too interesting to go through here. It's more the philosophy.
+
+When we define a tool, it's just a regular Python function with this tool decorator. Any arguments that we want the LLM to produce when it's making a tool call we provide, and anything we want to pass in via configuration we annotate with InjectedToolArg. That's really the philosophy of tool design.
+
+Another critical point is that tool descriptions often matter a lot. So [00:08:00] you can spend a lot of time laying out very detailed instructions for what the tool does and how to use it. In this particular case, it's very simple because we're only passing the single search tool.
+
+And so my tool description is fairly simple. But just remember that, for example, if you're working with a large collection of tools, these descriptions are very important so that the LLM knows when to use what tool and also what each tool argument actually means.
+
+Because remember, what happens is, we're going to take this tool, provide it to the LLM. And when the LLM chooses to call this tool, it's basically going to create the arguments needed to run the tool. In this case, it'll just create a query.
+
+And so the LLM needs to know when to call this tool and what specifically, query, this argument it needs to generate, means. Now , we'll also create a think_tool, as [00:09:00] Anthropic mentioned in their article, a think tool can be used to interleave thinking between tool calls. It can help the agent.
+
+And also it can help us, as a developer, understand the agent's progression through the task. You can see, in this case, the agent will be instructed to call a tool. We'll call this tool just with a single argument, reflection, which it will generate, and this reflection will just be its thinking process, which will then just be returned when the tool is called as a reflection recorded. 
+
+Now beyond prompting and tool definition. There's one other trick here that we use when building these research agents. It's context engineering. We apply context engineering in a few places to help manage the accumulation of information as we're performing iterative search.
+
+So one, we perform webpage content summarization in the tool itself. You can go and look at that within the tool call. It's [00:10:00] done right here in that summarize_webpage_content function, you can see we just use an LLM performing that summarization. It's pretty straightforward.
+
+We also compress the results of all research done by the agent at the end of the agent's process. You'll see we create a node to do that when the agent terminates. So with that all said, we have a prompt. We have tools defined. We have our context engineering strategy laid out. We're going to lay out the agent.
+
+In this case, we'll use claude 4 sonnet. We will use only two tools, the tavily_search tool and think_tool. We bind them to our model. We specify a model for webpage summarization. We specify a model for compression of the agent's research into
+
+a nice pruned outline of everything the agent learned. 
+
+Now, one thing that's interesting about agents is they're very simple to lay out. It's just two nodes, an llm_call node, a tool_node. The llm_call [00:11:00] node is just going to pass our system prompt as well as the messages list to our model bound with the tavily_search and think_tool. That's all that happens here.
+
+The result of the model invocation is appended to researcher_messages, so we just keep appending to this message list as we proceed down the agent trajectory. Now, the tool_node is responsible for executing whatever tool that the model decided to call. This just grabs the tool call, which will be the last element in the message list. Note that LLMs can call multiple tools in a single turn. So we iterate through the list of tool calls and we just invoke the tool.
+
+We create a ToolMessage that contains the observation from the tool call. This will, for example, either be a think tool reflection or a web search result. And we write those tool messages back to our [00:12:00] messages list. That's all that happens. 
+
+Now the final step is compress_research. All that's going to happen here,
+
+is we pass in a list of a system prompt, which contains instructions for how to compress the accumulated research that the agent did, the list of messages, which contains all the tool calls that the agent made and the tool responses that we got back. We also add one additional message that reinforces the instructions here.
+
+Why do we do that? Because this message list can be quite long. Certain LLMs can have failure modes with long context. For example, as a context gets longer it can get distracted. And if you have a single system message at the start of the context and the context is a hundred thousand tokens, 
+
+it can be helpful to reinforce those instructions at the end of the context. 
+
+This is still very much an area of research and it may differ depending on the model. But I found it useful as a reinforcement to [00:13:00] provide a summary overview of the instructions that reinforces the task at the end as a final message, because this researcher message list can be quite long.
+
+So we get the response from this compression model. We write that to state as compressed_research. We also just grab all the raw_notes, which just are the raw tool calls. And AI messages from the messages list.
+
+Now once we have that all defined, we can build our agent graph. This is a classic layout for an agent graph, an LLM call node, a tool call node that you bounce between until a termination condition. Once you hit that termination condition, in this particular case, we route to compressed research. That's all that's happening here.
+
+Now, where's that termination condition defined? See this should_continue? This is a conditional edge. You can look at the function here. It's just routing logic. So it basically says, okay, look at the last message. If it's a tool call, go to the tool_node and execute the tool. Otherwise, go ahead to compress_research.
+
+That's all. That's all we need. So actually [00:14:00] laying out the agent is very simple. The hard parts were defining the tools, building the tools, and laying out the prompt. Here's what it looks like. We're going to make an LLM call.
+
+Let's say that LLM call is a tool call. We then go to the tool node, we'll execute the tool. We'll go back. This continues until the termination condition. At that point, we go to compress research. So let's see this in action. I'm going to pass this example research brief to the agent as a message. Here's the initial message. The LLM makes a tool call to tavily_search. You can see here is the query it makes. Nice. And here are the search results that we get from Tavily. You can see this is the result of summarization for source two,
+
+and here's source three. Now you note something interesting, why do they look different. The Tavily search API [00:15:00] sometimes returns the full raw page content with certain sources, and other times it does not. If it provides the full page content, we then perform this summarization. Otherwise, we just pass the result from Tavily directly.
+
+It looks at the tool results, calls the think tools, exactly what we want, and it logs this reflection. So this is very nice. We can see how our agents are thinking about the problem and what it's going to do next. We record that as a tool message. Good. We make a second search narrowing slightly. We get further outputs from search tool.
+
+Think further and again, iterative search. You can see this progression proceeds with interleaved thinking until finally we hit the think tool, which determines , I have comprehensive information. And I can provide a response and we go ahead and provide a final response. So that's great. Now also, we logged compressed_research to state and we can look at [00:16:00] that right here. This is a list of all the tool calls we made and here's a comprehensive list of all our findings.
+
+This is pretty nice. You can see it's in a rough notes like form, exactly what we want for our final report generation. And sources provided, so that's all great.
+
+Now, how do we know if our agent's working well or not? That's where evaluation comes in. Let's think about the ramifications of a poorly tuned tool calling loop. One scenario is early termination. The agent decides to stop calling tools even if the task is not complete. Another is what we call prolonged looping or quote unquote spin out.
+
+The agent is never satisfied and continues to search. These are very tricky to get right. That's why evaluation's so useful. I'll show you how to set this up very easily. So here's two toy scenarios.
+
+Here's a set of messages where we want our agent to continue. We just mock this up. Okay. We ask for top coffee in San [00:17:00] Francisco. This mocks up a tool call to tavily_search. Okay? This is an example, erroneous tool result.
+
+As you can see, it's not focused on coffee quality, and then we mock up the think tools response. Which identifies the need for more targeted research. Okay? So in this particular case, we expect the agent to proceed. Now, alternatively, you can lay out a scenario where you have a set of messages that's comprehensive and we want the agent to stop.
+
+And again, you can read through the message list in detail. For things like this, you can actually very easily have a code assistant, like Claude code or cursor agent help you auto generate lists like this. So you don't have to painstakingly lay this out. You should think careful about what you want to say.
+
+So you can pretty easily lay out scenarios like this. And you can use a code assistant to help you with the formatting and so forth. But the point is it's very easy to kind of mock up realistic interactions and make sure that the agent is making the [00:18:00] correct next decision.
+
+So just like before, we'll create a data set in LangSmith. That in this case contains the messages lists, and in this particular case, the output is just going to be a single key indicating whether or not to continue. The next step should be proceed or stop.
+
+Now here, the evaluation logic is much simpler than what we saw previously with LLM as judge. In this particular case , we can fish out the researcher messages from the output of the target function. You can see the target function is our research agent right here. We run one of the nodes, llm_call individually with the input messages.
+
+And then we fish out the resulting message list. We grab the most recent message, which will be the output of the research agent, and we look to see if it made a tool call.
+
+And this evaluation logic, it very simply scores true if it made a tool call, and the next step [00:19:00] is continue. We run that through LangSmith as before. And our evaluation here, you can see the inputs are the messages we provided. The reference output is whether or not to make a tool call. The outputs represent the output from running the LLM with the set of input messages. And then our scoring of the correct next step, true or false? You can see in this case, it does get it correct both times.
+
+So it's an extremely simple way to test a single step of your agent on a scenario of input messages. Extremely useful, very simple to do, and you can really test different scenarios here to make sure that your agent is prompted correctly. So I use this evaluation to tune my prompts quite a bit because I found that there are a lot of cases where it was not making the correct next step that I would expect based upon the message list I provided.
+
+And often, this goes back to tuning your prompt. There's a feedback loop here between your [00:20:00] evaluation step and your agent prompting. That's very nice to establish. So with this in place, we have confidence in our agent. We've tested it. Now we can show how to extend it with MCP and later how to add our multi-agent supervisor.
+
+
+
+=============================================
+File: LCA-ODR-M4-V1-ResearchAgentMCP-Final.txt
+=============================================
+
+Lance Martin: [00:00:00] Now I want to talk about adapting our research agent with MCP. So MCP stands for Model Context Protocol. It's an open source protocol developed by Anthropic that connects clients, in our case an agent, to tools, prompts, or context. In this case, we're going to connect our agent to a popular and simple MCP server that provides access to the file system.
+
+You can see the link here, but basically this MCP server provides a number of common operations for working with files. Read, write, edit, and so forth, as well as directory management and search.
+
+Now there's a lot of questions about MCP and what it actually is. I want to walk through that very carefully so it's clear.
+
+So, MCP is a protocol that connects clients and servers. In our case, the agent itself is going to be the client, and the flow is going to look like this. The user submits a research request. Our agent is actually going to spawn the server process. [00:01:00] This is going to be a process that's running locally on my machine.
+
+You're going to see the configuration that spins it up shortly, and then the client can query the server for available tools. The tools are returned to the client from the server, and we're going to use an adapter library to convert those tools to LangChain tools and bind them to our model. And then we can use them just like what we saw before with Tavily.
+
+Our model can then make tool calls. Those tool calls are sent to the server, which executes, and we get feedback back to the client. So once the tools are bound from the server, our model can call them just like we saw previously. Now it's worth noting that all this interaction between the client and the server is going to happen using JSON-RPC over stdio.
+
+And it's going to be asynchronous.
+
+Now for prompting, the structure of our agent prompt doesn't change much. We're just going to modify the available tools and the [00:02:00] instructions slightly. But the rest of the principles are the same as we saw before. 
+
+Now how do we use a Filesystem MCP server? Let me show you a simple example of just spinning up the server outside the scope of our agent.
+
+So here's a very simple example. This is really the key thing to draw your attention to. MCP servers have a configuration. This configuration in this particular case just contains the command to kick off that server locally as a process. You can see this NPX command, the arguments to pass and the transport type.
+
+Now you're going to see from langchain_mcp_adapters we import this server client.
+
+Just like this, we pass in the configuration and this spins up an MCP client.
+
+The client will initiate the server process running locally as noted here in the configuration. And then we can call things like client.get_tools [00:03:00] to get the tools available from our server. Let's just run the code to visualize those.
+
+Very nice. 
+
+So all that happened here is we created our MCP client that initiated the server. We queried for the available tools from the server. We got them back and we list them out.
+
+Now these are the tools that we're going to bind to an LLM in our agent. 
+
+So our agent code is going to look essentially identical to what we saw before. The only difference is now we're going to bind tools from our MCP server instead of the Tavily search tool.
+
+Just like before we define our server configuration. Again, we're going to use this file system server 
+
+and in our LLM call node, the only difference is that you can see,
+
+right here, we fetch the available tools from the MCP server. We create a tools list that includes the MCP [00:04:00] tools as well as the think tool. We bind that all to our model. Then we invoke our model just like before with our prompt. So the rest of this is identical with what we saw previously. We're taking a model, we're binding some tools, and we're invoking it.
+
+\ Now the tool node is very similar to what we saw before as well. The only difference is we add this, this async function to execute the tools because, remember, that MCP is an asynchronous protocol. So in this function, we're going to look at the tool calls made by our model.
+
+If it is the Think tool, we can just invoke the tool. If it is an MCP tool, we have to use asynchronous Invoke or ainvoke to get the observation, and we append the observation to our observations list.
+
+Remember, these observations are just the response we get back from executing the tool. And then down here we can pack those into tool messages, which we'll pass back to our LLM. 
+
+And you can see [00:05:00] right here, we write those messages back to our message list.
+
+Now the rest of the code and the way the agent's laid out is identical to what we saw before. The only difference was, in this particular case, we fetched tools from an MCP server and we bound them to our LLM, and we added some logic to our tool node to execute the MCP tools as well as our think tool.
+
+Now we can look at our invocation and you can see this is identical, to what we saw before. We pass in the brief. And in this particular case, remember, our model has access to the MCP tools and it calls one of the MCP tools, list_allowed_directories. That's great. It sees the allowed directories, which we passed into the server configuration.
+
+It makes a tool call to list directory that returns a file. It reads the file. You can see the tool output indicating what's in the file. Great, and it searches around, you see, for any other files. Doesn't find [00:06:00] any, it thinks, reflects on what it's done. And provides a final response indicating what it learned from the single file that we provided.
+
+And just like before we get compressed research out giving the overview of what was learned from that single file we provided.
+
+
+
+Lance Martin: So again, what was happening here? Remember, MCP is just a client server protocol for accessing tools, prompts, or context. We define a client, we passed in the server configuration. That means the client spins up that server process locally on my machine, so the server's running. 
+
+The command to spin up that local server is exactly what we provided here in that configuration. And you can see all the configuration components right here.
+
+Our agent communicated with the server via stdio. [00:07:00] Note that you can also use remote servers that would communicate via HTTP. 
+
+And really all that happened was, our client within the agent is able to query for tools from the server, just like we saw. And we were able to bind those tools to our LLM just like before. And the LLM can then choose to call those tools. Those requests are sent over to the server. The tool call is executed.
+
+And we send the tool feedback to our LLM.
+
+And , you can visualize that process here.
+
+With tools fetched from the server bound to our LLM. LLM making requests to call tools. The server executing those tools, feedback being returned to our LLM, and the LLM can then reason to decide what to do next. So this is just one simple MCP server as an example, but there's many you should look into.
+
+Some of them are local, as we saw here, others are remote. [00:08:00] And there's a very large world of different MCP servers that you may want to use for research. And this is just showing you how to very simply connect an agent to MCP.
+
+And now with this in place, we'll move on to talk about our multi-agent supervisor.
+
+
+
+=============================================
+File: LCA-ODR-M5-V1-Research_Supervisor.txt
+=============================================
+
+Lance: [00:00:00] So we've built scoping. We've built our individual research agent. We've also shown how to use it with MCP. Now comes the key addition of a research supervisor. So first, why do we do this and why build a multi-agent system? This is actually worth reflecting on carefully. Multi-agent systems add complexity and they can also be more costly in terms of tokens. So there should be a good reason to do it. And one of the primary reasons that we've found is that if you give a single agent multiple clear subtopics to compare, you're forcing research across all those subtopics into a single context window of one LLM.
+
+And there can be numerous failure modes as that context grows. I highlight a link here that showcases a number of those, including context clash, which means that LLMs can get [00:01:00] confused if the context window contains information related to different topics that might conflict. So the real motivation and intuition behind a multi-agent system is we delegate research on specific subtopics to individual agents with isolated context windows. That's really the main point.
+
+That's also the point that Anthropic highlighted in their blog posts, which I encourage you to read, talking about how they built their multi-agent research system. So really the key idea here is context isolation, ensuring that clearly separable research topics are delegated to different context windows.
+
+And here's a schematic showing that. A research supervisor is just going to call different individual sub-agents with a particular research topic, and those sub-agents can research independent things in independent topics, in independent context windows in parallel. The findings are all returned back to the supervisor to decide what to do next.
+
+That's really the key point. [00:02:00] Now, just like we saw with the individual agent, the prompting for our supervisor is critical. In particular, thinking like the agent, the key point here is deciding how to delegate the research. Consider the question and how to delegate the research if possible. Are there multiple independent directions that can be explored simultaneously?
+
+We give some concrete heuristics. In particular, I limit the system to three tool calls to ConductResearch. Now ConductResearch will just be the tool call to delegate research to some number of sub-agents. So we basically allow our supervisor to only do that three times. That's just an example. You can tune this any way you want. I've just found you need to be careful with token utilization,
+
+and so I limit it to three. We ask the supervisor to show its thinking. And we provide some scaling rules, when to use a single agent, [00:03:00] when to use multi-agents. In particular, we want multi-agent when there are clear, distinct, and non-overlapping subtopics. And so we captured these rules in lead_researcher_prompt.
+
+We, again, specify some hard limits and we specify some scaling rules. One overall point I want to highlight here is I found it important to bias the system towards using a single agent. Multi-agent delegation costs additional tokens, and we really want to restrict multi-agent delegation to cases where it's very clear that the topic should be researched in parallel, like comparison. Open AI versus Anthropic deep researchers, as an example.
+
+But this is really the art of prompting the multi-agent system. When to spawn multi-agents, when to just use a single agent to address the question. This is probably the trickiest part of using a multi-agent system and should be thought about very [00:04:00] carefully.
+
+So we'll define the state for a multi-agent supervisor. This is very similar to what we saw before. There's going to be a message list. Just like we saw with our research agent, there's going to be the brief, which is passed in by the scoping phase.
+
+Now, this notes is interesting. This is going to capture the compressed research done by any sub-agents. Raw_notes will just be the raw research collected from the sub-agents and this research_iteration just indicates how many rounds of tool calls are performed.
+
+And we've defined two tools.
+
+ConductResearch is the tool for delegating research to a sub-agent. ResearchComplete is a tool for indicating that research process is complete. Now, note that in our prompt, we tell a supervisor that it can kick off multiple calls to ConductResearch in parallel, if there are multiple sub-agents
+
+that it wants to delegate research to. So it'll just use parallel tool calling to spin up some number of sub-agents [00:05:00] to perform research. And we cap this by this max_concurrent_research_units.
+
+Now we'll define the multi-agent supervisor. We already defined the tools, ConductResearch
+
+and ResearchComplete. Now, here's the key intuition. When our multi-agent supervisor calls ConductResearch, we're just going to call our research agent as a tool. We're going to pass to the research agent, a topic. The research agent's going to go do all its work and return compressed_research as a tool message back to the supervisor.
+
+That's it. Very simple, nice way to orchestrate a multi-agent system. Just treat the sub-agents as a tool.
+
+Now if we look at the code, where is it orchestrated? Right here. So we define the supervisor node. Call the model and return with the model output [00:06:00] message. Then update state with the model output message and increment the research iterations. Now, supervisor_tools is where we're going to perform the research delegation to sub-agents.
+
+First you check and see if any exit criteria is met. Which means that we call the ResearchComplete tool, or we don't call any tool call at all, or we've exceeded the maximum of research iterations. If any of those are true, we just highlight that we're going to end and the next step should be the end node. Otherwise, we'll execute the available tools. And we're going to separate the think_tool from the ConductResearch tool. Get the think tool calls, get the research tool calls, iterate through the think tool calls, invoke the think tool, append a tool message that contains the observation of the think tool, which will just be the reflection to our tool message list.
+
+Simple. Now, if we [00:07:00] make a call to conduct_research, this is where we're going to kick off any number of research sub-agents in parallel. That's why we're using asyncio here, and this is where we set up the co-routines we want to parallelize. You can see we get the results. And this is very important to understand. From each of those sub-agents, remember, our agent state object contains a key compressed_research, which contains the research that the agent compressed over its trajectory of tool calls. We just get that state key, and that is our tool message. So this is how we're communicating back to the supervisor from the sub-agent, just via the compressed_research written to a tool message. Very simple way to communicate between a [00:08:00] sub-agent and the supervisor.
+
+Note that we also fetched the raw notes from each of the sub-agents. Then we just returned after all the tool calls are executed. If we deem that we should end, which means that research is complete, we go to end. And note that we write to the notes key all the tool messages from supervisor_messages.
+
+We use this simple little helper function to fetch them from the message list. Otherwise we default it to go back to the supervisor and pass it the tool messages that were executed, as well as all the raw notes.
+
+We can compile our graph here. We can see it's pretty simple to compile. We can visualize it. We have a supervisor calls tools. You can see right here.
+
+The research agent is basically a sub graph that we call as a tool. You can see this is that prior llm_call, tool_node [00:09:00] loop that ran within each research agent. Compress_research returns that as a tool message back to the supervisor. Supervisor reflects on that and can iteratively call this research tool up to the max iterations that we specify.
+
+When this research loop is done, we end. And then we're going to go to our final writing phase, which we'll talk about next. So we can test this out. We take a research brief, we pass it in as a message. Now we instructed the supervisor to think first. This is kind of like a planning step. Think about the request carefully.
+
+Cool. We can see it nicely formats its approach. And in this particular case, it calls ConductResearch once with this research topic . That spawns a single research sub-agent that conducts research on this particular topic. [00:10:00] And this is the key point I want you to understand. The tool message coming out, as you can see, our tool output is that compressed research that our agent did. You can see all these nice results. 
+
+The supervisor then receives that and thinks about it, says, excellent. I have comprehensive findings, and it exits. And we finish research. 
+
+Now multi-agent provides a nice opportunity for evaluation. In particular, we can evaluate whether or not the lead supervisor is parallelizing appropriately or not. Let's take an example. Here's a case where we would expect parallelization, a clear comparison between, for example, OpenAI and Gemini.
+
+We can mock this input, reflection from the think_tool, and then let the supervisor decide whether or not it's going to parallelize this request or not. Likewise,
+
+we can also take a case of a more open-ended search, for example, for top Chinese [00:11:00] restaurants in Chelsea. This is a case where parallelization is not as obvious because this particular topic can't be as easily segmented into subtopics per our prompting. So we create a data set and we can kick off evaluation. Our data set contains both the message lists as well as a number of expected threads sub research created in either case. Just like we saw with a single agent. In this case, our evaluation function is just a simple test. Looking at the number of tool calls relative to the reference output.
+
+We can look at the results in LangSmith, seeing inputs, reference outputs, and the determination from the evaluation confirming the correct number of next steps. Now, one thing that's nice here. We can click on the expanded trace and we can actually see this is that LLM node within our supervisor. Click on it. You can see it calls the [00:12:00] ConductResearch tool. And we can see it perfectly partitions out the research across the two subtopics. This is great. It makes parallel tool calls seeding a sub-agent on each of these topics.
+
+This is exactly what we expect.
+
+So you can again see how evaluation's so useful here for us to just test in isolation whether or not our supervisor is correctly partitioning out tasks or not.
+
+
+
+=============================================
+File: LCA-ODR-M6-V1-MultiAgentResearchSystem.txt
+=============================================
+
+Lance: [00:00:00] So now let's put everything together.
+
+We just built the research module. We previously built scoping. We'll connect these two together and we're going to add a final step to write the report based upon the research findings that the supervisor aggregates. The nice thing is we can just import many of the things we've already done. We have those all in code.
+
+And we're just going to need to add one final node for the report generation. We'll define that right here. Note that we're going to define a final writer_model, and I do want to call out something important here. We want the final report to be in some cases long. Just make sure you set the max tokens to be a value that allows for creating a final and long report.
+
+The default value for max tokens, depending upon the provider you're using, may be a bit lower, so just something to be aware of.
+
+Now you're going to grab notes from state. Remember, at the end of our multi-agent supervisor we wrote to the notes state key all the compressed research that the subagents did.
+
+[00:01:00] And so that provides the substrate or all the raw information that we can use to produce the final report. So we fetch that all from state. We join them. We pass them to our final report writing prompt. You can see we pass in the original brief, which was saved to state.
+
+Pass in the findings, pass in the date, just invoke the model, and we write the final report to state and to our overall messages key.
+
+And so we can just connect all those components together now. You can see we lay the logic out right here, compile the graph, and we can visualize it. We start with the user clarification. Remember we talked about this upfront. We then conditionally go to write the research brief. Pass that research brief into the supervisor.
+
+The supervisor kicked off its research process, delegated research to some number of subagents. Those agents collected results, compressed its [00:02:00] findings, passed that back to the supervisor. The supervisor continued to iterate until it deemed that it had collected sufficient information from subagents. Then wrote all those findings to that notes key.
+
+. We can then , fetch all those results from the notes key in our state and the final report generation just uses those as the basis for the final report.
+
+And we can kick off our researcher. Now this interaction is exactly what we saw in the original notebook. It's just we're rerunning that scoping. We give a topic, we get a clarification message from the system,
+
+we provide a follow up, and we go ahead and kick off research. We can look at all the results logged to messages. You can see this is our initial interaction. And the final report is eventually written back to messages as we saw above. There we go. Nice [00:03:00] detailed report, and we can look at it here. Here's the final report in markdown.
+
+So now we've run our full agent in notebook, but I want you to remember something kind of nice here. Over the course of all these notebooks, we've been using this writefile magic to write files to this directory. In these files, along with the configuration in this repo, and our dependencies, give us everything necessary to actually deploy this app. We have different options for deployment. We can deploy it locally, use this command right here, which runs langgraph dev and this could also be a hosted deployment. So let's go ahead and create a local deployment. Using this command and look at this in Studio.
+
+For example, here's what the overall system looks like in Studio. You can open up the supervisor_subgraph, and this is everything put together very nicely. [00:04:00] You can, of course, pass in your topic right here and initiate research just like we did from the notebook.
+
+And so if you recap everything we've done over the course of these lessons, you've seen some of the intuition around why we scope research initially before committing to an overall report. We get clarification from the user. We distill that into a nice brief. This is important for stripping excessive information or irrelevant information from the initial user interaction.
+
+And we ran an evaluation on just that phase to make sure the brief properly captured what we intend from some example interactions. We then showed how to design a research agent. We talked a lot about prompting. We ran evaluations to confirm that it worked as expected. We showed how to connect that agent to MCP. And we showed how to define your own custom tools using Tavily search as an example.
+
+We then talked about how to build a multi-agent system and some of the intuition there.
+
+We talked about prompting for multi-agent. We also evaluated our [00:05:00] multi-agent supervisor to confirm that it was parallelizing work appropriately. And we finally showed then, that we can generate a report from the findings of our subagents in a final phase, after all those research results have been collected.
+
+Now if you have all these foundations and you want to go deeper, you can check out our open_deep_research repo. This is one of the most popular repos in LangChain org. This is a full implementation of this agent, but it involves all the same ideas. It just has a few extra bells and whistles, but the principles are all the same.
+
+You can see the diagram in this repo is the same as what we just went through in the course. The flow is also just like what we just went through in the course. This just has a few more configuration options. That's really the main difference. You can see we achieve the number six ranking on the deep research bench leaderboard.
+
+You can see that right here. There we are, very nice. And you can see if you scroll over, we are the best performing open source [00:06:00] implementation, so not bad. And you've learned all the foundations that went into this.
+
+So we hope this course equips you with everything you would need to build your own deep research assistant and customize it for your personal needs using different LLMs, or different sources of context. So hopefully you found this useful and thanks for participating in the course. We'll see you on the next one. 
+
+
+
