@@ -11,11 +11,9 @@ from oracle_rag.embeddings import get_embedding_model
 from oracle_rag.indexing import IndexResult, index_pdf
 from oracle_rag.llm import get_chat_model
 from oracle_rag.rag import run_rag
+from oracle_rag.config import get_collection_name
 from oracle_rag.vectorstore import get_chroma_store
-from oracle_rag.vectorstore.chroma_client import (
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_PERSIST_DIR,
-)
+from oracle_rag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
 
 
 @traceable(name="query_pdf", run_type="tool")
@@ -23,7 +21,7 @@ def query_pdf(
     query: str,
     k: int = 5,
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
-    collection: str = DEFAULT_COLLECTION_NAME,
+    collection: str | None = None,
     document_id: str | None = None,
     page_min: int | None = None,
     page_max: int | None = None,
@@ -52,8 +50,10 @@ def query_pdf(
         raise ValueError("Query cannot be empty")
     if not isinstance(k, int) or k < 1 or k > 100:
         raise ValueError("k must be an integer between 1 and 100")
-    if not collection or not str(collection).strip():
-        raise ValueError("collection cannot be empty")
+    if collection is None or not str(collection).strip():
+        collection = get_collection_name()
+    else:
+        collection = str(collection).strip()
     if (page_min is not None) != (page_max is not None):
         raise ValueError("page_min and page_max must be provided together for page range filter")
     if page_min is not None and page_max is not None and page_min > page_max:
@@ -100,7 +100,7 @@ def query_pdf(
 def add_pdf(
     pdf_path: str,
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
-    collection: str = DEFAULT_COLLECTION_NAME,
+    collection: str | None = None,
     tag: str | None = None,
 ) -> dict[str, Any]:
     """Add a PDF to the index.
@@ -121,8 +121,10 @@ def add_pdf(
     """
     if not pdf_path or not str(pdf_path).strip():
         raise ValueError("pdf_path cannot be empty")
-    if not collection or not str(collection).strip():
-        raise ValueError("collection cannot be empty")
+    if collection is None or not str(collection).strip():
+        collection = get_collection_name()
+    else:
+        collection = str(collection).strip()
 
     pdf_file = Path(pdf_path).expanduser().resolve()
     if not pdf_file.exists():
@@ -157,7 +159,7 @@ def add_pdf(
 def add_pdfs(
     pdf_paths: list[str],
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
-    collection: str = DEFAULT_COLLECTION_NAME,
+    collection: str | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
     """Add multiple PDFs to the index in one call.
@@ -178,8 +180,10 @@ def add_pdfs(
     """
     if not pdf_paths:
         raise ValueError("pdf_paths cannot be empty")
-    if not collection or not str(collection).strip():
-        raise ValueError("collection cannot be empty")
+    if collection is None or not str(collection).strip():
+        collection = get_collection_name()
+    else:
+        collection = str(collection).strip()
     if tags is not None and len(tags) != len(pdf_paths):
         raise ValueError("tags must have same length as pdf_paths when provided")
 
@@ -231,7 +235,7 @@ def add_pdfs(
 @traceable(name="list_pdfs", run_type="tool")
 def list_pdfs(
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
-    collection: str = DEFAULT_COLLECTION_NAME,
+    collection: str | None = None,
 ) -> dict[str, Any]:
     """List all indexed PDFs (books) in the Oracle-RAG index.
 
@@ -243,8 +247,10 @@ def list_pdfs(
         Dictionary with "documents" (list of unique document IDs, typically file names)
         and "total_chunks" (total number of chunks in the index).
     """
-    if not collection or not str(collection).strip():
-        raise ValueError("collection cannot be empty")
+    if collection is None or not str(collection).strip():
+        collection = get_collection_name()
+    else:
+        collection = str(collection).strip()
 
     persist_path = Path(persist_dir).expanduser().resolve()
     if not persist_path.exists():
@@ -303,7 +309,7 @@ def list_pdfs(
 def remove_pdf(
     document_id: str,
     persist_dir: str = str(DEFAULT_PERSIST_DIR),
-    collection: str = DEFAULT_COLLECTION_NAME,
+    collection: str | None = None,
 ) -> dict[str, Any]:
     """Remove a PDF and all its chunks and embeddings from the Chroma index.
 
@@ -326,8 +332,10 @@ def remove_pdf(
     """
     if not document_id or not str(document_id).strip():
         raise ValueError("document_id cannot be empty")
-    if not collection or not str(collection).strip():
-        raise ValueError("collection cannot be empty")
+    if collection is None or not str(collection).strip():
+        collection = get_collection_name()
+    else:
+        collection = str(collection).strip()
 
     persist_path = Path(persist_dir).expanduser().resolve()
     if not persist_path.exists():

@@ -1900,6 +1900,9 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
+eval = [
+    { name = "langsmith" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -1912,6 +1915,7 @@ requires-dist = [
     { name = "langchain-core", specifier = ">=1.2.11" },
     { name = "langchain-openai", specifier = ">=1.1.9" },
     { name = "langchain-text-splitters", specifier = ">=1.1.0" },
+    { name = "langsmith", marker = "extra == 'eval'", specifier = ">=0.1.0" },
     { name = "mcp", specifier = ">=1.26.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11.1" },
     { name = "pypdf", specifier = ">=6.6.1" },
@@ -1919,7 +1923,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.1" },
 ]
-provides-extras = ["cohere", "dev"]
+provides-extras = ["cohere", "eval", "dev"]
 
 [[package]]
 name = "orjson"

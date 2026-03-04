@@ -19,6 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 cohere = ["langchain-cohere>=0.2.0"]
+eval = ["langsmith>=0.1.0"]
 dev = [
     "pytest>=8.0.0",
     "ruff>=0.6.1",

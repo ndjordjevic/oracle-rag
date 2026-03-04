@@ -10,7 +10,7 @@ import sys
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-from oracle_rag.config import get_persist_dir
+from oracle_rag.config import get_collection_name, get_persist_dir
 from oracle_rag.mcp.tools import add_pdf, add_pdfs, list_pdfs, query_pdf, remove_pdf
 
 # Load environment variables
@@ -92,11 +92,15 @@ def query_pdf_tool(
         - answer: The generated answer text
         - sources: List of source citations with document_id and page number
     """
+    # Use provider-based collection when empty or legacy default
+    coll = (collection or "").strip()
+    if not coll or coll == "oracle_rag":
+        coll = get_collection_name()
     return query_pdf(
         query=query,
         k=k,
         persist_dir=persist_dir or get_persist_dir(),
-        collection=collection,
+        collection=coll,
         document_id=document_id or None,
         page_min=page_min,
         page_max=page_max,
@@ -131,10 +135,11 @@ def add_pdf_tool(
         - persist_directory: Where the index is stored
         - collection_name: Collection name used
     """
+    coll = (collection or "").strip() or get_collection_name()
     return add_pdf(
         pdf_path=pdf_path,
         persist_dir=persist_dir or get_persist_dir(),
-        collection=collection,
+        collection=coll,
         tag=tag or None,
     )
 
@@ -161,10 +166,11 @@ def add_pdfs_tool(
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
     """
+    coll = (collection or "").strip() or get_collection_name()
     return add_pdfs(
         pdf_paths=pdf_paths,
         persist_dir=persist_dir or get_persist_dir(),
-        collection=collection,
+        collection=coll,
         tags=tags,
     )
 
@@ -193,7 +199,8 @@ def list_pdfs_tool(
         - collection_name: Collection name used
         - document_details: Per-document stats (upload_timestamp, pages, bytes, chunks, tag) when available
     """
-    return list_pdfs(persist_dir=persist_dir or get_persist_dir(), collection=collection)
+    coll = (collection or "").strip() or get_collection_name()
+    return list_pdfs(persist_dir=persist_dir or get_persist_dir(), collection=coll)
 
 
 @mcp.tool()
@@ -221,10 +228,11 @@ def remove_pdf_tool(
         - persist_directory: Path to the Chroma store
         - collection_name: Collection name used
     """
+    coll = (collection or "").strip() or get_collection_name()
     return remove_pdf(
         document_id=document_id,
         persist_dir=persist_dir or get_persist_dir(),
-        collection=collection,
+        collection=coll,
     )
 
 
@@ -238,7 +246,7 @@ def _documents_resource() -> str:
     try:
         result = list_pdfs(
             persist_dir=get_persist_dir(),
-            collection="oracle_rag",
+            collection=get_collection_name(),
         )
         docs = result.get("documents", [])
         total = result.get("total_chunks", 0)

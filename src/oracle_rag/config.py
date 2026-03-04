@@ -72,6 +72,20 @@ def get_persist_dir() -> str:
     return os.environ.get("ORACLE_RAG_PERSIST_DIR", DEFAULT_PERSIST_DIR)
 
 
+def get_collection_name() -> str:
+    """Return Chroma collection name for the current embedding provider.
+
+    If ORACLE_RAG_COLLECTION_NAME is set, use it. Otherwise return
+    'oracle_rag_<provider>' (e.g. oracle_rag_openai, oracle_rag_cohere) so that
+    each embedding type uses its own collection and dimension mismatches are avoided.
+    For a single shared collection, set ORACLE_RAG_COLLECTION_NAME=oracle_rag.
+    """
+    env_name = os.environ.get("ORACLE_RAG_COLLECTION_NAME")
+    if env_name and str(env_name).strip():
+        return str(env_name).strip()
+    return f"oracle_rag_{get_embedding_provider()}"
+
+
 def get_chunk_size() -> int:
     """Return chunk size from ORACLE_RAG_CHUNK_SIZE env var, or default (1000)."""
     val = os.environ.get("ORACLE_RAG_CHUNK_SIZE")

@@ -116,8 +116,15 @@ Environment variables:
 | `ORACLE_RAG_PERSIST_DIR` | `~/.oracle-rag/chroma_db` | Chroma vector store directory |
 | `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
 | `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
+| `ORACLE_RAG_COLLECTION_NAME` | *(auto)* | Chroma collection name. If unset, uses `oracle_rag_<provider>` (e.g. `oracle_rag_openai`, `oracle_rag_cohere`) so the collection always matches the embedding dimension. Set to a fixed name (e.g. `oracle_rag`) for a single shared collection. |
 
-**Note:** Embedding dimension depends on the provider (e.g. OpenAI 1536, Cohere 1024). If you switch embedding provider, use a different `collection` name when indexing/querying, or re-index into a new collection so dimensions match.
+### Multiple providers and collections
+
+Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid dimension mismatches:
+
+- **Default (recommended):** Do *not* set `ORACLE_RAG_COLLECTION_NAME`. The app uses `oracle_rag_openai` when `ORACLE_RAG_EMBEDDING_PROVIDER=openai` and `oracle_rag_cohere` when using Cohere. Index and query with the same provider; the correct collection is chosen automatically. You can index the same PDFs into both collections (run with OpenAI, then switch env to Cohere and index again) and switch providers by changing `ORACLE_RAG_EMBEDDING_PROVIDER` in `.env` and restarting the MCP.
+- **Single shared collection:** Set `ORACLE_RAG_COLLECTION_NAME=oracle_rag` (or any name). Use one embedding provider only; if you switch provider, re-index into that collection or you will get dimension errors.
+- **MCP tools:** When you call `query_pdf_tool` (or other tools) without passing a `collection` argument (or with the default), the server uses the collection for the current embedding provider. To target a specific collection, pass `collection` explicitly (e.g. `oracle_rag_openai`, `oracle_rag_cohere`).
 
 ## Query Filtering
 

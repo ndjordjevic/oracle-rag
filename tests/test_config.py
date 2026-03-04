@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-from oracle_rag.config import get_chunk_overlap, get_chunk_size
+from oracle_rag.config import get_chunk_overlap, get_chunk_size, get_collection_name
 
 
 def test_get_chunk_size_default(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -55,3 +55,18 @@ def test_get_chunk_overlap_invalid_falls_back(monkeypatch: pytest.MonkeyPatch) -
     """With invalid env var, returns default."""
     monkeypatch.setenv("ORACLE_RAG_CHUNK_OVERLAP", "abc")
     assert get_chunk_overlap() == 200
+
+
+def test_get_collection_name_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With ORACLE_RAG_COLLECTION_NAME set, returns that value."""
+    monkeypatch.setenv("ORACLE_RAG_COLLECTION_NAME", "my_custom_collection")
+    assert get_collection_name() == "my_custom_collection"
+
+
+def test_get_collection_name_from_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without ORACLE_RAG_COLLECTION_NAME, returns oracle_rag_<provider>."""
+    monkeypatch.delenv("ORACLE_RAG_COLLECTION_NAME", raising=False)
+    monkeypatch.setenv("ORACLE_RAG_EMBEDDING_PROVIDER", "openai")
+    assert get_collection_name() == "oracle_rag_openai"
+    monkeypatch.setenv("ORACLE_RAG_EMBEDDING_PROVIDER", "cohere")
+    assert get_collection_name() == "oracle_rag_cohere"

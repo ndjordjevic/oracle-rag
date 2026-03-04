@@ -11,10 +11,9 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
 from oracle_rag.chunking import chunk_documents
-from oracle_rag.config import get_chunk_overlap, get_chunk_size
+from oracle_rag.config import get_chunk_overlap, get_chunk_size, get_collection_name
 from oracle_rag.pdf.pypdf_loader import PathLike, load_pdf_as_documents
 from oracle_rag.vectorstore.chroma_client import (
-    DEFAULT_COLLECTION_NAME,
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
@@ -39,7 +38,7 @@ def index_pdf(
     path: PathLike,
     *,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: str = DEFAULT_COLLECTION_NAME,
+    collection_name: Optional[str] = None,
     embedding: Optional[Embeddings] = None,
     chunk_size: Optional[int] = None,
     chunk_overlap: Optional[int] = None,
@@ -57,7 +56,7 @@ def index_pdf(
     Args:
         path: PDF path to index.
         persist_directory: Chroma persistence directory.
-        collection_name: Chroma collection name.
+        collection_name: Chroma collection name. If None, uses provider-based name (e.g. oracle_rag_openai).
         embedding: Optional embedding model; if None, uses default OpenAI embeddings.
         chunk_size: Chunk size in chars; if None, uses ORACLE_RAG_CHUNK_SIZE env or 1000.
         chunk_overlap: Chunk overlap in chars; if None, uses ORACLE_RAG_CHUNK_OVERLAP env or 200.
@@ -66,6 +65,8 @@ def index_pdf(
     Returns:
         IndexResult with basic stats about the indexed PDF.
     """
+    if collection_name is None:
+        collection_name = get_collection_name()
     pdf_path = Path(path).expanduser().resolve()
     pdf_result = load_pdf_as_documents(pdf_path)
 
@@ -123,7 +124,7 @@ def query_index(
     *,
     k: int = 5,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: str = DEFAULT_COLLECTION_NAME,
+    collection_name: Optional[str] = None,
     embedding: Optional[Embeddings] = None,
     document_id: Optional[str] = None,
     page_min: Optional[int] = None,
@@ -136,7 +137,7 @@ def query_index(
         query: Natural language query string.
         k: Number of top matching chunks to return.
         persist_directory: Chroma persistence directory (must match indexing).
-        collection_name: Chroma collection name (must match indexing).
+        collection_name: Chroma collection name (must match indexing). If None, uses provider-based name.
         embedding: Optional embedding model; if None, uses default OpenAI embeddings.
         document_id: Optional document ID to filter by (e.g. PDF file name). Only chunks
             from this document are considered for retrieval.
@@ -149,7 +150,8 @@ def query_index(
     Returns:
         List of matching chunk `Document`s from the vector store.
     """
-
+    if collection_name is None:
+        collection_name = get_collection_name()
     store = get_chroma_store(
         persist_directory=persist_directory,
         collection_name=collection_name,

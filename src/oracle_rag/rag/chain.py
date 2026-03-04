@@ -6,17 +6,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
+from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from langchain_core.retrievers import BaseRetriever
 from langsmith import traceable
 
+from oracle_rag.config import get_collection_name
 from oracle_rag.rag.formatting import format_docs, format_sources
 from oracle_rag.rag.prompts import RAG_PROMPT
-from oracle_rag.vectorstore.chroma_client import (
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_PERSIST_DIR,
-)
+from oracle_rag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
 from oracle_rag.vectorstore.retriever import create_retriever
 
 
@@ -31,6 +30,24 @@ class RAGResult:
     sources: list[dict[str, str | int]]
 
 
+def _docs_to_langsmith_output(docs: list[Document]) -> list[dict]:
+    """Convert Documents for LangSmith retriever trace rendering."""
+    return [
+        {"page_content": d.page_content, "type": "Document", "metadata": d.metadata}
+        for d in docs
+    ]
+
+
+@traceable(
+    name="retrieve",
+    run_type="retriever",
+    process_outputs=lambda out: _docs_to_langsmith_output(out) if out else [],
+)
+def _retrieve(retriever: BaseRetriever, query: str) -> list[Document]:
+    """Retrieve documents; LangSmith logs output in retriever format for special rendering."""
+    return retriever.invoke(query)
+
+
 @traceable(name="run_rag", run_type="chain")
 def run_rag(
     query: str,
@@ -39,7 +56,7 @@ def run_rag(
     retriever: Optional[BaseRetriever] = None,
     k: int = 5,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: str = DEFAULT_COLLECTION_NAME,
+    collection_name: Optional[str] = None,
     embedding: Optional[Embeddings] = None,
     document_id: Optional[str] = None,
     page_min: Optional[int] = None,
@@ -57,7 +74,7 @@ def run_rag(
         retriever: Optional BaseRetriever. If provided, used directly; else built from legacy params.
         k: Number of chunks to retrieve (default: 5). Ignored when retriever is provided.
         persist_directory: Chroma persistence directory (used when retriever is None).
-        collection_name: Chroma collection name (used when retriever is None).
+        collection_name: Chroma collection name (used when retriever is None). If None, uses provider-based name.
         embedding: Optional embedding model for retrieval (used when retriever is None).
         document_id: Optional document ID to filter retrieval (e.g. PDF file name).
         page_min: Optional start of page range (inclusive). Use with page_max.
@@ -67,9 +84,9 @@ def run_rag(
     Returns:
         RAGResult with answer (str) and sources (list of {document_id, page}).
     """
-    if retriever is not None:
-        docs = retriever.invoke(query)
-    else:
+    if retriever is None:
+        if collection_name is None:
+            collection_name = get_collection_name()
         retriever = create_retriever(
             k=k,
             persist_directory=persist_directory,
@@ -80,7 +97,7 @@ def run_rag(
             page_max=page_max,
             tag=tag,
         )
-        docs = retriever.invoke(query)
+    docs = _retrieve(retriever, query)
 
     if not docs:
         return RAGResult(
