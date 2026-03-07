@@ -11,7 +11,13 @@ from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
 from oracle_rag.config import get_collection_name, get_persist_dir
-from oracle_rag.mcp.tools import add_pdf, add_pdfs, list_pdfs, query_pdf, remove_pdf
+from oracle_rag.mcp.tools import (
+    add_file,
+    add_files,
+    list_documents,
+    query as query_index,
+    remove_document,
+)
 
 # Load environment variables
 load_dotenv()
@@ -61,7 +67,7 @@ def _log_tool_errors(fn):
 
 @mcp.tool()
 @_log_tool_errors
-def query_pdf_tool(
+def query_tool(
     query: str,
     k: int = 5,
     persist_dir: str = "",
@@ -71,32 +77,28 @@ def query_pdf_tool(
     page_max: int | None = None,
     tag: str = "",
 ) -> dict:
-    """Query indexed PDFs and return an answer with citations.
+    """Query indexed documents and return an answer with citations.
 
-    This tool searches through all indexed PDF documents and uses RAG
-    (Retrieval-Augmented Generation) to provide an answer based on the
-    retrieved context, along with source citations.
+    Searches through all indexed documents (PDF, Discord, etc.) and uses RAG
+    to provide an answer based on retrieved context, with source citations.
 
     Args:
-        query: Natural language question to ask about the indexed PDFs.
+        query: Natural language question to ask.
         k: Number of document chunks to retrieve (default: 5).
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
-        document_id: Optional document ID to filter retrieval (e.g. PDF file name from list_pdfs).
-        page_min: Optional start of page range (inclusive). Use with page_max.
-        page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
-        tag: Optional tag to filter retrieval (e.g. "PI_PICO" from list_pdfs document_details).
+        document_id: Optional document ID to filter retrieval (from list_documents).
+        page_min: Optional start of page range (inclusive). PDF only.
+        page_max: Optional end of page range (inclusive). PDF only.
+        tag: Optional tag to filter retrieval (from list_documents).
 
     Returns:
-        Dictionary containing:
-        - answer: The generated answer text
-        - sources: List of source citations with document_id and page number
+        Dictionary containing answer and sources (document_id, page).
     """
-    # Use provider-based collection when empty or legacy default
     coll = (collection or "").strip()
     if not coll or coll == "oracle_rag":
         coll = get_collection_name()
-    return query_pdf(
+    return query_index(
         query=query,
         k=k,
         persist_dir=persist_dir or get_persist_dir(),
@@ -110,34 +112,36 @@ def query_pdf_tool(
 
 @mcp.tool()
 @_log_tool_errors
-def add_pdf_tool(
-    pdf_path: str,
+def add_file_tool(
+    path: str,
     persist_dir: str = "",
     collection: str = "oracle_rag",
     tag: str = "",
 ) -> dict:
-    """Add a PDF document to the index.
+    """Add a file or directory of files to the index.
 
-    This tool processes a PDF file, extracts text, chunks it, generates
-    embeddings, and stores it in the vector database for later querying.
+    Automatically detects format and indexes:
+    - PDF (.pdf)
+    - Discord export (.txt with DiscordChatExporter Guild:/Channel: header)
+
+    Pass a file path to index one file, or a directory path to index all
+    supported files in that directory (recursive).
 
     Args:
-        pdf_path: Path to the PDF file to index.
+        path: Path to a file or directory.
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
-        tag: Optional single tag for this document (e.g. "amiga"); stored on all chunks for filtering.
+        tag: Optional tag for indexed documents; stored on all chunks for filtering.
 
     Returns:
-        Dictionary containing indexing results:
-        - source_path: Path to the indexed PDF
-        - total_pages: Number of pages processed
-        - total_chunks: Number of text chunks created
-        - persist_directory: Where the index is stored
-        - collection_name: Collection name used
+        Dictionary containing:
+        - indexed: List of successfully indexed files with format-specific stats
+        - failed: List of files that failed with error messages
+        - total_indexed, total_failed, persist_directory, collection_name
     """
     coll = (collection or "").strip() or get_collection_name()
-    return add_pdf(
-        pdf_path=pdf_path,
+    return add_file(
+        path=path,
         persist_dir=persist_dir or get_persist_dir(),
         collection=coll,
         tag=tag or None,
@@ -146,29 +150,29 @@ def add_pdf_tool(
 
 @mcp.tool()
 @_log_tool_errors
-def add_pdfs_tool(
-    pdf_paths: list[str],
+def add_files_tool(
+    paths: list[str],
     persist_dir: str = "",
     collection: str = "oracle_rag",
     tags: list[str] | None = None,
 ) -> dict:
-    """Add multiple PDF documents to the index in one call.
+    """Add multiple files or directories to the index in one call.
 
-    This tool indexes each PDF independently and returns both successful and failed
-    files so one bad file does not fail the whole batch.
+    Auto-detects format per file (PDF, Discord export). Returns both
+    successful and failed entries so one bad file does not fail the batch.
 
     Args:
-        pdf_paths: List of PDF paths to index.
+        paths: List of file or directory paths to index.
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
-        tags: Optional list of tags, one per PDF (same order as pdf_paths). Empty string = no tag.
+        tags: Optional list of tags, one per path (same order as paths).
 
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
     """
     coll = (collection or "").strip() or get_collection_name()
-    return add_pdfs(
-        pdf_paths=pdf_paths,
+    return add_files(
+        paths=paths,
         persist_dir=persist_dir or get_persist_dir(),
         collection=coll,
         tags=tags,
@@ -177,59 +181,49 @@ def add_pdfs_tool(
 
 @mcp.tool()
 @_log_tool_errors
-def list_pdfs_tool(
+def list_documents_tool(
     persist_dir: str = "",
     collection: str = "oracle_rag",
 ) -> dict:
-    """List all indexed PDFs (books) in the Oracle-RAG index.
+    """List all indexed documents in the Oracle-RAG index.
 
-    Returns the unique document names (e.g. PDF file names) currently in the
-    vector store, plus total chunk count. Use this to see which books are
-    available for querying.
+    Returns unique document IDs (PDF file names, discord-alicia-1200-pcb, etc.)
+    currently in the vector store, plus total chunk count.
 
     Args:
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
 
     Returns:
-        Dictionary containing:
-        - documents: List of unique document identifiers (typically file names)
-        - total_chunks: Total number of chunks in the index
-        - persist_directory: Path to the Chroma store
-        - collection_name: Collection name used
-        - document_details: Per-document stats (upload_timestamp, pages, bytes, chunks, tag) when available
+        Dictionary containing documents, total_chunks, persist_directory,
+        collection_name, document_details.
     """
     coll = (collection or "").strip() or get_collection_name()
-    return list_pdfs(persist_dir=persist_dir or get_persist_dir(), collection=coll)
+    return list_documents(persist_dir=persist_dir or get_persist_dir(), collection=coll)
 
 
 @mcp.tool()
 @_log_tool_errors
-def remove_pdf_tool(
+def remove_document_tool(
     document_id: str,
     persist_dir: str = "",
     collection: str = "oracle_rag",
 ) -> dict:
-    """Remove a PDF and all its chunks and embeddings from the Oracle-RAG index.
+    """Remove a document and all its chunks from the Oracle-RAG index.
 
-    Deletes all chunks and their embeddings for the given document from the
-    Chroma vector store. Use list_pdfs_tool to see the exact document_id
-    (typically the PDF file name) to remove.
+    Deletes all chunks and embeddings for the given document. Use
+    list_documents_tool to see document_ids (e.g. "mybook.pdf", "discord-alicia-1200-pcb").
 
     Args:
-        document_id: Document identifier to remove (same as in list_pdfs, e.g. "mybook.pdf").
+        document_id: Document identifier to remove (from list_documents).
         persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
 
     Returns:
-        Dictionary containing:
-        - deleted_chunks: Number of chunks (and embeddings) removed
-        - document_id: The document that was removed
-        - persist_directory: Path to the Chroma store
-        - collection_name: Collection name used
+        Dictionary containing deleted_chunks, document_id, persist_directory, collection_name.
     """
     coll = (collection or "").strip() or get_collection_name()
-    return remove_pdf(
+    return remove_document(
         document_id=document_id,
         persist_dir=persist_dir or get_persist_dir(),
         collection=coll,
@@ -239,12 +233,12 @@ def remove_pdf_tool(
 @mcp.resource(
     "oracle-rag://documents",
     title="Indexed documents list",
-    description="Read-only list of PDF documents currently indexed in Oracle-RAG (default collection).",
+    description="Read-only list of documents currently indexed in Oracle-RAG (default collection).",
 )
 def _documents_resource() -> str:
     """Return a plain-text list of indexed documents for the default collection."""
     try:
-        result = list_pdfs(
+        result = list_documents(
             persist_dir=get_persist_dir(),
             collection=get_collection_name(),
         )
@@ -260,14 +254,14 @@ def _documents_resource() -> str:
 
 @mcp.prompt()
 def ask_about_documents(question: str) -> str:
-    """Ask a question about the indexed PDF documents.
+    """Ask a question about the indexed documents.
 
-    Use the query_pdf_tool to search the Oracle-RAG index and return an answer
+    Use the query_tool to search the Oracle-RAG index and return an answer
     with citations. The question will be sent as the user message to guide the AI.
     """
     return (
-        f"Using the Oracle-RAG indexed PDFs, please answer this question: {question}\n\n"
-        "Use the query_pdf_tool to retrieve relevant context before answering."
+        f"Using the Oracle-RAG indexed documents, please answer this question: {question}\n\n"
+        "Use the query_tool to retrieve relevant context before answering."
     )
 
 

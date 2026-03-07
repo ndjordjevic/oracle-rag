@@ -64,6 +64,9 @@ embeddings/
 # *.pdf
 data/pdfs/
 
+# Discord channel data
+data/discord-channels/
+
 # Logs
 *.log
 logs/

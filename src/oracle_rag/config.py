@@ -12,7 +12,9 @@ from oracle_rag.chunking.splitter import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SI
 # Ensure .env is loaded when config is first imported
 load_dotenv()
 
-DEFAULT_PERSIST_DIR = str(Path.home() / ".oracle-rag" / "chroma_db")
+# Use project-local chroma_db so CLI, tools, and MCP all see the same index.
+# Override with ORACLE_RAG_PERSIST_DIR for ~/.oracle-rag/chroma_db or custom path.
+DEFAULT_PERSIST_DIR = "chroma_db"
 
 # LLM provider: openai | anthropic
 DEFAULT_LLM_PROVIDER = "openai"
@@ -68,7 +70,7 @@ def get_embedding_model_name() -> str:
 
 
 def get_persist_dir() -> str:
-    """Return Chroma persist directory from ORACLE_RAG_PERSIST_DIR env var, or ~/.oracle-rag/chroma_db."""
+    """Return Chroma persist directory from ORACLE_RAG_PERSIST_DIR env var, or chroma_db (project-local)."""
     return os.environ.get("ORACLE_RAG_PERSIST_DIR", DEFAULT_PERSIST_DIR)
 
 

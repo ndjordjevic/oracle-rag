@@ -35,11 +35,11 @@ After changing MCP config, **fully quit and reopen Cursor** so it picks up the n
 ## 4. Test in Cursor
 
 - In chat, the model can use MCP tools. Ask e.g.:
-  - *"Use the Oracle-RAG add_pdf tool to index the PDF at …"*
-  - *"Use query_pdf to ask: What is this document about?"*
-- If you added **list_pdfs**, you can ask: *"List the PDFs indexed in Oracle-RAG."*
+  - *"Use add_file_tool to index the PDF at …"*
+  - *"Use query_tool to ask: What is this document about?"*
+  - *"List the documents indexed in Oracle-RAG"* (list_documents_tool)
 
-Tool names in Cursor may appear as `query_pdf_tool` and `add_pdf_tool` (the names registered by the server).
+Tool names in Cursor: `query_tool`, `add_file_tool`, `add_files_tool`, `list_documents_tool`, `remove_document_tool`.
 
 ## 5. Troubleshooting
 

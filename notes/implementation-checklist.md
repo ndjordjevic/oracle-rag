@@ -220,13 +220,26 @@
 **Goal:** Close the correctness gap (currently 60% OpenAI vs 73% Anthropic baseline) by improving retrieval quality, then iterate on prompts using evaluation results.
 
 ### Evaluation Iteration
-- [ ] **Evaluation framework** (do before complex retrieval changes). See `notes/evaluation-strategy.md`.
+- [x] **Evaluation framework** (do before complex retrieval changes). See `notes/evaluation-strategy.md`.
   - [x] Create evaluation dataset (question / expected-answer pairs). Golden dataset **oracle-rag-golden** in LangSmith: 30 examples from *Bare-metal Amiga programming 2021_ocr.pdf* (easy → hard); script: `scripts/create_eval_dataset.py`.
   - [x] Implement evaluators and target: correctness, relevance, groundedness, retrieval relevance (LLM-as-judge) plus code evaluators (has_sources, answer_not_empty, source_in_expected_docs); target function wrapping `run_rag` with `document_id`/`tag` from dataset inputs. See evaluation-strategy §4–5.
   - [x] Run the first experiment with Anthropic for LLM and Cohere for embeddings.
   - [x] Re-run the experiment with OpenAI both for LLM and embeddings.
   - [x] Make sure you understand the metrics and why the results are like they are and some answers are wrong. **Why grades are bad:** (1) Retrieval often misses expected pages (93% of failures) → multi-query, hybrid search, increase k; (2) deep-in-book content underretrieved (55% of wrong-answer pages > page 100) → hybrid search, reranker; (3) topically adjacent wrong chunks rank high → reranker, multi-query; (4) nearly-correct answers marked 0 (~2–3 cases) → lenient reference or partial-credit grader.
   - [x] **Increase retrieval k (one constant):** In `src/oracle_rag/evaluation/target.py`, change `k=5` to e.g. `k=8` or `k=10` in `create_retriever(...)`; re-run evaluation and compare correctness. **Done (k=10):** correctness 53.3% → 60.0% (+2 questions); baseline 73.3% — modest gain, gap remains; next: multi-query / hybrid / reranker.
+
+### Discord Channel Ingestion
+*Context: DiscordChatExporter TXT format — header block (`Guild: / Channel:`) then messages as `[date] author\ncontent\n{Reactions}/{Attachments}/{Embed}` blocks. Files live in `data/discord-channels/<channel-slug>/`. One full export per channel (historical), then periodic incremental exports (date-filtered) appended as new files.*
+
+- [x] **Discord TXT loader** — Write `src/oracle_rag/indexing/discord_loader.py` (or extend `pdf_indexer.py`) that:
+  - Reads a DiscordChatExporter `.txt` file.
+  - Strips the header block, `{Reactions}`, `{Attachments}` CDN URLs, `{Embed}` noise, and raw emoji.
+  - Converts each message (or conversational window of N messages) into a `Document` with metadata: `source=discord`, `channel`, `guild`, `author`, `timestamp`, `document_id`, `tag`.
+  - Chunks conversation in context-preserving windows (e.g. 10–20 consecutive messages per chunk) rather than per-message — preserves thread context for retrieval.
+- [x] **MCP tool `add_file`** — Single tool for adding files: accepts path (file or directory), auto-detects format (PDF vs DiscordChatExporter .txt via Guild:/Channel: header), routes to index_pdf or index_discord, indexes into vector store. Replaces separate add_pdf/add_discord_export.
+- [x] **Incremental ingestion** — Per-file `document_id`: each Discord TXT gets `discord-{channel}--{sanitized-filename-stem}` (e.g. `discord-alicia-1200-pcb--retro-tinkering-...-1404852770154217664` for full, `...--...-after-2026-03-06` for incremental). Additive: new files add chunks without replacing others. Query by `tag` for whole channel.
+- [x] **CLI / script helper** — `scripts/index_discord_channels.py` scans `data/discord-channels/` (root + subfolders) and indexes all Discord `.txt` files via `add_file`. Run manually or cron. Options: `--base-dir`, `--persist-dir`, `--collection`, `--tag`.
+- [x] **Test: index Discord export and query via MCP** — Index the full export from `data/discord-channels/` (e.g. alicia-1200-pcb channel) using `add_file_tool`, then run questions about Alicia 1200 (ROM programmer, PSU, etc.) via `query_tool` in Cursor. Confirm answers and sources use the correct `document_id`, `channel`, and `tag` metadata.
 
 ### Retrieval Improvement
 - [ ] **Advanced Retrieval Strategies** (ordered by expected impact for this project: 93% of failures = retrieval miss; 55% of wrong-answer pages > 100 = deep-in-book; topically adjacent wrong chunks rank high)

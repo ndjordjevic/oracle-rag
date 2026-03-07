@@ -7,6 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from oracle_rag.config import get_persist_dir
 from oracle_rag.indexing import index_pdf
 
 # Load .env from project root
@@ -20,8 +21,8 @@ def main() -> None:
     parser.add_argument("pdf_path", help="Path to the PDF file to index")
     parser.add_argument(
         "--persist-dir",
-        default="chroma_db",
-        help="Directory for Chroma persistence (default: chroma_db)",
+        default=None,
+        help="Directory for Chroma persistence (default: from ORACLE_RAG_PERSIST_DIR or chroma_db)",
     )
     parser.add_argument(
         "--collection",
@@ -36,9 +37,10 @@ def main() -> None:
     args = parser.parse_args()
 
     pdf_path = Path(args.pdf_path).expanduser().resolve()
+    persist_dir = args.persist_dir or get_persist_dir()
     result = index_pdf(
         pdf_path,
-        persist_directory=args.persist_dir,
+        persist_directory=persist_dir,
         collection_name=args.collection,
         tag=args.tag,
     )

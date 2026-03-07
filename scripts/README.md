@@ -112,6 +112,31 @@ uv run python scripts/index_pdf_cli.py data/pdfs/your.pdf --persist-dir my_chrom
 
 ---
 
+## index_discord_channels.py
+
+Index all Discord channel exports in `data/discord-channels/` (and subfolders) into Chroma. Scans for `.txt` files in DiscordChatExporter format. Run manually or via cron.
+
+**Arguments**
+
+| Argument | Description |
+|----------|-------------|
+| `--base-dir` | Base directory with channel folders (default: `data/discord-channels`). |
+| `--persist-dir` | Chroma persistence directory. |
+| `--collection` | Chroma collection name. |
+| `--tag` | Optional tag for all indexed documents. |
+
+**Examples**
+
+```bash
+# Index all Discord exports in default location
+uv run python scripts/index_discord_channels.py
+
+# Custom base directory
+uv run python scripts/index_discord_channels.py --base-dir /path/to/discord-exports
+```
+
+---
+
 ## list_indexed_docs_cli.py
 
 List which documents are currently indexed in the local Chroma store.
