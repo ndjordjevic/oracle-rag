@@ -23,6 +23,7 @@ When you need example patterns, API usage, or RAG/agent references, consult the 
 
 ## Guidelines
 
+- **Git commits**: Keep commit messages brief — one or two lines.
 - Prefer `user-docs-langchain` for LangChain-specific queries
 - Use `user-context7` as fallback or for related libraries
 - Check MCP servers BEFORE making assumptions about LangChain APIs
