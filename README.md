@@ -15,7 +15,7 @@ Oracle-RAG provides intelligent document querying and retrieval capabilities for
 - **MCP tools** — `query_pdf`, `add_pdf`, `add_pdfs`, `list_pdfs`, `remove_pdf`
 - **MCP resource** — Read-only list of indexed documents (`oracle-rag://documents`); click in Cursor’s MCP panel to view
 - **MCP prompt** — `ask_about_documents` (parameter: question) for guided RAG queries
-- **Configurable LLM** — OpenAI (default) or Anthropic (Claude); set via `ORACLE_RAG_LLM_PROVIDER` and model in `.env`
+- **Configurable LLM** — Anthropic (default) or OpenAI; set via `ORACLE_RAG_LLM_PROVIDER` and model in `.env`
 - **Configurable embeddings** — OpenAI (default) or Cohere; set via `ORACLE_RAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
 - **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, Cohere
 
@@ -43,9 +43,10 @@ Restart your editor after updating so the MCP server picks up the new version.
 
 ```bash
 mkdir -p ~/.oracle-rag
-# Default: OpenAI for both LLM and embeddings
-echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
-# Optional: use Anthropic (Claude) and/or Cohere — see Configuration below
+# Default: Anthropic (Claude) for LLM, OpenAI for embeddings; rerank off (set ORACLE_RAG_USE_RERANK=true to enable)
+echo "ANTHROPIC_API_KEY=sk-ant-..." > ~/.oracle-rag/.env
+echo "OPENAI_API_KEY=sk-..." >> ~/.oracle-rag/.env
+# Optional: Cohere for re-ranking (COHERE_API_KEY + ORACLE_RAG_USE_RERANK=true); see Configuration below
 ```
 
 ### 2. Add MCP server
@@ -74,7 +75,9 @@ echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
 }
 ```
 
-Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code. The server loads `.env` from `~/.oracle-rag/` (or `~/.config/oracle-rag/`) and stores the index in `~/.oracle-rag/chroma_db` by default.
+Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code or Cursor after editing.
+
+> **Where the MCP finds `.env`:** The server loads `.env` from the **current working directory (cwd)** of the MCP process, which is usually the **workspace folder** you have open. If you use a global `~/.cursor/mcp.json` and open a different project, cwd is that project—so the MCP will not see a `.env` that lives only in another folder (e.g. an oracle-rag project). You can either put your `.env` in `~/.oracle-rag/` or `~/.config/oracle-rag/` (so it is always found), or add an `env` block to your MCP config and set all required variables there (API keys, `ORACLE_RAG_*`, etc.). Do not put secrets in a project-level `.cursor/mcp.json` if that file is committed to git.
 
 > **Backup:** Back up `~/.oracle-rag/chroma_db` (or your `ORACLE_RAG_PERSIST_DIR`) if your indexed documents are important — deleting it removes all indexes.
 
@@ -95,34 +98,39 @@ Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"* or *"What are AGA ch
 
 ## Configuration
 
-`.env` is loaded from (first match wins):
+`.env` is loaded from (first existing file wins):
 
-1. `{cwd}/.env`
-2. `~/.config/oracle-rag/.env`
-3. `~/.oracle-rag/.env`
+1. `~/.config/oracle-rag/.env`
+2. `~/.oracle-rag/.env`
+3. `{cwd}/.env` (current working directory of the process)
 
 Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | **LLM** | | |
-| `ORACLE_RAG_LLM_PROVIDER` | `openai` | `openai` or `anthropic` |
-| `ORACLE_RAG_LLM_MODEL` | *(provider default)* | e.g. `gpt-4o-mini`, `claude-haiku-4-5`, `claude-sonnet-4-6` |
-| `OPENAI_API_KEY` | *(required for OpenAI)* | OpenAI API key |
-| `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `ORACLE_RAG_LLM_PROVIDER=anthropic`) |
+| `ORACLE_RAG_LLM_PROVIDER` | `anthropic` | `openai` or `anthropic` |
+| `ORACLE_RAG_LLM_MODEL` | *(provider default)* | e.g. `claude-haiku-4-5`, `claude-sonnet-4-6`, `gpt-4o-mini` |
+| `OPENAI_API_KEY` | *(required for OpenAI)* | OpenAI API key (LLM or embeddings) |
+| `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `ORACLE_RAG_LLM_PROVIDER=anthropic` or `ORACLE_RAG_EVALUATOR_PROVIDER=anthropic`) |
+| **Evaluators (LLM-as-judge)** | | |
+| `ORACLE_RAG_EVALUATOR_PROVIDER` | `openai` | `openai` or `anthropic` — which LLM grades correctness/relevance/groundedness/retrieval |
+| `ORACLE_RAG_EVALUATOR_MODEL` | *(provider default)* | Model for correctness/relevance (e.g. `gpt-4o`, `claude-sonnet-4-6`) |
+| `ORACLE_RAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for groundedness/retrieval (context-heavy; e.g. `gpt-4o-mini`, `claude-haiku-4-5`) |
 | **Embeddings** | | |
 | `ORACLE_RAG_EMBEDDING_PROVIDER` | `openai` | `openai` or `cohere` |
 | `ORACLE_RAG_EMBEDDING_MODEL` | *(provider default)* | e.g. `text-embedding-3-small`, `embed-english-v3.0` |
 | `COHERE_API_KEY` | *(required for Cohere)* | Cohere API key; install with `pip install oracle-rag[cohere]` when using Cohere embeddings or re-ranking |
 | **Storage & chunking** | | |
-| `ORACLE_RAG_PERSIST_DIR` | `~/.oracle-rag/chroma_db` | Chroma vector store directory |
+| `ORACLE_RAG_PERSIST_DIR` | `chroma_db` | Chroma vector store directory (project-local by default; use `~/.oracle-rag/chroma_db` for global) |
 | `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
 | `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
-| `ORACLE_RAG_COLLECTION_NAME` | *(auto)* | Chroma collection name. If unset, uses `oracle_rag_<provider>` (e.g. `oracle_rag_openai`, `oracle_rag_cohere`) so the collection always matches the embedding dimension. Set to a fixed name (e.g. `oracle_rag`) for a single shared collection. |
+| `ORACLE_RAG_COLLECTION_NAME` | `oracle_rag` | Chroma collection name. Single shared collection by default. |
+| `ORACLE_RAG_RETRIEVE_K` | `20` | Number of chunks to retrieve. When rerank is on, this is the fallback for the pre-rerank fetch if `ORACLE_RAG_RERANK_RETRIEVE_K` is unset. |
 | **Re-ranking** | | |
-| `ORACLE_RAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: retrieve more chunks (e.g. 10), re-score with Cohere, pass top 5 to the LLM. Improves relevance when embedding similarity ranks "related but wrong" chunks high. Requires `pip install oracle-rag[cohere]` and `COHERE_API_KEY`. |
-| `ORACLE_RAG_RERANK_RETRIEVE_K` | `10` | Number of chunks the base retriever fetches before reranking (only when `ORACLE_RAG_USE_RERANK=true`). |
-| `ORACLE_RAG_RERANK_TOP_N` | `5` | Number of chunks the reranker returns to the LLM (only when `ORACLE_RAG_USE_RERANK=true`). |
+| `ORACLE_RAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: fetch more chunks, re-score with Cohere, pass top N to the LLM. Requires `pip install oracle-rag[cohere]` and `COHERE_API_KEY`. |
+| `ORACLE_RAG_RERANK_RETRIEVE_K` | `20` | Chunks to fetch before reranking when `ORACLE_RAG_USE_RERANK=true`. If unset, uses `ORACLE_RAG_RETRIEVE_K`. |
+| `ORACLE_RAG_RERANK_TOP_N` | `10` | Number of chunks the reranker returns to the LLM (only when `ORACLE_RAG_USE_RERANK=true`). |
 
 > **Re-indexing when changing embedding provider:** Changing `ORACLE_RAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 
@@ -130,9 +138,9 @@ Environment variables:
 
 Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid dimension mismatches:
 
-- **Default (recommended):** Do *not* set `ORACLE_RAG_COLLECTION_NAME`. The app uses `oracle_rag_openai` when `ORACLE_RAG_EMBEDDING_PROVIDER=openai` and `oracle_rag_cohere` when using Cohere. Index and query with the same provider; the correct collection is chosen automatically. You can index the same PDFs into both collections (run with OpenAI, then switch env to Cohere and index again) and switch providers by changing `ORACLE_RAG_EMBEDDING_PROVIDER` in `.env` and restarting the MCP.
-- **Single shared collection:** Set `ORACLE_RAG_COLLECTION_NAME=oracle_rag` (or any name). Use one embedding provider only; if you switch provider, re-index into that collection or you will get dimension errors.
-- **MCP tools:** When you call `query_pdf_tool` (or other tools) without passing a `collection` argument (or with the default), the server uses the collection for the current embedding provider. To target a specific collection, pass `collection` explicitly (e.g. `oracle_rag_openai`, `oracle_rag_cohere`).
+- **Default:** Collection name is `oracle_rag`. Use one embedding provider; if you switch provider, re-index or you will get dimension errors.
+- **Per-provider collections:** Set `ORACLE_RAG_COLLECTION_NAME` to a provider-specific name (e.g. `oracle_rag_openai`, `oracle_rag_cohere`) when indexing, and use the same name when querying with that provider. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `ORACLE_RAG_EMBEDDING_PROVIDER` and `ORACLE_RAG_COLLECTION_NAME` in `.env`.
+- **MCP tools:** When you call `query_pdf_tool` without a `collection` argument, the server uses `ORACLE_RAG_COLLECTION_NAME` (default `oracle_rag`). Pass `collection` explicitly to target a different collection.
 
 ## Query Filtering
 

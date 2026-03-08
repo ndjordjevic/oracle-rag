@@ -24,8 +24,9 @@ DATASET_DESCRIPTION = (
     "covering all 12 chapters, ordered easy → hard."
 )
 
+# For expected_document_ids in outputs (evaluator source_in_expected_docs).
+# No document_id/tag in inputs — evaluation runs unfiltered retrieval.
 DOCUMENT_ID = "Bare-metal Amiga programming 2021_ocr.pdf"
-TAG = "AMIGA"
 
 # ── Examples ─────────────────────────────────────────────────────────────
 # Each tuple: (question, reference_answer, expected_pages, difficulty)
@@ -77,7 +78,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     ),
     (
         "What is the maximum sample rate for Amiga audio playback in PAL mode?",
-        "The maximum sample rate in PAL mode is approximately 28,867 samples per second (one sample per scan line at the minimum period).",
+        "The maximum sample rate in PAL mode is approximately 28,867 samples per second, determined by the minimum period register value of 123 system clock cycles (3,546,895 Hz / 123 ≈ 28,837 Hz).",
         [26],
         "easy",
     ),
@@ -100,8 +101,8 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
 
     # Ch 6 – Sprites (easy)
     (
-        "How wide is an Amiga hardware sprite in low resolution mode?",
-        "An Amiga hardware sprite is 16 pixels wide in low resolution mode.",
+        "How wide is an Amiga hardware sprite in low resolution mode (in pixels or bits)?",
+        "In low resolution mode an Amiga hardware sprite is 16 bits wide, i.e. 16 pixels (one bit per pixel). Each sprite data word is 16 bits.",
         [109],
         "easy",
     ),
@@ -110,8 +111,8 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
 
     # Ch 1 – Overview (medium)
     (
-        "What are the three custom chips in the original Amiga, and what are their functions?",
-        "The three custom chips are: Agnus (controls DMA and the Copper/Blitter coprocessors), Denise (handles video output and sprites), and Paula (manages audio output, disk I/O, and interrupts).",
+        "What are the three custom chips (Agnus, Denise, Paula) in the original Amiga and what is each responsible for?",
+        "Agnus controls memory access (DMA) and the Copper/Blitter. Denise handles video output and sprites. Paula handles audio, disk I/O, and interrupts.",
         [12],
         "medium",
     ),
@@ -147,7 +148,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     ),
     (
         "What is the CDANG (Copper Danger) bit and why is it important?",
-        "The CDANG bit (bit 1 of COPCON register at $DFF02E) controls whether the Copper can write to all custom chip registers or only a safe subset. When CDANG is 0, the Copper cannot write to registers in the Blitter, disk, or audio control areas (registers below $40). Setting CDANG to 1 allows the Copper to write to any register, which can be dangerous if used incorrectly.",
+        "The CDANG bit (bit 1 of COPCON register at $DFF02E) controls Copper access to lower custom chip registers. On OCS: the Copper can always access registers at offset $80 and above; setting CDANG extends access down to $40–$7E, but registers below $40 are never accessible. On ECS/AGA: the Copper can access registers $40+ by default; setting CDANG allows access to all registers including those below $40.",
         [57],
         "medium",
     ),
@@ -169,7 +170,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     # Ch 6 – Sprites
     (
         "How many hardware sprites does the Amiga support and what are their basic characteristics?",
-        "The Amiga supports 8 hardware sprites (numbered 0–7). Each sprite is 16 pixels wide in low resolution. Each sprite pixel is defined by 2 bits, giving 3 colours plus transparent. Sprites can be attached in pairs (e.g. 0+1, 2+3) to create 15-colour sprites.",
+        "The Amiga supports 8 hardware sprites (numbered 0–7). Each sprite is 16 pixels wide in low resolution (OCS/ECS). Sprites are organised into pairs and can be attached together to create wider, more colourful combined sprites. Each sprite DMA channel is only active on the scan lines where the sprite is visible, so software can reuse channels for multiple objects per frame.",
         [109, 110],
         "medium",
     ),
@@ -185,7 +186,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     ),
     (
         "How does the Blitter perform line drawing?",
-        "The Blitter draws lines using a Bresenham-style algorithm. BLTCON0 is set to line-draw mode, BLTCON1 specifies the octant (direction), sign of the error accumulator, and optional pattern. Source A provides a pixel mask (a single bit set), source C and destination D point to the same bitplane. BLTAPT holds the initial error accumulator value, BLTBDAT provides the line pattern, and BLTCPT/BLTDPT point to the starting word in the bitplane. BLTSIZE starts the operation with height = line length and width = 2 (fixed for line mode).",
+        "The Blitter draws lines using a Bresenham-style algorithm. The LINE bit in BLTCON1 enables line-draw mode; BLTCON1 also specifies the octant (direction via SUD/SUL/AUL bits), sign of the error accumulator, and optional pattern. Source A provides a pixel mask (a single bit set), source C and destination D point to the same bitplane. BLTAPT holds the initial error accumulator value, BLTBDAT provides the line pattern, and BLTCPT/BLTDPT point to the starting word in the bitplane. BLTSIZE starts the operation with height = line length and width = 2 (fixed for line mode).",
         [152, 153],
         "hard",
     ),
@@ -193,7 +194,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     # Ch 5 – Playfields (hard)
     (
         "How does HAM (Hold-And-Modify) mode work and what are its limitations?",
-        "HAM mode uses 6 bitplanes. The top 2 bits of each pixel's 6-bit value select a mode: 00 = use palette colour (from the lower 4 bits), 01 = hold previous pixel colour but modify the blue component, 10 = modify red, 11 = modify green. This allows displaying all 4,096 OCS colours on screen simultaneously, but with the limitation that each pixel depends on its left neighbour, causing colour fringing on sharp edges. HAM8 on AGA extends this to 8 bitplanes (256 palette + 18-bit modify), reaching 262,144 displayable colours.",
+        "HAM6 uses 6 bitplanes. The top 2 bits of each pixel's 6-bit value select a mode: 00 = use palette colour (from the lower 4 bits, addressing 16 palette entries), 01 = hold previous pixel colour but modify blue, 10 = modify red, 11 = modify green. This allows displaying all 4,096 OCS colours on screen simultaneously, but with the limitation that each pixel depends on its left neighbour, causing colour fringing on sharp edges. HAM8 on AGA uses 8 bitplanes but reverses the control bits to the two lowest bitplanes (1 and 2); the upper 6 bitplanes provide a 6-bit value, addressing 64 palette entries in set mode or providing 6-bit component modification.",
         [82, 83],
         "hard",
     ),
@@ -209,23 +210,23 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     # Ch 9 – Interrupts
     (
         "How does the Amiga interrupt system map custom chip interrupts to 68000 interrupt levels?",
-        "The Amiga maps its 14 interrupt sources to 68000 interrupt levels 1–6 using autovectors. Level 1 handles TBE (serial transmit), DSKBLK (disk block), and SOFTINT (software). Level 2 handles PORTS (CIA-A and I/O ports). Level 3 handles COPER (Copper), VERTB (vertical blank), and BLIT (Blitter). Level 4 handles AUD0–AUD3 (audio channels). Level 5 handles RBF (serial receive) and DSKSYNC (disk sync). Level 6 handles EXTER (CIA-B and external). The interrupt handler must check INTREQR to identify the specific source, then acknowledge it by writing to INTREQ.",
+        "The Amiga maps its 14 chipset interrupt sources to 68000 interrupt levels 1-6 using autovectors. The 14 interrupt sources include: TBE (serial transmit buffer empty), DSKBLK (disk block complete), SOFTINT (software interrupt), PORTS (CIA-A and I/O ports), COPER (Copper), VERTB (vertical blank), BLIT (Blitter finished), AUD0-AUD3 (audio channels), RBF (serial receive buffer full), DSKSYNC (disk sync pattern matched), and EXTER (CIA-B and external). The interrupt handler must check INTREQR to identify which specific source triggered the interrupt, then acknowledge it by writing to INTREQ. Higher-priority levels can preempt lower ones.",
         [187, 190, 191],
         "hard",
     ),
 
     # Ch 10 – CIAs
     (
-        "What are the two CIA chips on the Amiga and what peripherals does each control?",
-        "CIA-A (at $BFE001) controls: the keyboard serial data and clock, the game port buttons (mouse/joystick fire buttons via PRA bits 6-7), the audio filter toggle (PRA bit 1), the overlay bit (PRA bit 0), the parallel port accent data, and the TOD clock driven by the vertical sync. CIA-B (at $BFD000) controls: the parallel port data, the serial port handshake lines (CTS/RTS/DTR/DSR/DCD), and the disk drive control signals (motor, direction, step, side select, disk change). Each CIA has two interval timers (A and B), a TOD counter, and its own interrupt control register.",
-        [197, 202, 203, 204],
+        "What are the two CIA chips on the Amiga and what are their base addresses and main functions?",
+        "The Amiga has two 8520 CIA chips. CIAA (base address $BFE001) handles the keyboard interface (KDAT/KCLK on SP/CNT pins), game port buttons (joystick/mouse fire buttons), the parallel port data lines (all 8 bits of PRB), and the audio filter control. CIAB (base address $BFD000) handles the serial port handshake lines (via PRA) and all disk drive control signals (motor, drive select, direction, step, side select via PRB). Each CIA provides two interval timers (A and B), a TOD counter, and two 8-bit GPIO ports (PRA and PRB) with programmable direction.",
+        [100, 103, 104],
         "hard",
     ),
 
     # Ch 11 – Disk controller
     (
         "How does MFM encoding work and why is it used for Amiga disk storage?",
-        "MFM (Modified Frequency Modulation) encoding ensures that no two consecutive 1-bits appear in the encoded bitstream, preventing unreliable flux transitions on the disk surface. Each data bit is preceded by a clock bit. The clock bit is 1 only if both the current data bit and the previous data bit are 0. This means every data byte becomes 16 bits when encoded. A raw Amiga track contains 11 sectors, each with a header (format type, track number, sector number, gap, header checksum, data checksum) followed by 512 bytes of MFM-encoded user data.",
+        "MFM (Modified Frequency Modulation) encoding ensures that no two consecutive 1-bits appear in the encoded bitstream, preventing unreliable flux transitions on the disk surface. Each data bit is preceded by a clock bit. The clock bit is 1 only if both the current data bit and the previous data bit are 0. This means every data byte becomes 16 bits when encoded. A raw Amiga track contains 11 sectors, each with a header (format type, track number, sector number, sectors-till-end, header checksum, data checksum) followed by 512 bytes of MFM-encoded user data.",
         [207, 208, 209],
         "hard",
     ),
@@ -233,7 +234,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     # Ch 12 – Interfacing
     (
         "How does the Amiga keyboard protocol work?",
-        "The keyboard communicates with CIA-A via a synchronous serial protocol. The keyboard sends an 8-bit keycode serially through the KDAT line, with each bit clocked by the KCLK line. The data is inverted and sent MSB first. After receiving 8 bits, the Amiga must acknowledge by pulling KDAT low for at least 75 microseconds, then releasing it. The keyboard waits for this handshake before sending the next keycode. Key press codes have bit 7 clear; key release codes have bit 7 set.",
+        "The keyboard communicates with CIA-A via a synchronous serial protocol. The keyboard sends an 8-bit keycode serially through the KDAT line, with each bit clocked by the KCLK line. The byte is rotated one position to the left before transmission (bit order: 6-5-4-3-2-1-0-7), placing the key transition flag (bit 7) last. After receiving 8 bits, the Amiga must acknowledge by pulling KDAT low for at least 85 microseconds, then releasing it. The keyboard waits for this handshake before sending the next keycode. Key press codes have bit 7 clear; key release codes have bit 7 set.",
         [223, 224],
         "hard",
     ),
@@ -243,7 +244,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
     # Cross-chapter synthesis
     (
         "How do the Copper and the Blitter interact, and what caveat exists when using both?",
-        "The Copper can trigger Blitter operations by writing to Blitter registers via MOVE instructions. However, there is an important caveat: if the Copper writes to a Blitter register while the Blitter is still busy with a previous operation, the write may be lost or cause corruption. The programmer must ensure the Blitter has finished (by checking the BBUSY bit in DMACONR or waiting for a Blitter-finished interrupt) before the Copper writes new values to Blitter registers.",
+        "There is a chipset bug when the CPU accesses a COPJMPx register while the Blitter is active: whichever Blitter DMA channel happens to be active in the next cycle will use the coplist address instead of its originally programmed address, corrupting the blit. The Copper itself does not have this problem — it can safely strobe COPJMPx while the Blitter runs. The workaround is to either let the Copper (not the CPU) trigger coplist jumps, or disable Blitter DMA before the CPU writes to COPJMPx.",
         [56, 57],
         "hard",
     ),
@@ -256,11 +257,11 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
         "edge-case",
     ),
 
-    # Ambiguous question requiring careful retrieval
+    # Display modes – cross-chapter retrieval
     (
-        "What is the maximum number of colours the Amiga can display on screen simultaneously?",
-        "It depends on the mode and chipset. In standard mode: OCS/ECS supports up to 32 colours (5 bitplanes) or 64 in Extra Half-Brite (EHB) mode. In HAM mode OCS/ECS can show all 4,096 colours. AGA supports up to 256 colours (8 bitplanes) in standard mode, or all 262,144 colours in HAM8 mode. With palette tricks using the Copper to change colours mid-screen, even more can appear.",
-        [43, 44, 82, 83],
+        "What is Extra Half-Brite (EHB) mode on the Amiga and how does it achieve 64 simultaneous colours?",
+        "EHB (Extra Half-Brite) is an OCS/ECS display mode enabled by setting the EHF bit in BPLCON0. It uses 6 bitplanes. The first 5 bitplanes (2^5 = 32) index into the 32 colour registers normally. When bitplane 6 is set for a pixel, the hardware automatically halves the brightness of the colour selected by the lower 5 bitplanes, effectively creating 32 extra half-brightness entries. This doubles the on-screen palette from 32 to 64 simultaneous colours without needing additional colour registers.",
+        [43, 44],
         "hard",
     ),
 ]
@@ -288,11 +289,7 @@ def main() -> None:
     for question, answer, pages, difficulty in EXAMPLES:
         examples.append(
             {
-                "inputs": {
-                    "question": question,
-                    "document_id": DOCUMENT_ID,
-                    "tag": TAG,
-                },
+                "inputs": {"question": question},
                 "outputs": {
                     "answer": answer,
                     "expected_document_ids": [DOCUMENT_ID],

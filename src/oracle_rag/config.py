@@ -17,11 +17,18 @@ load_dotenv()
 DEFAULT_PERSIST_DIR = "chroma_db"
 
 # LLM provider: openai | anthropic
-DEFAULT_LLM_PROVIDER = "openai"
+DEFAULT_LLM_PROVIDER = "anthropic"
 DEFAULT_LLM_MODEL_OPENAI = "gpt-4o-mini"
 # Anthropic models (set ORACLE_RAG_LLM_MODEL in .env). See https://docs.anthropic.com/en/docs/about-claude/models
 # Default: claude-haiku-4-5 (cheapest, fastest). Others: claude-sonnet-4-6, claude-opus-4-6
 DEFAULT_LLM_MODEL_ANTHROPIC = "claude-haiku-4-5"
+
+# Evaluator (LLM-as-judge) provider: openai | anthropic
+DEFAULT_EVALUATOR_PROVIDER = "openai"
+DEFAULT_EVALUATOR_MODEL_OPENAI = "gpt-4o"
+DEFAULT_EVALUATOR_MODEL_OPENAI_CONTEXT = "gpt-4o-mini"
+DEFAULT_EVALUATOR_MODEL_ANTHROPIC = "claude-sonnet-4-6"
+DEFAULT_EVALUATOR_MODEL_ANTHROPIC_CONTEXT = "claude-haiku-4-5"
 
 # Embedding provider: openai | cohere
 DEFAULT_EMBEDDING_PROVIDER = "openai"
@@ -47,6 +54,36 @@ def get_llm_model() -> str:
     if provider == "anthropic":
         return DEFAULT_LLM_MODEL_ANTHROPIC
     return DEFAULT_LLM_MODEL_OPENAI
+
+
+def get_evaluator_provider() -> str:
+    """Return evaluator (LLM-as-judge) provider from ORACLE_RAG_EVALUATOR_PROVIDER env (openai | anthropic)."""
+    val = os.environ.get("ORACLE_RAG_EVALUATOR_PROVIDER", DEFAULT_EVALUATOR_PROVIDER)
+    p = (val or "").strip().lower()
+    if p in ("openai", "anthropic"):
+        return p
+    return DEFAULT_EVALUATOR_PROVIDER
+
+
+def get_evaluator_model(*, context_heavy: bool = False) -> str:
+    """Return evaluator model for correctness/relevance (context_heavy=False) or groundedness/retrieval (context_heavy=True)."""
+    val = os.environ.get(
+        "ORACLE_RAG_EVALUATOR_MODEL_CONTEXT" if context_heavy else "ORACLE_RAG_EVALUATOR_MODEL"
+    )
+    if val and str(val).strip():
+        return str(val).strip()
+    provider = get_evaluator_provider()
+    if provider == "anthropic":
+        return (
+            DEFAULT_EVALUATOR_MODEL_ANTHROPIC_CONTEXT
+            if context_heavy
+            else DEFAULT_EVALUATOR_MODEL_ANTHROPIC
+        )
+    return (
+        DEFAULT_EVALUATOR_MODEL_OPENAI_CONTEXT
+        if context_heavy
+        else DEFAULT_EVALUATOR_MODEL_OPENAI
+    )
 
 
 def get_embedding_provider() -> str:
@@ -75,17 +112,17 @@ def get_persist_dir() -> str:
 
 
 def get_collection_name() -> str:
-    """Return Chroma collection name for the current embedding provider.
+    """Return Chroma collection name.
 
-    If ORACLE_RAG_COLLECTION_NAME is set, use it. Otherwise return
-    'oracle_rag_<provider>' (e.g. oracle_rag_openai, oracle_rag_cohere) so that
-    each embedding type uses its own collection and dimension mismatches are avoided.
-    For a single shared collection, set ORACLE_RAG_COLLECTION_NAME=oracle_rag.
+    If ORACLE_RAG_COLLECTION_NAME is set, use it. Otherwise return 'oracle_rag'.
+    Use a single collection per persist dir; if you switch embedding providers,
+    re-index or use a separate ORACLE_RAG_PERSIST_DIR / ORACLE_RAG_COLLECTION_NAME
+    to avoid dimension mismatches.
     """
     env_name = os.environ.get("ORACLE_RAG_COLLECTION_NAME")
     if env_name and str(env_name).strip():
         return str(env_name).strip()
-    return f"oracle_rag_{get_embedding_provider()}"
+    return "oracle_rag"
 
 
 def get_chunk_size() -> int:
@@ -116,33 +153,57 @@ def get_chunk_overlap() -> int:
         return DEFAULT_CHUNK_OVERLAP
 
 
+DEFAULT_RETRIEVE_K = 20
+
 # Re-ranking (Cohere Re-Rank): retrieve more, rerank to fewer before LLM
-DEFAULT_RERANK_RETRIEVE_K = 10
-DEFAULT_RERANK_TOP_N = 5
+DEFAULT_USE_RERANK = False
+DEFAULT_RERANK_RETRIEVE_K = 20
+DEFAULT_RERANK_TOP_N = 10
+
+
+def get_retrieve_k() -> int:
+    """Return how many chunks to retrieve (default 20). Used for both rerank on and off."""
+    val = os.environ.get("ORACLE_RAG_RETRIEVE_K")
+    if val is None:
+        return DEFAULT_RETRIEVE_K
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_RETRIEVE_K
+        return n
+    except ValueError:
+        return DEFAULT_RETRIEVE_K
 
 
 def get_use_rerank() -> bool:
     """Return whether to use Cohere re-ranking. Requires oracle-rag[cohere] and COHERE_API_KEY."""
-    val = os.environ.get("ORACLE_RAG_USE_RERANK", "").strip().lower()
-    return val in ("1", "true", "yes", "on")
+    val = os.environ.get("ORACLE_RAG_USE_RERANK")
+    if val is None or not str(val).strip():
+        return DEFAULT_USE_RERANK
+    v = str(val).strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return DEFAULT_USE_RERANK
 
 
 def get_rerank_retrieve_k() -> int:
-    """Return how many chunks the base retriever fetches before reranking (default 10)."""
+    """Return how many chunks the base retriever fetches before reranking. Falls back to ORACLE_RAG_RETRIEVE_K when unset."""
     val = os.environ.get("ORACLE_RAG_RERANK_RETRIEVE_K")
     if val is None:
-        return DEFAULT_RERANK_RETRIEVE_K
+        return get_retrieve_k()
     try:
         n = int(val)
         if n < 1:
-            return DEFAULT_RERANK_RETRIEVE_K
+            return get_retrieve_k()
         return n
     except ValueError:
-        return DEFAULT_RERANK_RETRIEVE_K
+        return get_retrieve_k()
 
 
 def get_rerank_top_n() -> int:
-    """Return how many chunks the reranker returns to the LLM (default 5)."""
+    """Return how many chunks the reranker returns to the LLM (default 10)."""
     val = os.environ.get("ORACLE_RAG_RERANK_TOP_N")
     if val is None:
         return DEFAULT_RERANK_TOP_N

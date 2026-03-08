@@ -48,9 +48,7 @@ Plus three code-based checks (no LLM cost):
 ```json
 {
   "inputs": {
-    "question": "What is OpenOCD and how is it used with Pico?",
-    "document_id": "RP-008276-DS-1-getting-started-with-pico.pdf",
-    "tag": "PI_PICO"
+    "question": "What is OpenOCD and how is it used with Pico?"
   },
   "outputs": {
     "answer": "OpenOCD is an open-source on-chip debugger that ...",
@@ -60,15 +58,15 @@ Plus three code-based checks (no LLM cost):
 }
 ```
 
-Fields `document_id` and `tag` in inputs are optional — when present they are passed to
-`create_retriever()` as metadata filters so retrieval is scoped to that document/channel.
+Inputs contain only `question` — retrieval is unfiltered (no `document_id` or `tag`).
+`expected_document_ids` in outputs is used by the `source_in_expected_docs` evaluator.
 
 ---
 
 ## 4. Evaluator implementations
 
 All evaluators live in `src/oracle_rag/evaluation/evaluators.py`.
-LLM-as-judge graders use **gpt-4o-mini** and require `OPENAI_API_KEY`.
+LLM-as-judge graders require `OPENAI_API_KEY`. **gpt-4o** is used for `correctness` and `relevance` (consistent grading of technical synonyms); **gpt-4o-mini** is used for `groundedness` and `retrieval_relevance` (context-heavy, would hit gpt-4o TPM limits at k=30–40).
 
 ### 4.1 Correctness
 
@@ -96,18 +94,15 @@ Returns `score: 1` if the retrieved chunks are relevant to the question.
 
 `src/oracle_rag/evaluation/target.py` — `oracle_rag_target(inputs) -> dict`
 
-1. Reads `question`, `document_id`, `tag`, `page_min`, `page_max` from dataset inputs.
-2. Calls `create_retriever(k=10, ...)` with any metadata filters.
-3. Calls `run_rag(question, llm, retriever=retriever)`.
-4. Returns `{"answer": ..., "sources": [...], "documents": [...]}`.
+1. Reads `question`, `document_id`, `page_min`, `page_max` from dataset inputs.
+2. Calls `run_rag(question, llm, retriever=None, ...)` so the chain builds the retriever internally.
+3. Returns `{"answer": ..., "sources": [...], "documents": [...]}`.
 
 The `documents` list is the raw retrieved chunks — needed by groundedness and retrieval
 relevance evaluators. The `sources` list is the deduplicated source metadata returned
 by `run_rag`.
 
-> **Note:** The target always uses `k=10`. If `ORACLE_RAG_USE_RERANK=true` is set in `.env`,
-> `run_rag` will apply Cohere re-ranking on top, reducing chunks to `ORACLE_RAG_RERANK_TOP_N`
-> (default 5) before passing to the LLM. To evaluate re-ranking, set that env var before running.
+> **Note:** `k` comes from `ORACLE_RAG_RETRIEVE_K` (default 10). When rerank is on, `ORACLE_RAG_RERANK_RETRIEVE_K` can override the pre-rerank fetch count; `ORACLE_RAG_RERANK_TOP_N` (default 5) sets chunks passed to the LLM.
 
 ---
 
@@ -156,21 +151,27 @@ Results are visible at [smith.langchain.com](https://smith.langchain.com/) under
 
 ---
 
-## 8. Baseline results
+## 8. Experiment results
 
-Experiment: `oracle-rag-baseline-29f537be`
-Config: `version=3.0.1`, `rerank=true`, `collection=oracle_rag`, `embedding=openai/text-embedding-3-small`, `llm=openai/gpt-4o-mini`
-Dataset: `oracle-rag-golden` (30 examples)
-Date: 2026-01-26
+**Setup:** Embedding text-embedding-3-small, collection `oracle_rag`. Judge: gpt-4o (correctness/relevance), gpt-4o-mini (groundedness/retrieval_relevance).
 
-| Metric | Score | n | Notes |
-|--------|-------|---|-------|
-| correctness | 0.500 | 30 | LLM-as-judge vs reference answers |
-| relevance | 0.900 | 30 | Reference-free; answer addresses question |
-| groundedness | 0.967 | 30 | Answer supported by retrieved chunks |
-| retrieval_relevance | 0.967 | 30 | Retrieved chunks relevant to question |
-| has_sources | 1.000 | 30 | All answers include source citations |
-| answer_not_empty | 1.000 | 30 | No blank or error answers |
-| source_in_expected_docs | 1.000 | 30 | Source doc IDs match expected |
+Early runs showed correctness improves with k and with prompt/ref-answer fixes; the judge was set to gpt-4o for correctness/relevance to grade technical answers consistently. Min-k sweep on `oracle-rag-golden` (30 Qs): all questions pass with **k=10** (two need k=10, rest k=5).
 
-View in LangSmith: https://eu.smith.langchain.com/o/2f856061-2221-4d62-8edd-5996160a1943/datasets/0afddd1c-2722-4849-9416-7b8e188cfee1/compare?selectedSessions=ebc46a04-b217-4d69-940b-5d77ed8d9653
+### Rerank and no-rerank (hard-10 and golden)
+
+| LLM | Config | hard-10 | golden (30) |
+|-----|--------|---------|-------------|
+| claude-haiku-4-5 | rerank k=20→top_n=10 | 10/10 | 30/30 |
+| claude-haiku-4-5 | rerank k=30→top_n=10 | 10/10 | — |
+| claude-haiku-4-5 | rerank k=40→top_n=15 | 10/10 | 30/30 |
+| gpt-4o-mini | k=10, no rerank | — | 30/30 |
+| gpt-4o-mini | k=30, no rerank | 10/10 | — |
+
+**Recommended:** Rerank on → k=20, top_n=10 with claude-haiku-4-5. Rerank off → k=10 (or 30 if you prefer a single safe value). See `config.py` defaults and `implementation-checklist.md` (Re-ranking).
+
+### Datasets
+
+| Dataset | Size | Use |
+|---------|------|-----|
+| `oracle-rag-golden` | 30 | Full regression |
+| `oracle-rag-hard-10` | 10 | Fast tuning (~3 min/run) |

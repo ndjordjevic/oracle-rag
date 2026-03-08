@@ -1,6 +1,8 @@
 """Oracle-RAG evaluators for LangSmith experiments.
 
-LLM-as-judge evaluators use ChatOpenAI (gpt-4o-mini) and require OPENAI_API_KEY.
+LLM-as-judge: configurable via ORACLE_RAG_EVALUATOR_PROVIDER (openai | anthropic).
+OpenAI: gpt-4o for correctness/relevance, gpt-4o-mini for context-heavy evaluators.
+Anthropic: claude-3-5-sonnet for correctness/relevance, claude-3-5-haiku for context-heavy.
 Code evaluators have no LLM cost.
 """
 
@@ -8,20 +10,24 @@ from __future__ import annotations
 
 from typing import Annotated, TypedDict
 
-from langchain_core.messages import SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage
+
+from oracle_rag.config import get_evaluator_model, get_evaluator_provider
 
 # ---------------------------------------------------------------------------
-# LLM-as-judge graders (require OPENAI_API_KEY)
+# LLM-as-judge graders (OPENAI_API_KEY or ANTHROPIC_API_KEY)
 # ---------------------------------------------------------------------------
 
-_CORRECTNESS_PROMPT = """You are a teacher grading a quiz.
+_CORRECTNESS_PROMPT = """You are a teacher grading a quiz about technical hardware documentation.
 QUESTION: {question}
 GROUND TRUTH ANSWER: {reference}
 STUDENT ANSWER: {answer}
 
 Grade based ONLY on factual accuracy relative to ground truth.
 It is OK if the student answer has more information, as long as it is accurate.
+Treat technical synonyms as equivalent (e.g. "bits" and "pixels" for sprite width, "16.7 million" and "16,777,216" for colour depth).
+If the student answer covers the key facts from the ground truth, even if worded differently or with additional detail, grade as correct.
 Explain your reasoning step by step."""
 
 _RELEVANCE_PROMPT = """You are a teacher grading a quiz.
@@ -72,11 +78,21 @@ class _RetrievalRelevanceGrade(TypedDict):
     relevant: Annotated[bool, "True if retrieved docs are relevant"]
 
 
-def _get_grader_llm(schema: type) -> ChatOpenAI:
-    """Return a grader LLM with structured output."""
-    return ChatOpenAI(model="gpt-4o-mini", temperature=0).with_structured_output(
-        schema, method="json_schema", strict=True
-    )
+def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> BaseChatModel:
+    """Return a grader LLM with structured output (OpenAI or Anthropic per config)."""
+    provider = get_evaluator_provider()
+    model = get_evaluator_model(context_heavy=context_heavy)
+
+    if provider == "anthropic":
+        from langchain_anthropic import ChatAnthropic
+
+        llm = ChatAnthropic(model=model, temperature=0)
+    else:
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(model=model, temperature=0)
+
+    return llm.with_structured_output(schema, method="json_schema", strict=True)
 
 
 def _get_page_content(doc: object) -> str:
@@ -108,30 +124,30 @@ def correctness(
         reference=reference_outputs.get("answer", ""),
         answer=outputs.get("answer", ""),
     )
-    grade = grader.invoke([SystemMessage(content=content)])
+    grade = grader.invoke([HumanMessage(content=content)])
     return {"key": "correctness", "score": int(grade["correct"])}
 
 
 def relevance(inputs: dict, outputs: dict) -> dict:
     """Compare outputs['answer'] to inputs['question']."""
-    grader = _get_grader_llm(_RelevanceGrade)
+    grader = _get_grader_llm(_RelevanceGrade, context_heavy=False)
     content = _RELEVANCE_PROMPT.format(
         question=inputs.get("question", ""),
         answer=outputs.get("answer", ""),
     )
-    grade = grader.invoke([SystemMessage(content=content)])
+    grade = grader.invoke([HumanMessage(content=content)])
     return {"key": "relevance", "score": int(grade["relevant"])}
 
 
 def groundedness(inputs: dict, outputs: dict) -> dict:
     """Compare outputs['answer'] to outputs['documents']."""
     context = _documents_to_context(outputs.get("documents", []))
-    grader = _get_grader_llm(_GroundednessGrade)
+    grader = _get_grader_llm(_GroundednessGrade, context_heavy=True)
     content = _GROUNDEDNESS_PROMPT.format(
         context=context or "(No retrieved documents)",
         answer=outputs.get("answer", ""),
     )
-    grade = grader.invoke([SystemMessage(content=content)])
+    grade = grader.invoke([HumanMessage(content=content)])
     return {"key": "groundedness", "score": int(grade["grounded"])}
 
 
@@ -141,12 +157,12 @@ def retrieval_relevance(inputs: dict, outputs: dict) -> dict:
     if not documents:
         return {"key": "retrieval_relevance", "score": 0}
     context = _documents_to_context(documents)
-    grader = _get_grader_llm(_RetrievalRelevanceGrade)
+    grader = _get_grader_llm(_RetrievalRelevanceGrade, context_heavy=True)
     content = _RETRIEVAL_RELEVANCE_PROMPT.format(
         question=inputs.get("question", ""),
         context=context,
     )
-    grade = grader.invoke([SystemMessage(content=content)])
+    grade = grader.invoke([HumanMessage(content=content)])
     return {"key": "retrieval_relevance", "score": int(grade["relevant"])}
 
 

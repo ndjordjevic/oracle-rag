@@ -5,14 +5,16 @@ from __future__ import annotations
 from oracle_rag.config import get_collection_name, get_persist_dir
 from oracle_rag.llm import get_chat_model
 from oracle_rag.rag import run_rag
-from oracle_rag.vectorstore.retriever import create_retriever
 
 
 def oracle_rag_target(inputs: dict) -> dict:
     """Target function for LangSmith evaluate().
 
-    Accepts dataset inputs (question, document_id, tag, page_min, page_max),
+    Accepts dataset inputs (question, document_id, page_min, page_max),
     runs oracle-rag pipeline, returns answer, sources, and documents for evaluators.
+
+    Passes retriever=None so run_rag builds the retriever internally — this ensures
+    reranking (ORACLE_RAG_USE_RERANK) is applied when enabled.
 
     Returns:
         dict with keys: answer, sources, documents.
@@ -22,12 +24,13 @@ def oracle_rag_target(inputs: dict) -> dict:
     document_id = inputs.get("document_id")
     page_min = inputs.get("page_min")
     page_max = inputs.get("page_max")
-    # tag is intentionally not forwarded: indexed PDFs don't carry a tag metadata field,
-    # so filtering by tag would silently return 0 results for every example.
+    # tag is intentionally not forwarded: indexed PDFs don't carry a tag metadata field.
 
     llm = get_chat_model()
-    retriever = create_retriever(
-        k=10,
+    result = run_rag(
+        question,
+        llm,
+        retriever=None,
         persist_directory=get_persist_dir(),
         collection_name=get_collection_name(),
         document_id=document_id,
@@ -35,11 +38,8 @@ def oracle_rag_target(inputs: dict) -> dict:
         page_max=page_max,
     )
 
-    docs = retriever.invoke(question)
-    result = run_rag(question, llm, retriever=retriever)
-
     return {
         "answer": result.answer,
         "sources": result.sources,
-        "documents": docs,
+        "documents": result.documents,
     }

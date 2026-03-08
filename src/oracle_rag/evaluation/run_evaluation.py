@@ -6,7 +6,7 @@ Usage:
     uv run python -m oracle_rag.evaluation --limit 30
     uv run python -m oracle_rag.evaluation --metadata '{"version":"3.0.1"}'
 
-Requires: LANGSMITH_API_KEY, OPENAI_API_KEY (for LLM-as-judge grader).
+Requires: LANGSMITH_API_KEY; OPENAI_API_KEY or ANTHROPIC_API_KEY (per ORACLE_RAG_EVALUATOR_PROVIDER).
 
 Embedding: Use the same ORACLE_RAG_EMBEDDING_PROVIDER / ORACLE_RAG_EMBEDDING_MODEL
 (as in .env) that was used when indexing the Chroma collection. A dimension mismatch
@@ -42,11 +42,16 @@ def _load_env() -> None:
 
 
 def _check_env() -> None:
-    """Require LANGSMITH_API_KEY and OPENAI_API_KEY."""
+    """Require LANGSMITH_API_KEY and API key for evaluator provider (OPENAI or ANTHROPIC)."""
+    from oracle_rag.config import get_evaluator_provider
+
     missing = []
     if not os.environ.get("LANGSMITH_API_KEY"):
         missing.append("LANGSMITH_API_KEY")
-    if not os.environ.get("OPENAI_API_KEY"):
+    provider = get_evaluator_provider()
+    if provider == "anthropic" and not os.environ.get("ANTHROPIC_API_KEY"):
+        missing.append("ANTHROPIC_API_KEY")
+    elif provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
         missing.append("OPENAI_API_KEY")
     if missing:
         print(

@@ -275,3 +275,39 @@ uv run python scripts/query_rag_cli.py "chip memory" --k 3 --preview 0
 # Query a custom store location
 uv run python scripts/query_rag_cli.py "audio hardware" --persist-dir my_chroma --collection my_collection
 ```
+
+---
+
+## Evaluation
+
+### create_eval_dataset.py
+
+Create the golden evaluation dataset in LangSmith (`oracle-rag-golden`). Contains ~30 Q/A examples from the Bare-metal Amiga programming PDF, ordered easy → medium → hard across chapters. Run once; requires `LANGSMITH_API_KEY` in `.env`. If the dataset already exists, the script exits without overwriting (delete it in LangSmith first to recreate).
+
+**Examples**
+
+```bash
+uv run python scripts/create_eval_dataset.py
+```
+
+---
+
+### min_k_per_question.py
+
+Find the minimum retrieval `k` per question such that the correctness evaluator passes. Tries k=5, 10, 15, … up to 50 for each question and reports the smallest k that yields a correct answer. Useful for tuning `ORACLE_RAG_RETRIEVE_K`. Disables rerank for the run. Requires `LANGSMITH_API_KEY` and `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`.
+
+**Arguments**
+
+| Argument | Description |
+|----------|-------------|
+| `dataset_name` | Optional. LangSmith dataset name (default: `oracle-rag-hard-10`). |
+
+**Examples**
+
+```bash
+# Default dataset (oracle-rag-hard-10)
+uv run python scripts/min_k_per_question.py
+
+# Use the golden dataset
+uv run python scripts/min_k_per_question.py oracle-rag-golden
+```

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
 
@@ -15,6 +15,7 @@ from langsmith import traceable
 
 from oracle_rag.config import (
     get_collection_name,
+    get_retrieve_k,
     get_rerank_retrieve_k,
     get_rerank_top_n,
     get_use_rerank,
@@ -36,6 +37,7 @@ class RAGResult:
 
     answer: str
     sources: list[dict[str, str | int]]
+    documents: list[Document] = field(default_factory=list)
 
 
 def _docs_to_langsmith_output(docs: list[Document]) -> list[dict]:
@@ -62,7 +64,7 @@ def run_rag(
     llm: BaseChatModel,
     *,
     retriever: Optional[BaseRetriever] = None,
-    k: int = 5,
+    k: Optional[int] = None,
     use_rerank: Optional[bool] = None,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: Optional[str] = None,
@@ -81,7 +83,7 @@ def run_rag(
         query: Natural language question to answer.
         llm: Chat model for generation (e.g. from get_chat_model()).
         retriever: Optional BaseRetriever. If provided, used directly; else built from legacy params.
-        k: Number of chunks to retrieve (default: 5). Ignored when retriever is provided.
+        k: Number of chunks to retrieve. If None, uses ORACLE_RAG_RETRIEVE_K (default 10). Ignored when retriever is provided.
         use_rerank: Override config to enable/disable Cohere re-ranking. If None, uses ORACLE_RAG_USE_RERANK.
         persist_directory: Chroma persistence directory (used when retriever is None).
         collection_name: Chroma collection name (used when retriever is None). If None, uses provider-based name.
@@ -103,7 +105,7 @@ def run_rag(
         if use_rerank:
             available, err = is_rerank_available()
             if available:
-                base_k = get_rerank_retrieve_k()
+                base_k = k if k is not None else get_rerank_retrieve_k()
                 top_n = get_rerank_top_n()
                 base_retriever = create_retriever(
                     k=base_k,
@@ -122,8 +124,9 @@ def run_rag(
                 logger.warning(
                     "Re-ranking disabled: %s. Using standard retrieval.", err
                 )
+                effective_k = k if k is not None else get_retrieve_k()
                 retriever = create_retriever(
-                    k=k,
+                    k=effective_k,
                     persist_directory=persist_directory,
                     collection_name=collection_name,
                     embedding=embedding,
@@ -133,8 +136,9 @@ def run_rag(
                     tag=tag,
                 )
         else:
+            effective_k = k if k is not None else get_retrieve_k()
             retriever = create_retriever(
-                k=k,
+                k=effective_k,
                 persist_directory=persist_directory,
                 collection_name=collection_name,
                 embedding=embedding,
@@ -149,6 +153,7 @@ def run_rag(
         return RAGResult(
             answer="No relevant passages found; try a different query or add more documents.",
             sources=[],
+            documents=[],
         )
 
     messages = RAG_PROMPT.invoke(
@@ -157,7 +162,7 @@ def run_rag(
     try:
         response = llm.invoke(messages)
         answer = response.content if hasattr(response, "content") else str(response)
-        return RAGResult(answer=answer, sources=format_sources(docs))
+        return RAGResult(answer=answer, sources=format_sources(docs), documents=docs)
     except Exception as e:
         err = str(e).lower()
         if "rate" in err or "limit" in err:
@@ -166,4 +171,4 @@ def run_rag(
             msg = "Answer generation failed: request timed out. Please try again."
         else:
             msg = "Answer generation failed. Please try again."
-        return RAGResult(answer=msg, sources=[])
+        return RAGResult(answer=msg, sources=[], documents=docs)
