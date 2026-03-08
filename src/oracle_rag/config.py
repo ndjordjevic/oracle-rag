@@ -114,3 +114,42 @@ def get_chunk_overlap() -> int:
         return n
     except ValueError:
         return DEFAULT_CHUNK_OVERLAP
+
+
+# Re-ranking (Cohere Re-Rank): retrieve more, rerank to fewer before LLM
+DEFAULT_RERANK_RETRIEVE_K = 10
+DEFAULT_RERANK_TOP_N = 5
+
+
+def get_use_rerank() -> bool:
+    """Return whether to use Cohere re-ranking. Requires oracle-rag[cohere] and COHERE_API_KEY."""
+    val = os.environ.get("ORACLE_RAG_USE_RERANK", "").strip().lower()
+    return val in ("1", "true", "yes", "on")
+
+
+def get_rerank_retrieve_k() -> int:
+    """Return how many chunks the base retriever fetches before reranking (default 10)."""
+    val = os.environ.get("ORACLE_RAG_RERANK_RETRIEVE_K")
+    if val is None:
+        return DEFAULT_RERANK_RETRIEVE_K
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_RERANK_RETRIEVE_K
+        return n
+    except ValueError:
+        return DEFAULT_RERANK_RETRIEVE_K
+
+
+def get_rerank_top_n() -> int:
+    """Return how many chunks the reranker returns to the LLM (default 5)."""
+    val = os.environ.get("ORACLE_RAG_RERANK_TOP_N")
+    if val is None:
+        return DEFAULT_RERANK_TOP_N
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_RERANK_TOP_N
+        return n
+    except ValueError:
+        return DEFAULT_RERANK_TOP_N

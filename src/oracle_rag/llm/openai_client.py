@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from importlib.util import find_spec
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -54,13 +55,12 @@ def get_chat_model(
     model_name = model if model is not None else get_llm_model()
 
     if provider == "anthropic":
-        try:
-            from langchain_anthropic import ChatAnthropic
-        except ImportError as e:
+        if find_spec("langchain_anthropic") is None:
             raise ImportError(
                 "ORACLE_RAG_LLM_PROVIDER=anthropic requires langchain-anthropic. "
                 "Install with: pip install langchain-anthropic"
-            ) from e
+            )
+        from langchain_anthropic import ChatAnthropic
         key = api_key if api_key is not None else os.environ.get("ANTHROPIC_API_KEY")
         return ChatAnthropic(model=model_name, api_key=key, temperature=temperature)
 

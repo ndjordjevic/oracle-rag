@@ -173,6 +173,85 @@ def test_run_rag_zero_retrieval_returns_clear_message() -> None:
     assert result.sources == []
 
 
+def test_run_rag_use_rerank_false_uses_normal_retrieval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With use_rerank=False (or unset), run_rag uses normal retriever; no crash."""
+    monkeypatch.delenv("ORACLE_RAG_USE_RERANK", raising=False)
+    monkeypatch.delenv("COHERE_API_KEY", raising=False)
+
+    class FakeRetriever(BaseRetriever):
+        def _get_relevant_documents(
+            self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None
+        ) -> list[Document]:
+            return [
+                Document(
+                    page_content="Context here.",
+                    metadata={"document_id": "x.pdf", "page": 1},
+                )
+            ]
+
+    llm = __import__("oracle_rag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    result = run_rag(
+        "test question",
+        llm,
+        retriever=FakeRetriever(),
+        use_rerank=False,
+    )
+    assert result.answer
+    assert len(result.sources) == 1
+
+
+def test_run_rag_use_rerank_true_no_cohere_falls_back(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """With use_rerank=True but COHERE_API_KEY missing, rerank is disabled and normal retrieval is used (no crash)."""
+    monkeypatch.setenv("ORACLE_RAG_USE_RERANK", "true")
+    monkeypatch.delenv("COHERE_API_KEY", raising=False)
+
+    # Use empty Chroma - we get "No relevant passages" but no crash
+    llm = __import__("oracle_rag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    result = run_rag(
+        "any question",
+        llm,
+        retriever=None,
+        k=5,
+        persist_directory=str(tmp_path / "chroma_empty"),
+        collection_name="empty_rerank_test",
+    )
+    assert "No relevant passages found" in result.answer
+    assert result.sources == []
+
+
+def test_run_rag_use_rerank_override_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Passing use_rerank=False overrides env ORACLE_RAG_USE_RERANK=true."""
+    monkeypatch.setenv("ORACLE_RAG_USE_RERANK", "true")
+    monkeypatch.delenv("COHERE_API_KEY", raising=False)
+
+    class FakeRetriever(BaseRetriever):
+        def _get_relevant_documents(
+            self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None
+        ) -> list[Document]:
+            return [
+                Document(
+                    page_content="Override test.",
+                    metadata={"document_id": "y.pdf", "page": 2},
+                )
+            ]
+
+    llm = __import__("oracle_rag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    result = run_rag(
+        "override test",
+        llm,
+        retriever=FakeRetriever(),
+        use_rerank=False,
+    )
+    assert result.answer
+    assert len(result.sources) == 1
+
+
 def test_run_rag_llm_failure_returns_graceful_message() -> None:
     """When LLM invoke fails, run_rag returns a short error message instead of raising."""
     from unittest.mock import MagicMock

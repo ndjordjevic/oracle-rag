@@ -20,9 +20,10 @@ def oracle_rag_target(inputs: dict) -> dict:
     """
     question = inputs["question"]
     document_id = inputs.get("document_id")
-    tag = inputs.get("tag")
     page_min = inputs.get("page_min")
     page_max = inputs.get("page_max")
+    # tag is intentionally not forwarded: indexed PDFs don't carry a tag metadata field,
+    # so filtering by tag would silently return 0 results for every example.
 
     llm = get_chat_model()
     retriever = create_retriever(
@@ -32,7 +33,6 @@ def oracle_rag_target(inputs: dict) -> dict:
         document_id=document_id,
         page_min=page_min,
         page_max=page_max,
-        tag=tag,
     )
 
     docs = retriever.invoke(question)

@@ -113,12 +113,16 @@ Environment variables:
 | **Embeddings** | | |
 | `ORACLE_RAG_EMBEDDING_PROVIDER` | `openai` | `openai` or `cohere` |
 | `ORACLE_RAG_EMBEDDING_MODEL` | *(provider default)* | e.g. `text-embedding-3-small`, `embed-english-v3.0` |
-| `COHERE_API_KEY` | *(required for Cohere)* | Cohere API key; install with `pip install oracle-rag[cohere]` when using Cohere |
+| `COHERE_API_KEY` | *(required for Cohere)* | Cohere API key; install with `pip install oracle-rag[cohere]` when using Cohere embeddings or re-ranking |
 | **Storage & chunking** | | |
 | `ORACLE_RAG_PERSIST_DIR` | `~/.oracle-rag/chroma_db` | Chroma vector store directory |
 | `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
 | `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
 | `ORACLE_RAG_COLLECTION_NAME` | *(auto)* | Chroma collection name. If unset, uses `oracle_rag_<provider>` (e.g. `oracle_rag_openai`, `oracle_rag_cohere`) so the collection always matches the embedding dimension. Set to a fixed name (e.g. `oracle_rag`) for a single shared collection. |
+| **Re-ranking** | | |
+| `ORACLE_RAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: retrieve more chunks (e.g. 10), re-score with Cohere, pass top 5 to the LLM. Improves relevance when embedding similarity ranks "related but wrong" chunks high. Requires `pip install oracle-rag[cohere]` and `COHERE_API_KEY`. |
+| `ORACLE_RAG_RERANK_RETRIEVE_K` | `10` | Number of chunks the base retriever fetches before reranking (only when `ORACLE_RAG_USE_RERANK=true`). |
+| `ORACLE_RAG_RERANK_TOP_N` | `5` | Number of chunks the reranker returns to the LLM (only when `ORACLE_RAG_USE_RERANK=true`). |
 
 > **Re-indexing when changing embedding provider:** Changing `ORACLE_RAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 

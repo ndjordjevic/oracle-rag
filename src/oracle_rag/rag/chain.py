@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
@@ -12,14 +13,21 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.retrievers import BaseRetriever
 from langsmith import traceable
 
-from oracle_rag.config import get_collection_name
+from oracle_rag.config import (
+    get_collection_name,
+    get_rerank_retrieve_k,
+    get_rerank_top_n,
+    get_use_rerank,
+)
 from oracle_rag.rag.formatting import format_docs, format_sources
+from oracle_rag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
 from oracle_rag.rag.prompts import RAG_PROMPT
 from oracle_rag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
 from oracle_rag.vectorstore.retriever import create_retriever
 
 
 PathLike = Union[str, Path]
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -55,6 +63,7 @@ def run_rag(
     *,
     retriever: Optional[BaseRetriever] = None,
     k: int = 5,
+    use_rerank: Optional[bool] = None,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: Optional[str] = None,
     embedding: Optional[Embeddings] = None,
@@ -73,6 +82,7 @@ def run_rag(
         llm: Chat model for generation (e.g. from get_chat_model()).
         retriever: Optional BaseRetriever. If provided, used directly; else built from legacy params.
         k: Number of chunks to retrieve (default: 5). Ignored when retriever is provided.
+        use_rerank: Override config to enable/disable Cohere re-ranking. If None, uses ORACLE_RAG_USE_RERANK.
         persist_directory: Chroma persistence directory (used when retriever is None).
         collection_name: Chroma collection name (used when retriever is None). If None, uses provider-based name.
         embedding: Optional embedding model for retrieval (used when retriever is None).
@@ -87,16 +97,52 @@ def run_rag(
     if retriever is None:
         if collection_name is None:
             collection_name = get_collection_name()
-        retriever = create_retriever(
-            k=k,
-            persist_directory=persist_directory,
-            collection_name=collection_name,
-            embedding=embedding,
-            document_id=document_id,
-            page_min=page_min,
-            page_max=page_max,
-            tag=tag,
+        use_rerank = (
+            use_rerank if use_rerank is not None else get_use_rerank()
         )
+        if use_rerank:
+            available, err = is_rerank_available()
+            if available:
+                base_k = get_rerank_retrieve_k()
+                top_n = get_rerank_top_n()
+                base_retriever = create_retriever(
+                    k=base_k,
+                    persist_directory=persist_directory,
+                    collection_name=collection_name,
+                    embedding=embedding,
+                    document_id=document_id,
+                    page_min=page_min,
+                    page_max=page_max,
+                    tag=tag,
+                )
+                retriever = wrap_retriever_with_cohere_rerank(
+                    base_retriever, top_n=top_n
+                )
+            else:
+                logger.warning(
+                    "Re-ranking disabled: %s. Using standard retrieval.", err
+                )
+                retriever = create_retriever(
+                    k=k,
+                    persist_directory=persist_directory,
+                    collection_name=collection_name,
+                    embedding=embedding,
+                    document_id=document_id,
+                    page_min=page_min,
+                    page_max=page_max,
+                    tag=tag,
+                )
+        else:
+            retriever = create_retriever(
+                k=k,
+                persist_directory=persist_directory,
+                collection_name=collection_name,
+                embedding=embedding,
+                document_id=document_id,
+                page_min=page_min,
+                page_max=page_max,
+                tag=tag,
+            )
     docs = _retrieve(retriever, query)
 
     if not docs:
