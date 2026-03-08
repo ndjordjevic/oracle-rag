@@ -293,6 +293,13 @@
 ### Production Readiness
 - [ ] **Final Polish** — Code review, performance optimization pass, security audit, documentation review, deployment testing.
 
+### Quality of Life (QoL) — optional
+*(RAG is currently exposed only via MCP tools; these apply if/when CLI or HTTP is added.)*
+- [ ] **CLI tag options** — If a CLI is exposed: add `--tag` / `--tags` to indexing commands (currently only via MCP tools).
+- [ ] **Recursive directory indexing** — Support or document recursive directory in add_file / add_files (e.g. `/my/manuals/` → `**/*.pdf`). add_file already rglobs inside directories; extend or document as needed.
+- [ ] **Retrieval tuning** — Option for higher `top_k` or MMR reranking (LangChain has it built-in) in the retriever.
+- [ ] **Health check endpoint** — If MCP is ever run over HTTP: simple `GET /health` (e.g. `http://localhost:PORT/health`) so users can confirm the server is running. Currently stdio-only.
+
 ---
 
 ## Phase 6: Document Intelligence & Advanced Indexing
@@ -373,7 +380,7 @@
 - Next: re-ranking, multi-query, hybrid search, chunk tuning
 
 ### Phase 5: Polish & Production Ready
-- Deployment, monitoring, security, scalability, documentation
+- Deployment, monitoring, security, scalability, documentation. Optional QoL: CLI tags, recursive dir indexing, top_k/MMR, health check (if CLI/HTTP added).
 
 ### Phase 6: Document Intelligence & Advanced Indexing
 - OCR, richer PDF structure, advanced chunking (parent-child, RAPTOR), document name resolution, query structuring

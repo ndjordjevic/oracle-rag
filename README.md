@@ -76,6 +76,8 @@ echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
 
 Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code. The server loads `.env` from `~/.oracle-rag/` (or `~/.config/oracle-rag/`) and stores the index in `~/.oracle-rag/chroma_db` by default.
 
+> **Backup:** Back up `~/.oracle-rag/chroma_db` (or your `ORACLE_RAG_PERSIST_DIR`) if your indexed documents are important — deleting it removes all indexes.
+
 > **Note:** MCP in VS Code requires GitHub Copilot and VS Code 1.102+. Enterprise users may need an admin to enable "MCP servers in Copilot."
 
 ### 3. Use in chat
@@ -117,6 +119,8 @@ Environment variables:
 | `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
 | `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
 | `ORACLE_RAG_COLLECTION_NAME` | *(auto)* | Chroma collection name. If unset, uses `oracle_rag_<provider>` (e.g. `oracle_rag_openai`, `oracle_rag_cohere`) so the collection always matches the embedding dimension. Set to a fixed name (e.g. `oracle_rag`) for a single shared collection. |
+
+> **Re-indexing when changing embedding provider:** Changing `ORACLE_RAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 
 ### Multiple providers and collections
 
@@ -180,4 +184,4 @@ For local development, point the MCP config to your venv:
 
 ## License
 
-TBD
+MIT License. See [LICENSE](LICENSE) for details.

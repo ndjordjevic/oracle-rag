@@ -51,6 +51,20 @@ if not os.environ.get("OPENAI_API_KEY"):
 mcp = FastMCP("Oracle-RAG", json_response=True)
 
 
+def _user_friendly_api_error(exc: BaseException) -> str | None:
+    """Return a short, user-friendly message for API key / auth errors, or None."""
+    msg = str(exc).lower()
+    if "api key" in msg or "api_key" in msg or "authentication" in msg or "invalid key" in msg or "no api key" in msg:
+        if "anthropic" in msg or "claude" in msg:
+            return "Anthropic API key missing or invalid. Set ANTHROPIC_API_KEY in ~/.oracle-rag/.env (or your config)."
+        if "cohere" in msg:
+            return "Cohere API key missing or invalid. Set COHERE_API_KEY in ~/.oracle-rag/.env (or your config)."
+        return "OpenAI API key not found or invalid. Set OPENAI_API_KEY in ~/.oracle-rag/.env (or your config)."
+    if "rate" in msg and "limit" in msg:
+        return "API rate limit exceeded. Please try again in a moment."
+    return None
+
+
 def _log_tool_errors(fn):
     """Decorator: log exceptions to stderr (Cursor Output) then re-raise so client gets the error."""
 
@@ -58,8 +72,11 @@ def _log_tool_errors(fn):
     def wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
-        except Exception:
+        except Exception as e:
             _log.exception("Tool %s failed", fn.__name__)
+            friendly = _user_friendly_api_error(e)
+            if friendly:
+                raise RuntimeError(friendly) from e
             raise
 
     return wrapper
