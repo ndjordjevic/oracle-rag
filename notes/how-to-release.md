@@ -12,14 +12,16 @@ Short checklist for cutting a new **oracle-rag** version (GitHub Release + PyPI)
 
 ## 2. Tag and push
 
-- Create an annotated tag and push it (CI will publish to PyPI on tag push):
+- Create an annotated tag and push it:
   ```bash
   git tag -a vX.Y.Z -m "Release vX.Y.Z"
   git push origin vX.Y.Z
   ```
 - If you need to publish to PyPI manually: `uv build && uv publish` (use PyPI API token when prompted).
 
-## 3. GitHub Release with notes
+## 3. GitHub Release with notes (triggers PyPI publish)
+
+- Creating and **publishing** the release runs the workflow and publishes to PyPI. Tag push alone does not publish.
 
 - **Option A — create with notes:**  
   ```bash
