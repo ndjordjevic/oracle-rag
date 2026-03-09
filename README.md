@@ -131,6 +131,9 @@ Environment variables:
 | `ORACLE_RAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: fetch more chunks, re-score with Cohere, pass top N to the LLM. Requires `pip install oracle-rag[cohere]` and `COHERE_API_KEY`. |
 | `ORACLE_RAG_RERANK_RETRIEVE_K` | `20` | Chunks to fetch before reranking when `ORACLE_RAG_USE_RERANK=true`. If unset, uses `ORACLE_RAG_RETRIEVE_K`. |
 | `ORACLE_RAG_RERANK_TOP_N` | `10` | Number of chunks the reranker returns to the LLM (only when `ORACLE_RAG_USE_RERANK=true`). |
+| **Multi-query** | | |
+| `ORACLE_RAG_USE_MULTI_QUERY` | `false` | Set to `true` to generate 3–5 query variants via LLM, retrieve per variant, merge (unique union). Improves recall for terse or ambiguous queries. |
+| `ORACLE_RAG_MULTI_QUERY_COUNT` | `4` | Number of alternative queries to generate when `ORACLE_RAG_USE_MULTI_QUERY=true`. |
 
 > **Re-indexing when changing embedding provider:** Changing `ORACLE_RAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 

@@ -43,6 +43,8 @@ Plus three code-based checks (no LLM cost):
 **Dataset name:** `oracle-rag-golden` (in LangSmith)
 **Size:** 30 examples
 
+**Multi-query stress dataset:** `oracle-rag-multiquery-stress` (15 examples) — terse or incomplete phrases from "Bare-metal Amiga programming 2021_ocr.pdf" (e.g. "cookie cut blitter operation", "Copper danger bit lower registers"). Questions are short but have enough semantic content for query expansion to help; bare 1–2 word acronyms (e.g. "BPLCON3") are avoided because multi-query often hurts those. Use to measure improvement from `ORACLE_RAG_USE_MULTI_QUERY=true`. Create or overwrite with `uv run python scripts/create_multiquery_stress_dataset.py` (use `--force` to replace an existing dataset).
+
 ### Example structure
 
 ```json
@@ -136,6 +138,17 @@ Results are visible at [smith.langchain.com](https://smith.langchain.com/) under
 3. Re-run with a different `--prefix` (e.g. `oracle-rag-rerank`).
 4. Compare side-by-side in LangSmith.
 
+### Multi-query stress comparison
+
+To compare single-query vs multi-query on the stress dataset (rerank off):
+
+```bash
+ORACLE_RAG_USE_RERANK=false ORACLE_RAG_USE_MULTI_QUERY=false uv run python -m oracle_rag.evaluation --dataset oracle-rag-multiquery-stress --prefix oracle-rag-mq-off --limit 20
+ORACLE_RAG_USE_RERANK=false ORACLE_RAG_USE_MULTI_QUERY=true  uv run python -m oracle_rag.evaluation --dataset oracle-rag-multiquery-stress --prefix oracle-rag-mq-on  --limit 20
+```
+
+Compare correctness (and cost, in LangSmith) between the two experiments.
+
 ---
 
 ## 7. Evaluation gates / thresholds
@@ -167,7 +180,23 @@ Early runs showed correctness improves with k and with prompt/ref-answer fixes; 
 | gpt-4o-mini | k=10, no rerank | — | 30/30 |
 | gpt-4o-mini | k=30, no rerank | 10/10 | — |
 
-**Recommended:** Rerank on → k=20, top_n=10 with claude-haiku-4-5. Rerank off → k=10 (or 30 if you prefer a single safe value). See `config.py` defaults and `implementation-checklist.md` (Re-ranking).
+**Recommended:** Rerank on → k=20, top_n=10 with claude-haiku-4-5. Rerank off → k=10 (or 30 if you prefer a single safe value). For terse or incomplete user queries, enable multi-query (`ORACLE_RAG_USE_MULTI_QUERY=true`); on the multiquery-stress set it improves correctness with ~12% higher LLM cost. See `config.py` and `implementation-checklist.md` (Re-ranking, Query translation / multi-query).
+
+### Multi-query and rerank (oracle-rag-multiquery-stress, 15 examples)
+
+Runs: rerank off; LLM and embedding as in §8. Same evaluators.
+
+| Config | Correctness | Cost (15 ex.) | Cost/example |
+|--------|-------------|---------------|--------------|
+| MQ off, rerank off | 11/15 (73%) | ~$0.057 | ~$0.0038 |
+| **MQ on, rerank off** | **12/15 (80%)** | ~$0.064 | ~$0.0042 |
+| MQ on, rerank on | 11/15 (73%) | ~$0.065 | ~$0.0043 |
+
+**Findings:**
+
+- Multi-query alone gives the best correctness on this stress set (+1 question vs baseline). Cost increase is ~12% (~+208 tokens/example for query expansion).
+- With both MQ and rerank on, correctness drops back to 11/15: rerank recovers one question (CIA TOD) but demotes the right chunks for two others (cookie cut blitter, sprite DMA), so the model no longer sees the best passage. On this dataset the best config is **MQ on, rerank off**.
+- Cost above is target (RAG) LLM only; evaluator LLM calls and Cohere rerank are not included.
 
 ### Datasets
 
@@ -175,3 +204,4 @@ Early runs showed correctness improves with k and with prompt/ref-answer fixes; 
 |---------|------|-----|
 | `oracle-rag-golden` | 30 | Full regression |
 | `oracle-rag-hard-10` | 10 | Fast tuning (~3 min/run) |
+| `oracle-rag-multiquery-stress` | 15 | Multi-query vs single-query; terse phrases, same doc as golden |

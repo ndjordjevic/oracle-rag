@@ -173,6 +173,47 @@ def test_run_rag_zero_retrieval_returns_clear_message() -> None:
     assert result.sources == []
 
 
+def test_run_rag_with_multi_query(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """run_rag with ORACLE_RAG_USE_MULTI_QUERY=true returns valid RAGResult."""
+    from dotenv import load_dotenv
+    load_dotenv()
+    if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
+        pytest.skip("No LLM API key; skipping multi-query integration test")
+
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present")
+
+    from oracle_rag.indexing import index_pdf
+    from oracle_rag.embeddings import get_embedding_model
+
+    monkeypatch.setenv("ORACLE_RAG_USE_MULTI_QUERY", "true")
+    monkeypatch.delenv("ORACLE_RAG_USE_RERANK", raising=False)
+
+    persist_dir = tmp_path / "chroma_mq"
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="rag_mq_test",
+        embedding=get_embedding_model(),
+    )
+    llm = get_chat_model()
+    result = run_rag(
+        "What is this document about?",
+        llm,
+        k=3,
+        persist_directory=str(persist_dir),
+        collection_name="rag_mq_test",
+        embedding=get_embedding_model(),
+    )
+    assert hasattr(result, "answer")
+    assert hasattr(result, "sources")
+    assert isinstance(result.answer, str)
+    assert len(result.answer.strip()) > 0
+    assert isinstance(result.sources, list)
+
+
 def test_run_rag_use_rerank_false_uses_normal_retrieval(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

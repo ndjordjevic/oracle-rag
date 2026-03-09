@@ -15,12 +15,15 @@ from langsmith import traceable
 
 from oracle_rag.config import (
     get_collection_name,
+    get_multi_query_count,
     get_retrieve_k,
     get_rerank_retrieve_k,
     get_rerank_top_n,
+    get_use_multi_query,
     get_use_rerank,
 )
 from oracle_rag.rag.formatting import format_docs, format_sources
+from oracle_rag.rag.multiquery import wrap_retriever_with_multiquery
 from oracle_rag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
 from oracle_rag.rag.prompts import RAG_PROMPT
 from oracle_rag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
@@ -79,6 +82,9 @@ def run_rag(
     Uses LangChain Retriever (store.as_retriever()). Pass a retriever directly for maximum
     flexibility (e.g. wrapped with reranking), or use legacy params to build one from Chroma.
 
+    When ORACLE_RAG_USE_MULTI_QUERY=true, generates query variants via LLM, retrieves per
+    variant, merges (unique union), then optionally reranks. Improves recall for terse queries.
+
     Args:
         query: Natural language question to answer.
         llm: Chat model for generation (e.g. from get_chat_model()).
@@ -96,12 +102,16 @@ def run_rag(
     Returns:
         RAGResult with answer (str) and sources (list of {document_id, page}).
     """
+    built_with_multi_query_no_rerank = False
+    truncate_k: Optional[int] = None
     if retriever is None:
         if collection_name is None:
             collection_name = get_collection_name()
         use_rerank = (
             use_rerank if use_rerank is not None else get_use_rerank()
         )
+        use_multi_query = get_use_multi_query()
+
         if use_rerank:
             available, err = is_rerank_available()
             if available:
@@ -117,6 +127,12 @@ def run_rag(
                     page_max=page_max,
                     tag=tag,
                 )
+                if use_multi_query:
+                    base_retriever = wrap_retriever_with_multiquery(
+                        base_retriever,
+                        llm,
+                        num_queries=get_multi_query_count(),
+                    )
                 retriever = wrap_retriever_with_cohere_rerank(
                     base_retriever, top_n=top_n
                 )
@@ -125,7 +141,7 @@ def run_rag(
                     "Re-ranking disabled: %s. Using standard retrieval.", err
                 )
                 effective_k = k if k is not None else get_retrieve_k()
-                retriever = create_retriever(
+                base_retriever = create_retriever(
                     k=effective_k,
                     persist_directory=persist_directory,
                     collection_name=collection_name,
@@ -135,9 +151,19 @@ def run_rag(
                     page_max=page_max,
                     tag=tag,
                 )
+                if use_multi_query:
+                    retriever = wrap_retriever_with_multiquery(
+                        base_retriever,
+                        llm,
+                        num_queries=get_multi_query_count(),
+                    )
+                    built_with_multi_query_no_rerank = True
+                    truncate_k = effective_k
+                else:
+                    retriever = base_retriever
         else:
             effective_k = k if k is not None else get_retrieve_k()
-            retriever = create_retriever(
+            base_retriever = create_retriever(
                 k=effective_k,
                 persist_directory=persist_directory,
                 collection_name=collection_name,
@@ -147,7 +173,20 @@ def run_rag(
                 page_max=page_max,
                 tag=tag,
             )
+            if use_multi_query:
+                retriever = wrap_retriever_with_multiquery(
+                    base_retriever,
+                    llm,
+                    num_queries=get_multi_query_count(),
+                )
+                built_with_multi_query_no_rerank = True
+                truncate_k = effective_k
+            else:
+                retriever = base_retriever
     docs = _retrieve(retriever, query)
+
+    if built_with_multi_query_no_rerank and truncate_k is not None and len(docs) > truncate_k:
+        docs = docs[:truncate_k]
 
     if not docs:
         return RAGResult(

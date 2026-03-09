@@ -1,6 +1,6 @@
 # Oracle-RAG Cloud: MCP-Native RAG-as-a-Service
 
-*Product idea — revisit after Phase 4 is complete.*
+*Product idea. Phase 4 retrieval quality is largely done (30/30 golden, 10/10 hard-10 with reranking). Remaining Phase 4 items: multi-query, hybrid search, streaming. Next: finish those, validate demand, then build cloud infra.*
 
 ---
 
@@ -168,7 +168,7 @@ BYOK + retrieval-focus is the most viable path for a solo founder.
 | Document upload & management | Local filesystem | Cloud storage (S3/GCS) + upload API |
 | Usage metering & billing | None | Track queries/docs per tenant, integrate Stripe |
 | Dashboard / onboarding UI | None | Minimal web UI: upload docs, see usage, get MCP config |
-| Retrieval quality | In progress (Phase 4) | Must be competitive (>70% correctness) before launch |
+| Retrieval quality | 30/30 golden, 10/10 hard-10 (Phase 4) | Finish multi-query + streaming; already competitive |
 | Deployment | Local dev | Docker → cloud (Railway, Fly.io, or AWS) |
 
 ### Nice-to-Have for Launch
@@ -179,15 +179,42 @@ BYOK + retrieval-focus is the most viable path for a solo founder.
 - Team/organization management
 - Custom system prompts per endpoint
 
+### Prerequisites from Existing Phases
+
+Before starting the SaaS build, finish these items from `implementation-checklist.md`. The goal is retrieval quality robust enough for paying customers with diverse, unpredictable queries — not just 30/30 on a known golden set.
+
+**Must complete (Phase 4):**
+
+| Item | Why needed for SaaS | Effort |
+|------|---------------------|--------|
+| **Multi-query** ⭐⭐⭐ | Paying customers will send terse, ambiguous MCP queries. Multi-query is the difference between "works on your test set" and "works on real queries." Non-negotiable for a paid product. | 1–2 weeks |
+| **Streaming** | Remote MCP transport (SSE/Streamable HTTP) needs streaming to deliver tokens as they're generated. Without it, users wait for the full response — unacceptable UX for a cloud product. | 3–5 days |
+
+**Should complete (Phase 4 — quick wins):**
+
+| Item | Why | Effort |
+|------|-----|--------|
+| **Prompt iteration** | One pairwise experiment pass before launch. Quick wins for answer quality. | 2–3 days |
+| **Query preprocessing** | Strip MCP boilerplate, normalize abbreviations. Do alongside multi-query. | 1 day |
+
+**Defer — add post-launch as product improvements:**
+
+| Item | Why defer |
+|------|----------|
+| Hybrid search (Phase 4) | Strong improvement for technical content, but multi-query + reranking is already 100% on known sets. Ship without it; add as a v1.1 feature. |
+| Chunk tuning, parent-child retrieval (Phase 4/6) | Nice later feature. Current chunking works. |
+| Phase 5 items | The SaaS IS the production deployment. Monitoring, security, docs get built into the SaaS architecture, not as separate pre-work. |
+| Phase 6–7 | Future product features (OCR, advanced indexing, agentic reasoning). Not prerequisites — these become the SaaS product roadmap. |
+
 ### Timeline Estimate (Solo, Full-Time)
 
 | Phase | Duration | Deliverable |
 |-------|----------|------------|
-| Finish Phase 4 (retrieval quality) | 2–4 weeks | Competitive retrieval |
+| Finish Phase 4 (multi-query, streaming, prompt pass) | 1–2 weeks | Robust retrieval for diverse queries |
 | Multi-tenant + auth + remote MCP | 3–4 weeks | Core cloud architecture |
 | REST API + billing + dashboard | 3–4 weeks | Launchable product |
 | Deploy + landing page + docs | 1–2 weeks | Public launch |
-| **Total** | **~3–4 months** | **Beta launch** |
+| **Total** | **~2.5–3 months** | **Beta launch** |
 
 ## Distribution Channels
 
@@ -243,7 +270,7 @@ BYOK + retrieval-focus is the most viable path for a solo founder.
 | OpenAI/Anthropic build this in (Assistants API already has file search) | They optimize for their own models; oracle-rag is model-agnostic and tunable |
 | Margin compression at low price points | BYOK model, retrieval-only pricing, optimize embedding costs |
 | Solo founder capacity | Focus on one persona, one feature, ship weekly |
-| Retrieval quality not competitive | Finish Phase 4 first — don't launch until quality is there |
+| Retrieval quality not competitive | Core quality proven (30/30, 10/10). Multi-query adds robustness for unseen queries. Evaluate on real user queries during beta. |
 
 ## Lessons from the Market
 
@@ -258,10 +285,10 @@ BYOK + retrieval-focus is the most viable path for a solo founder.
 |----------|--------|
 | Is the market real? | Yes — $92M in 2025, growing 13.6% CAGR |
 | Is it crowded? | Yes for generic RAG-as-a-service. No for MCP-native agent-focused RAG |
-| Is it feasible to build? | Yes — 3–4 months to beta as a solo developer |
+| Is it feasible to build? | Yes — ~2.5–3 months to beta as a solo developer (Phase 4 retrieval mostly done) |
 | Is it rational? | Only if differentiated (MCP-native + agent-focused + BYOK). Not as a generic RAG API |
-| What to do first? | Finish Phase 4 retrieval quality, then validate demand before building cloud infra |
+| What to do first? | Finish multi-query + streaming (1–2 weeks), then validate demand before building cloud infra |
 
 ---
 
-*Next steps: revisit this doc after Phase 4. If retrieval quality is competitive, run the validation plan. If 100+ signups or 5+ "I'd pay" conversations, proceed to cloud architecture.*
+*Next steps: (1) Finish multi-query + streaming from Phase 4 (1–2 weeks). (2) Retrieval quality is already competitive (30/30, 10/10) — run the validation plan now: landing page, 20 developer conversations, community posts. (3) If 100+ signups or 5+ "I'd pay" conversations, proceed to cloud architecture.*

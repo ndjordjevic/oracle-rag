@@ -214,3 +214,37 @@ def get_rerank_top_n() -> int:
         return n
     except ValueError:
         return DEFAULT_RERANK_TOP_N
+
+
+# Multi-query retrieval: generate query variants via LLM, retrieve per variant, merge
+DEFAULT_USE_MULTI_QUERY = False
+DEFAULT_MULTI_QUERY_COUNT = 4
+
+
+def get_use_multi_query() -> bool:
+    """Return whether to use multi-query retrieval (3-5 query variants, merge results)."""
+    val = os.environ.get("ORACLE_RAG_USE_MULTI_QUERY")
+    if val is None or not str(val).strip():
+        return DEFAULT_USE_MULTI_QUERY
+    v = str(val).strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return DEFAULT_USE_MULTI_QUERY
+
+
+def get_multi_query_count() -> int:
+    """Return number of alternative queries to generate for multi-query retrieval (default 4)."""
+    val = os.environ.get("ORACLE_RAG_MULTI_QUERY_COUNT")
+    if val is None:
+        return DEFAULT_MULTI_QUERY_COUNT
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_MULTI_QUERY_COUNT
+        if n > 10:
+            return 10
+        return n
+    except ValueError:
+        return DEFAULT_MULTI_QUERY_COUNT

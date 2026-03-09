@@ -242,20 +242,11 @@
 - [x] **Test: index Discord export and query via MCP** — Index the full export from `data/discord-channels/` (e.g. alicia-1200-pcb channel) using `add_file_tool`, then run questions about Alicia 1200 (ROM programmer, PSU, etc.) via `query_tool` in Cursor. Confirm answers and sources use the correct `document_id`, `channel`, and `tag` metadata.
 
 ### Retrieval Improvement
-- [ ] **Advanced Retrieval Strategies** (ordered by expected impact for this project: 93% of failures = retrieval miss; 55% of wrong-answer pages > 100 = deep-in-book; topically adjacent wrong chunks rank high)
+- [ ] **Advanced Retrieval Strategies** (ordered by expected impact; items deferred to later phases noted below)
   - [x] **Re-ranking** ⭐ — Implemented Cohere Re-Rank via `ContextualCompressionRetriever` + `CohereRerank`. Config: `ORACLE_RAG_USE_RERANK` (default false), `ORACLE_RAG_RETRIEVE_K` (default 20), `ORACLE_RAG_RERANK_RETRIEVE_K` (default 20), `ORACLE_RAG_RERANK_TOP_N` (default 10). **Recommended when enabled:** k=20→top_n=10 with `claude-haiku-4-5`; achieves 10/10 on hard-10 and 30/30 on golden. No-rerank: k=10 suffices for min_k on golden (two questions need k=10). See `evaluation-strategy.md §8` for full sweep.
-  - [ ] **Query translation / multi-query** ⭐ — Generate 3–5 differently worded variants of the user query via LLM, run retrieval per variant, merge (unique union or RAG Fusion), then run RAG on merged context. Directly addresses "retrieval misses expected pages" (93%) and the fact that MCP queries are often terse/unpolished. Optionally combine with RAG Fusion for merging. Ref: LangChain multi-query; rag-from-scratch 5–9.
-  - [ ] **RAG Fusion: top-K after merge** — Natural follow-on to multi-query: use reciprocal rank fusion to merge per-query result lists; pass only top K (e.g. 10) to the LLM. Keeps prompt focused after multi-query broadens recall.
-  - [ ] **Hybrid search** — Add a keyword (BM25) retrieval path alongside vector search and combine scores. **High impact for deep-in-book content** (specific register names, opcodes, exact terms that embeddings spread across semantic neighbours). Chroma has no native BM25; options: `BM25Retriever` + `EnsembleRetriever` over the same docs in memory, or switch to a DB with native hybrid search (e.g. Qdrant, Weaviate).
-  - [ ] **HyDE (Hypothetical Document Embeddings)** — Embed a LLM-generated hypothetical answer passage instead of the raw question; retrieves docs closer in style/length to the actual chunks. Useful here because short technical questions and dense manual paragraphs sit in different embedding spaces. Low effort once multi-query is in place. Ref: HyDE paper; rag-from-scratch series.
-  - [ ] **Add query preprocessing** — Normalize or lightly expand the user query before retrieval (e.g. expand abbreviations, strip MCP boilerplate). Low effort, marginal gain on its own; do before or alongside multi-query.
-  - [ ] **Long-context ordering (optional)** — Order retrieved docs so best-ranked chunks appear at the start and end of the context ("lost in the middle" effect). Easy win after reranking is in place. Ref: Lost in the middle; rag-from-scratch 18.
-  - [ ] **Lenient / partial-credit grader (optional)** — For the ~2–3 nearly-correct answers marked 0: relax reference expectations or add a partial-credit correctness grader. Improves metrics fairness, not retrieval.
-  - [ ] **Step back prompting (optional)** — Generate an abstract "step back" question, retrieve on both original and step-back, combine contexts. Useful when docs mix high-level concepts and specifics (e.g. textbooks). Ref: Google step back prompting; rag-from-scratch series.
-  - [ ] **Query decomposition (optional)** — Decompose multi-part questions into sub-questions, run RAG per sub-question, combine answers. Differs from multi-query (rephrasing vs decomposing). Ref: rag-from-scratch 5–9, Part 7.
-  - [ ] **ColBERT (optional)** — Token-level retrieval (MaxSim scoring); avoids compressing a full chunk into one vector. High recall ceiling but requires a ColBERT index (e.g. RAGatouille) and re-indexing. Consider if reranker + hybrid still leave a large gap. Ref: ColBERT; rag-from-scratch 14.
-  - [ ] **CRAG (optional)** — Corrective RAG: route by retrieval confidence; fall back to LLM-only or web search when retrieval quality is low. Useful when some queries have no good matches in the index. Ref: CRAG paper; rag-from-scratch 16.
-  - [ ] **Self-RAG (optional)** — Adaptive retrieval with self-reflection: decide whether to retrieve, critique retrieved docs and own answer, iterate. High factuality ceiling; high implementation complexity. Ref: Self-RAG paper; rag-from-scratch 17.
+  - [x] **Query translation / multi-query** ⭐⭐⭐ — Implemented via `langchain_classic.retrievers.multi_query.MultiQueryRetriever`. Config: `ORACLE_RAG_USE_MULTI_QUERY` (default false), `ORACLE_RAG_MULTI_QUERY_COUNT` (default 4). Generate 3–5 query variants via LLM, retrieve per variant, merge (unique union), then optionally rerank. When rerank is off, merged docs are truncated to `ORACLE_RAG_RETRIEVE_K` to avoid context overflow. See `oracle_rag.rag.multiquery`, `evaluation-strategy.md` (multiquery-stress dataset).
+  - [ ] **Hybrid search** ⭐⭐ — Add a keyword (BM25) retrieval path alongside vector search and combine scores. **High impact for deep-in-book content** (specific register names, opcodes, exact terms that embeddings spread across semantic neighbours). Especially important as corpus grows (more PDFs, Discord). Options: `BM25Retriever` + `EnsembleRetriever` over the same docs in memory. Chroma has no native BM25; if memory becomes a concern, consider Qdrant or Weaviate.
+  - [ ] **Query preprocessing** — Normalize or lightly expand the user query before retrieval (e.g. expand abbreviations, strip MCP boilerplate). Low effort; implement alongside multi-query.
 - [ ] **Prompt engineering iteration** — Evaluate and iterate on RAG prompt template using evaluation dataset; test different system messages, few-shot examples, or chain-of-thought instructions. **Try pairwise experiments** when comparing two prompt variants: run both as separate LangSmith experiments on the golden dataset, then use `langsmith.evaluate(("exp-A-id", "exp-B-id"), evaluators=[ranked_preference])` to have an LLM judge pick the better answer head-to-head — more informative than absolute scores when both prompts produce partially-correct answers. See `intro-to-langsmith/notebooks/module_2/pairwise_experiments.ipynb`.
 
 ### Chunking Improvement
@@ -293,6 +284,12 @@
 ### Production Readiness
 - [ ] **Final Polish** — Code review, performance optimization pass, security audit, documentation review, deployment testing.
 
+### Evaluation & Retrieval Polish
+*(Deferred from Phase 4 — low impact given current reranking pipeline.)*
+- [ ] **RAG Fusion: top-K after merge** — Reciprocal rank fusion to merge per-query result lists; pass only top K to the LLM. Redundant when Cohere reranking is on (reranker already re-scores merged set); consider only if reranking is removed. Ref: rag-from-scratch.
+- [ ] **Long-context ordering** — Order retrieved docs so best-ranked chunks appear at the start and end of the context ("lost in the middle" effect). Negligible with ≤10 reranked chunks and modern models; revisit if chunk count grows significantly. Ref: Lost in the middle; rag-from-scratch 18.
+- [ ] **Lenient / partial-credit grader** — For the ~2–3 nearly-correct answers marked 0: relax reference expectations or add a partial-credit correctness grader. Improves metrics fairness, not retrieval.
+
 ### Quality of Life (QoL) — optional
 *(RAG is currently exposed only via MCP tools; these apply if/when CLI or HTTP is added.)*
 - [ ] **CLI tag options** — If a CLI is exposed: add `--tag` / `--tags` to indexing commands (currently only via MCP tools).
@@ -317,6 +314,11 @@
 - [ ] **Multi-representation indexing** (optional) — Embed per-chunk summaries/propositions in the vector store; store full raw docs in a separate doc store keyed by doc_id. Ref: rag-from-scratch 12.
 - [ ] **RAPTOR / hierarchical indexing** (optional) — Cluster leaf chunks, summarize clusters, recurse; index all levels together. Ref: RAPTOR paper; rag-from-scratch 13.
 
+### Advanced Retrieval
+*(Deferred from Phase 4 — overlaps with multi-query/hybrid or requires re-indexing infrastructure.)*
+- [ ] **HyDE (Hypothetical Document Embeddings)** — Embed a LLM-generated hypothetical answer passage instead of the raw question; retrieves docs closer in style/length to the actual chunks. Overlaps with multi-query (Phase 4); revisit if multi-query + hybrid leave a gap. Ref: HyDE paper; rag-from-scratch series.
+- [ ] **ColBERT** — Token-level retrieval (MaxSim scoring); avoids compressing a full chunk into one vector. High recall ceiling but requires a ColBERT index (e.g. RAGatouille) and re-indexing. Consider only if reranker + multi-query + hybrid still leave a measurable gap. Ref: ColBERT; rag-from-scratch 14.
+
 ### Document Intelligence
 - [ ] **Document name resolution** — Accept fuzzy doc references in queries (e.g. "pico debug probe manual"), resolve to exact `document_id` from `list_pdfs`; add auto-complete helper.
 - [ ] **Query structuring** (optional) — LLM converts natural language into structured metadata filters (Pydantic schema: `document_id`, `tag`, `page_min`, `page_max`). Ref: rag-from-scratch 11; LangChain query analysis.
@@ -340,6 +342,12 @@
 - [ ] **Query classification & conditional routing** — Detect query type (factual, conceptual, multi-part); route to different retrieval strategies via LangGraph conditional edges.
 - [ ] **Query decomposition** — Decompose multi-part questions into sub-questions; run RAG per sub-question in parallel or sequentially; synthesize final answer.
 - [ ] **Iterative retrieval** — Loop: generate partial answer → check if more retrieval needed → retrieve again → refine answer.
+
+### Adaptive Retrieval
+*(Deferred from Phase 4 — routing/self-reflection patterns that require a state graph.)*
+- [ ] **Step back prompting** — Generate an abstract "step back" question, retrieve on both original and step-back, combine contexts. Better fit for agentic pipeline where LLM decides retrieval strategy per query. Ref: Google step back prompting; rag-from-scratch series.
+- [ ] **CRAG (Corrective RAG)** — Route by retrieval confidence; fall back to LLM-only or web search when retrieval quality is low. Natural fit for LangGraph conditional edges. Ref: CRAG paper; rag-from-scratch 16.
+- [ ] **Self-RAG** — Adaptive retrieval with self-reflection: decide whether to retrieve, critique retrieved docs and own answer, iterate. High factuality ceiling; high implementation complexity. Requires state graph for the reflection loop. Ref: Self-RAG paper; rag-from-scratch 17.
 
 ### Conversation History
 - [ ] **Conversation state** — Design state schema; implement context tracking across turns; handle follow-up questions.
@@ -377,15 +385,20 @@
 ### Phase 4: Advanced Retrieval & Evaluation
 - Evaluation framework: golden dataset, 7 evaluators, LangSmith experiments
 - Baselines: Anthropic 73.3%, OpenAI k=5 53.3%, OpenAI k=10 60.0%
-- Next: re-ranking, multi-query, hybrid search, chunk tuning
+- Re-ranking done (Cohere, 30/30 golden, 10/10 hard-10)
+- Next (priority order): multi-query, hybrid search, query preprocessing, prompt iteration, chunk tuning
 
 ### Phase 5: Polish & Production Ready
-- Deployment, monitoring, security, scalability, documentation. Optional QoL: CLI tags, recursive dir indexing, top_k/MMR, health check (if CLI/HTTP added).
+- Deployment, monitoring, security, scalability, documentation
+- Deferred retrieval polish: RAG Fusion, long-context ordering, lenient grader
+- Optional QoL: CLI tags, recursive dir indexing, top_k/MMR, health check (if CLI/HTTP added)
 
 ### Phase 6: Document Intelligence & Advanced Indexing
 - OCR, richer PDF structure, advanced chunking (parent-child, RAPTOR), document name resolution, query structuring
+- Deferred retrieval: HyDE, ColBERT (revisit if Phase 4 techniques leave a gap)
 
 ### Phase 7: Agentic Reasoning & LangGraph
 - Routing, query classification, multi-step reasoning, conversation history, LangGraph `StateGraph` migration, Studio integration
+- Deferred adaptive retrieval: step-back prompting, CRAG, Self-RAG (require state graph)
 
 **Note:** LangChain docs recommend plain Python + `@traceable` for a deterministic 2-step RAG. `AgentMiddleware` + `create_agent` is for agentic RAG (LLM decides when to retrieve). LangGraph `StateGraph` is the right target if the pipeline needs routing, loops, or Studio visibility — deferred to Phase 7.
