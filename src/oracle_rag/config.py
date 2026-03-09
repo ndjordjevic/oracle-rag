@@ -248,3 +248,18 @@ def get_multi_query_count() -> int:
         return n
     except ValueError:
         return DEFAULT_MULTI_QUERY_COUNT
+
+
+# Response style for RAG answer: thorough (default) or concise
+DEFAULT_RESPONSE_STYLE = "thorough"
+
+
+def get_response_style() -> str:
+    """Return RAG response style from ORACLE_RAG_RESPONSE_STYLE (thorough | concise)."""
+    val = os.environ.get("ORACLE_RAG_RESPONSE_STYLE")
+    if val is None or not str(val).strip():
+        return DEFAULT_RESPONSE_STYLE
+    v = str(val).strip().lower()
+    if v in ("thorough", "concise"):
+        return v
+    return DEFAULT_RESPONSE_STYLE

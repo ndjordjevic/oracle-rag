@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -24,8 +24,9 @@ from oracle_rag.config import (
 )
 from oracle_rag.rag.formatting import format_docs, format_sources
 from oracle_rag.rag.multiquery import wrap_retriever_with_multiquery
+from oracle_rag.rag.query_preprocess import preprocess_query
+from oracle_rag.rag.prompts import get_rag_prompt
 from oracle_rag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
-from oracle_rag.rag.prompts import RAG_PROMPT
 from oracle_rag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
 from oracle_rag.vectorstore.retriever import create_retriever
 
@@ -76,6 +77,7 @@ def run_rag(
     page_min: Optional[int] = None,
     page_max: Optional[int] = None,
     tag: Optional[str] = None,
+    response_style: Literal["thorough", "concise"] = "thorough",
 ) -> RAGResult:
     """Run a 2-step RAG pipeline: retrieve chunks, format context, prompt LLM, return answer with citations.
 
@@ -98,10 +100,12 @@ def run_rag(
         page_min: Optional start of page range (inclusive). Use with page_max.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
         tag: Optional tag to filter retrieval (e.g. "PI_PICO").
+        response_style: Answer style for prompt instructions ("thorough" or "concise").
 
     Returns:
         RAGResult with answer (str) and sources (list of {document_id, page}).
     """
+    query_for_retrieval = preprocess_query(query)
     built_with_multi_query_no_rerank = False
     truncate_k: Optional[int] = None
     if retriever is None:
@@ -183,7 +187,7 @@ def run_rag(
                 truncate_k = effective_k
             else:
                 retriever = base_retriever
-    docs = _retrieve(retriever, query)
+    docs = _retrieve(retriever, query_for_retrieval)
 
     if built_with_multi_query_no_rerank and truncate_k is not None and len(docs) > truncate_k:
         docs = docs[:truncate_k]
@@ -195,7 +199,8 @@ def run_rag(
             documents=[],
         )
 
-    messages = RAG_PROMPT.invoke(
+    prompt = get_rag_prompt(response_style)
+    messages = prompt.invoke(
         {"context": format_docs(docs), "question": query}
     ).messages
     try:

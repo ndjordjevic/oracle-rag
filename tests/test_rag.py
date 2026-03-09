@@ -13,6 +13,7 @@ from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 
 from oracle_rag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
+from oracle_rag.rag.prompts import get_rag_prompt
 
 from oracle_rag.llm import get_chat_model
 from oracle_rag.vectorstore import create_retriever
@@ -78,6 +79,30 @@ def test_rag_prompt_has_context_and_question() -> None:
     text = " ".join(parts)
     assert "some context" in text
     assert "What?" in text
+
+
+def test_concise_prompt_style_includes_concise_instruction() -> None:
+    """Concise prompt mode includes concise-response guidance."""
+    prompt_value = get_rag_prompt("concise").invoke(
+        {"context": "ctx", "question": "q"}
+    )
+    text = " ".join(
+        str(m.content) if hasattr(m, "content") else str(m)
+        for m in prompt_value.messages
+    )
+    assert "Keep the response concise" in text
+
+
+def test_prompt_includes_internal_reasoning_instruction() -> None:
+    """Prompt includes internal step-by-step guidance (not exposed)."""
+    prompt_value = get_rag_prompt("thorough").invoke(
+        {"context": "ctx", "question": "q"}
+    )
+    text = " ".join(
+        str(m.content) if hasattr(m, "content") else str(m)
+        for m in prompt_value.messages
+    )
+    assert "Think step-by-step internally" in text
 
 
 def test_rag_chain_invoke(tmp_path: Path) -> None:

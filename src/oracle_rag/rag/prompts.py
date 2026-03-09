@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from langchain_core.prompts import ChatPromptTemplate
 
-RAG_SYSTEM = """You are a technical expert that answers questions based only on the provided context from PDF documents.
+RAG_SYSTEM_THOROUGH = """You are a technical expert that answers questions based only on the provided context from PDF documents.
 
 Instructions:
 - Synthesize information from ALL relevant context blocks, not just the first match.
@@ -12,6 +14,17 @@ Instructions:
 - When multiple context blocks cover different aspects of the answer, combine them into a complete response.
 - When a capability varies across modes, chipsets, or configurations, list EACH variant separately with its specific value.
 - If the context does not contain enough information to answer the question, say so.
+- Think step-by-step internally before finalizing your answer, but do not reveal hidden reasoning.
+- Cite sources using the labels [1], [2], etc. that appear next to each context block."""
+
+RAG_SYSTEM_CONCISE = """You are a technical expert that answers questions based only on the provided context from PDF documents.
+
+Instructions:
+- Focus on the direct answer first, then add only critical supporting details.
+- Keep the response concise while preserving technical correctness.
+- Include concrete numbers, register names, addresses, and bit-level details only when needed to answer accurately.
+- If the context does not contain enough information to answer the question, say so.
+- Think step-by-step internally before finalizing your answer, but do not reveal hidden reasoning.
 - Cite sources using the labels [1], [2], etc. that appear next to each context block."""
 
 RAG_HUMAN = """Context:
@@ -19,10 +32,18 @@ RAG_HUMAN = """Context:
 
 Question: {question}"""
 
-# Prompt with context and question placeholders for the RAG chain.
-RAG_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        ("system", RAG_SYSTEM),
-        ("human", RAG_HUMAN),
-    ]
-)
+def get_rag_prompt(
+    response_style: Literal["thorough", "concise"] = "thorough",
+) -> ChatPromptTemplate:
+    """Return RAG prompt template with desired response style."""
+    system = RAG_SYSTEM_CONCISE if response_style == "concise" else RAG_SYSTEM_THOROUGH
+    return ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", RAG_HUMAN),
+        ]
+    )
+
+
+# Backward-compatible default prompt.
+RAG_PROMPT = get_rag_prompt("thorough")

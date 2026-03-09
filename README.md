@@ -134,6 +134,8 @@ Environment variables:
 | **Multi-query** | | |
 | `ORACLE_RAG_USE_MULTI_QUERY` | `false` | Set to `true` to generate 3–5 query variants via LLM, retrieve per variant, merge (unique union). Improves recall for terse or ambiguous queries. |
 | `ORACLE_RAG_MULTI_QUERY_COUNT` | `4` | Number of alternative queries to generate when `ORACLE_RAG_USE_MULTI_QUERY=true`. |
+| **Response style** | | |
+| `ORACLE_RAG_RESPONSE_STYLE` | `thorough` | RAG answer style: `thorough` (detailed) or `concise`. Used by evaluation target and as default when MCP `query` omits `response_style`. |
 
 > **Re-indexing when changing embedding provider:** Changing `ORACLE_RAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 
@@ -154,6 +156,7 @@ Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid
 | `document_id` | Search only in this PDF (e.g. `mybook.pdf` from `list_pdfs`) |
 | `page_min`, `page_max` | Restrict to page range (single page: `page_min=16`, `page_max=16`) |
 | `tag` | Search only documents with this tag (e.g. `AMIGA`, `PI_PICO`) |
+| `response_style` | Answer style: `thorough` (default) or `concise` |
 
 Filters can be combined. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  
 `query_pdf_tool(query="...", document_id="RP-008276-DS-1-getting-started-with-pico.pdf", page_min=16, page_max=17)`.

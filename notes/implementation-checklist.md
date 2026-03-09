@@ -242,12 +242,11 @@
 - [x] **Test: index Discord export and query via MCP** — Index the full export from `data/discord-channels/` (e.g. alicia-1200-pcb channel) using `add_file_tool`, then run questions about Alicia 1200 (ROM programmer, PSU, etc.) via `query_tool` in Cursor. Confirm answers and sources use the correct `document_id`, `channel`, and `tag` metadata.
 
 ### Retrieval Improvement
-- [ ] **Advanced Retrieval Strategies** (ordered by expected impact; items deferred to later phases noted below)
+- [x] **Advanced Retrieval Strategies** (ordered by expected impact; items deferred to later phases noted below)
   - [x] **Re-ranking** ⭐ — Implemented Cohere Re-Rank via `ContextualCompressionRetriever` + `CohereRerank`. Config: `ORACLE_RAG_USE_RERANK` (default false), `ORACLE_RAG_RETRIEVE_K` (default 20), `ORACLE_RAG_RERANK_RETRIEVE_K` (default 20), `ORACLE_RAG_RERANK_TOP_N` (default 10). **Recommended when enabled:** k=20→top_n=10 with `claude-haiku-4-5`; achieves 10/10 on hard-10 and 30/30 on golden. No-rerank: k=10 suffices for min_k on golden (two questions need k=10). See `evaluation-strategy.md §8` for full sweep.
   - [x] **Query translation / multi-query** ⭐⭐⭐ — Implemented via `langchain_classic.retrievers.multi_query.MultiQueryRetriever`. Config: `ORACLE_RAG_USE_MULTI_QUERY` (default false), `ORACLE_RAG_MULTI_QUERY_COUNT` (default 4). Generate 3–5 query variants via LLM, retrieve per variant, merge (unique union), then optionally rerank. When rerank is off, merged docs are truncated to `ORACLE_RAG_RETRIEVE_K` to avoid context overflow. See `oracle_rag.rag.multiquery`, `evaluation-strategy.md` (multiquery-stress dataset).
-  - [ ] **Hybrid search** ⭐⭐ — Add a keyword (BM25) retrieval path alongside vector search and combine scores. **High impact for deep-in-book content** (specific register names, opcodes, exact terms that embeddings spread across semantic neighbours). Especially important as corpus grows (more PDFs, Discord). Options: `BM25Retriever` + `EnsembleRetriever` over the same docs in memory. Chroma has no native BM25; if memory becomes a concern, consider Qdrant or Weaviate.
-  - [ ] **Query preprocessing** — Normalize or lightly expand the user query before retrieval (e.g. expand abbreviations, strip MCP boilerplate). Low effort; implement alongside multi-query.
-- [ ] **Prompt engineering iteration** — Evaluate and iterate on RAG prompt template using evaluation dataset; test different system messages, few-shot examples, or chain-of-thought instructions. **Try pairwise experiments** when comparing two prompt variants: run both as separate LangSmith experiments on the golden dataset, then use `langsmith.evaluate(("exp-A-id", "exp-B-id"), evaluators=[ranked_preference])` to have an LLM judge pick the better answer head-to-head — more informative than absolute scores when both prompts produce partially-correct answers. See `intro-to-langsmith/notebooks/module_2/pairwise_experiments.ipynb`.
+  - [x] **Query preprocessing** — Implemented in `oracle_rag.rag.query_preprocess`: normalize whitespace, strip common MCP/agent boilerplate (e.g. "User question:", "Query:", "Search the documents for:"). Applied before retrieval only; original query kept for prompt.
+  - [x] **Prompt engineering iteration** — Implemented: (1) internal step-by-step instruction in system prompt (“Think step-by-step internally before finalizing your answer, but do not reveal hidden reasoning”); (2) response style **thorough** (default) vs **concise** via `get_rag_prompt(response_style)` and `run_rag(..., response_style=...)`. Config: `ORACLE_RAG_RESPONSE_STYLE` (thorough | concise); evaluation target and MCP `query` tool support it. See `oracle_rag.rag.prompts`, `evaluation-strategy.md` (response style comparison).
 
 ### Chunking Improvement
 - [ ] **Chunk size tuning** (needs evaluation framework first) — Tune chunk size to ~512 tokens (~2000 chars) with 10–20% overlap; benchmark retrieval quality before/after with evaluation dataset.
@@ -316,6 +315,7 @@
 
 ### Advanced Retrieval
 *(Deferred from Phase 4 — overlaps with multi-query/hybrid or requires re-indexing infrastructure.)*
+- [ ] **Hybrid search** ⭐⭐ — Add a keyword (BM25) retrieval path alongside vector search and combine scores. **High impact for deep-in-book content** (specific register names, opcodes, exact terms that embeddings spread across semantic neighbours). Especially important as corpus grows (more PDFs, Discord). Options: `BM25Retriever` + `EnsembleRetriever` over the same docs in memory. Chroma has no native BM25; if memory becomes a concern, consider Qdrant or Weaviate.
 - [ ] **HyDE (Hypothetical Document Embeddings)** — Embed a LLM-generated hypothetical answer passage instead of the raw question; retrieves docs closer in style/length to the actual chunks. Overlaps with multi-query (Phase 4); revisit if multi-query + hybrid leave a gap. Ref: HyDE paper; rag-from-scratch series.
 - [ ] **ColBERT** — Token-level retrieval (MaxSim scoring); avoids compressing a full chunk into one vector. High recall ceiling but requires a ColBERT index (e.g. RAGatouille) and re-indexing. Consider only if reranker + multi-query + hybrid still leave a measurable gap. Ref: ColBERT; rag-from-scratch 14.
 
@@ -327,6 +327,9 @@
 ### Advanced MCP & Citations
 - [ ] **Advanced MCP Features** — Expose query history; streaming support; advanced filtering options.
 - [ ] **Advanced Citations** — Confidence scores per source chunk; link back to document sections; improved citation formatting.
+
+### Evaluation
+- [ ] **Pairwise prompt experiments** — Run two prompt variants as separate LangSmith experiments on the golden dataset, then use `langsmith.evaluate(("exp-A-id", "exp-B-id"), evaluators=[ranked_preference])` to have an LLM judge pick the better answer head-to-head (more informative than absolute scores when both produce partially-correct answers). Ref: intro-to-langsmith/notebooks/module_2/pairwise_experiments.ipynb.
 
 ---
 
@@ -386,7 +389,7 @@
 - Evaluation framework: golden dataset, 7 evaluators, LangSmith experiments
 - Baselines: Anthropic 73.3%, OpenAI k=5 53.3%, OpenAI k=10 60.0%
 - Re-ranking done (Cohere, 30/30 golden, 10/10 hard-10)
-- Next (priority order): multi-query, hybrid search, query preprocessing, prompt iteration, chunk tuning
+- Next (priority order): multi-query, query preprocessing, prompt iteration, chunk tuning; hybrid search deferred to Phase 6
 
 ### Phase 5: Polish & Production Ready
 - Deployment, monitoring, security, scalability, documentation
@@ -395,6 +398,7 @@
 
 ### Phase 6: Document Intelligence & Advanced Indexing
 - OCR, richer PDF structure, advanced chunking (parent-child, RAPTOR), document name resolution, query structuring
+- Hybrid search (BM25 + EnsembleRetriever) — high impact for deep-in-book exact-term queries
 - Deferred retrieval: HyDE, ColBERT (revisit if Phase 4 techniques leave a gap)
 
 ### Phase 7: Agentic Reasoning & LangGraph

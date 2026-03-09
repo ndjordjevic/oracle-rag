@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import logging
 import os
 import sys
@@ -66,7 +67,9 @@ def _user_friendly_api_error(exc: BaseException) -> str | None:
 
 
 def _log_tool_errors(fn):
-    """Decorator: log exceptions to stderr (Cursor Output) then re-raise so client gets the error."""
+    """Decorator: log exceptions to stderr (Cursor Output) then re-raise so client gets the error.
+    Preserves the wrapped function's signature so MCP/FastMCP schema introspection sees all parameters.
+    """
 
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
@@ -79,6 +82,7 @@ def _log_tool_errors(fn):
                 raise RuntimeError(friendly) from e
             raise
 
+    wrapper.__signature__ = inspect.signature(fn)
     return wrapper
 
 
@@ -93,6 +97,7 @@ def query_tool(
     page_min: int | None = None,
     page_max: int | None = None,
     tag: str = "",
+    response_style: str = "thorough",
 ) -> dict:
     """Query indexed documents and return an answer with citations.
 
@@ -108,6 +113,7 @@ def query_tool(
         page_min: Optional start of page range (inclusive). PDF only.
         page_max: Optional end of page range (inclusive). PDF only.
         tag: Optional tag to filter retrieval (from list_documents).
+        response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough"). Any other value is treated as "thorough".
 
     Returns:
         Dictionary containing answer and sources (document_id, page).
@@ -115,6 +121,7 @@ def query_tool(
     coll = (collection or "").strip()
     if not coll or coll == "oracle_rag":
         coll = get_collection_name()
+    style = "concise" if (response_style or "").strip().lower() == "concise" else "thorough"
     return query_index(
         query=query,
         k=k,
@@ -124,6 +131,7 @@ def query_tool(
         page_min=page_min,
         page_max=page_max,
         tag=tag or None,
+        response_style=style,
     )
 
 

@@ -149,6 +149,13 @@ ORACLE_RAG_USE_RERANK=false ORACLE_RAG_USE_MULTI_QUERY=true  uv run python -m or
 
 Compare correctness (and cost, in LangSmith) between the two experiments.
 
+To compare **response style** (thorough vs concise), set `ORACLE_RAG_RESPONSE_STYLE` and use distinct prefixes:
+
+```bash
+ORACLE_RAG_RESPONSE_STYLE=thorough uv run python -m oracle_rag.evaluation --dataset oracle-rag-golden --prefix thorough --limit 30
+ORACLE_RAG_RESPONSE_STYLE=concise uv run python -m oracle_rag.evaluation --dataset oracle-rag-golden --prefix concise --limit 30
+```
+
 ---
 
 ## 7. Evaluation gates / thresholds

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from oracle_rag.config import get_collection_name, get_persist_dir
+from oracle_rag.config import get_collection_name, get_persist_dir, get_response_style
 from oracle_rag.llm import get_chat_model
 from oracle_rag.rag import run_rag
 
@@ -36,6 +36,7 @@ def oracle_rag_target(inputs: dict) -> dict:
         document_id=document_id,
         page_min=page_min,
         page_max=page_max,
+        response_style=get_response_style(),
     )
 
     return {

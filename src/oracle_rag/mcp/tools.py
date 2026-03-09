@@ -55,6 +55,7 @@ def query(
     page_min: int | None = None,
     page_max: int | None = None,
     tag: str | None = None,
+    response_style: Literal["thorough", "concise"] = "thorough",
 ) -> dict[str, Any]:
     """Query indexed documents (PDF, Discord) and return an answer with citations.
 
@@ -67,6 +68,7 @@ def query(
         page_min: Optional start of page range (inclusive). Use with page_max. PDF only.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64. PDF only.
         tag: Optional tag to filter retrieval (e.g. from list_documents document_details).
+        response_style: Answer style for generation ("thorough" or "concise").
 
     Returns:
         Dictionary with "answer" (str) and "sources" (list of dicts with document_id and page).
@@ -87,6 +89,8 @@ def query(
         raise ValueError("page_min and page_max must be provided together for page range filter")
     if page_min is not None and page_max is not None and page_min > page_max:
         raise ValueError("page_min must be <= page_max")
+    if response_style not in ("thorough", "concise"):
+        raise ValueError("response_style must be 'thorough' or 'concise'")
 
     _persist = (persist_dir or "").strip() or get_persist_dir()
     persist_path = Path(_persist).expanduser().resolve()
@@ -112,6 +116,7 @@ def query(
         page_min=page_min,
         page_max=page_max,
         tag=tag_filter,
+        response_style=response_style,
     )
 
     return {

@@ -47,6 +47,13 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
         [148, 149],
         "terse-phrase",
     ),
+    # Query preprocessing: boilerplate prefix is stripped before retrieval so retrieval sees "Copper danger bit lower registers".
+    (
+        "User question: Copper danger bit lower registers",
+        "The CDANG bit (bit 1 of COPCON register at $DFF02E) controls Copper access to lower custom chip registers. On OCS: the Copper can always access registers at offset $80 and above; setting CDANG extends access down to $40–$7E, but registers below $40 are never accessible. On ECS/AGA: the Copper can access registers $40+ by default; setting CDANG allows access to all registers including those below $40.",
+        [57],
+        "preprocess-boilerplate",
+    ),
     # HAM fringing is an unusual compound; expansion to "Hold-And-Modify colour artifact" or
     # "pixel colour depends on neighbour" helps retrieval of p82-83
     (
