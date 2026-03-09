@@ -18,6 +18,7 @@ from oracle_rag.config import (
     get_chunk_size,
     get_collection_name,
     get_parent_chunk_size,
+    get_structure_aware_chunking,
     get_use_parent_child,
 )
 from oracle_rag.pdf.pypdf_loader import PathLike, load_pdf_as_documents
@@ -76,6 +77,7 @@ def index_pdf(
     """
     if collection_name is None:
         collection_name = get_collection_name()
+    respect_structure = get_structure_aware_chunking()
     pdf_path = Path(path).expanduser().resolve()
     pdf_result = load_pdf_as_documents(pdf_path)
     document_id = pdf_path.name
@@ -88,6 +90,7 @@ def index_pdf(
             collection_name=collection_name,
             embedding=embedding,
             tag=tag,
+            respect_structure=respect_structure,
         )
     else:
         # Turn per-page documents into chunk documents (preserving metadata).
@@ -97,6 +100,7 @@ def index_pdf(
             pdf_result.documents,
             chunk_size=size,
             chunk_overlap=overlap,
+            respect_structure=respect_structure,
         )
 
         # Get/create the Chroma store.
@@ -147,6 +151,7 @@ def _index_pdf_parent_child(
     collection_name: str,
     embedding: Optional[Embeddings],
     tag: Optional[str],
+    respect_structure: bool,
 ) -> tuple[list[Document], int]:
     """Index PDF using parent-child retrieval: embed small chunks, store large parents in docstore."""
     parent_size = get_parent_chunk_size()
@@ -159,6 +164,7 @@ def _index_pdf_parent_child(
         pdf_result.documents,
         chunk_size=parent_size,
         chunk_overlap=parent_overlap,
+        respect_structure=respect_structure,
     )
 
     store = get_chroma_store(
@@ -190,6 +196,7 @@ def _index_pdf_parent_child(
             [parent],
             chunk_size=child_size,
             chunk_overlap=child_overlap,
+            respect_structure=respect_structure,
         )
         for c in child_chunks:
             c.metadata["doc_id"] = parent_id

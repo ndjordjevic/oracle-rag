@@ -15,6 +15,21 @@ DEFAULT_CHUNK_OVERLAP = 200
 # Max length for a line to be treated as a section heading (get its own paragraph break before it)
 HEADING_LINE_MAX_LEN = 60
 
+# Heuristics for structure-aware chunking on plain-text PDF extracts.
+_CODE_DIRECTIVE_PREFIXES = ("#include", "#define", "#if", "#pragma")
+_C_KEYWORD_LINE_RE = re.compile(
+    r"^(?:int|void|static|struct|typedef|return)\b|^(?:if|for|while|switch)\s*\(|^case\b|^default:"
+)
+_C_FUNCTION_SIG_RE = re.compile(
+    r"^(?:[A-Za-z_][\w\s\*]{0,40})\s+[A-Za-z_]\w*\s*\([^)]*\)\s*\{?\s*$"
+)
+_ASM_MNEMONIC_RE = re.compile(
+    r"^(?:MOVE(?:\.[BWL])?|LEA|ADD(?:\.[BWL])?|SUB(?:\.[BWL])?|BNE|BEQ|JSR|RTS)\b",
+    re.IGNORECASE,
+)
+_CODE_OPERATOR_RE = re.compile(r"(?:->|<<|>>|\|=|&=|\+=|-=|\*=|/=|[{}=;()])")
+_TABLE_COL_SPLIT_RE = re.compile(r"\s{2,}")
+
 
 def _is_heading_line(line: str) -> bool:
     """True if the line looks like a section heading.
@@ -70,6 +85,111 @@ def _ensure_heading_paragraph_breaks(text: str) -> str:
     return "\n".join(out)
 
 
+def _is_code_line(line: str) -> bool:
+    """Return True when a line looks like C or 68k assembly code."""
+    if not line.strip():
+        return False
+    stripped = line.strip()
+    left = line.lstrip()
+
+    # Avoid treating bullets/summaries as code unless there's strong evidence.
+    if left.startswith(("●", "-", "*")) and not _CODE_OPERATOR_RE.search(stripped):
+        return False
+
+    if left.startswith(_CODE_DIRECTIVE_PREFIXES):
+        return True
+    if _C_KEYWORD_LINE_RE.search(left):
+        return True
+    if _C_FUNCTION_SIG_RE.search(left):
+        return True
+    if _ASM_MNEMONIC_RE.search(left):
+        return True
+    if ";" in stripped and (re.search(r"\$[0-9A-Fa-f]+", stripped) or _ASM_MNEMONIC_RE.search(left)):
+        return True
+    if _CODE_OPERATOR_RE.search(stripped) and left.startswith(("for ", "if ", "while ", "switch ", "return ")):
+        return True
+    if line.startswith(("    ", "\t")) and _CODE_OPERATOR_RE.search(stripped):
+        return True
+    return False
+
+
+def _is_table_row(line: str) -> bool:
+    """Return True when a line looks like a table row."""
+    stripped = line.strip()
+    if not stripped or len(stripped) < 12:
+        return False
+
+    # Common register-table style.
+    if "|" in stripped:
+        cols = [c.strip() for c in stripped.split("|") if c.strip()]
+        return len(cols) >= 2
+
+    # Aligned columns separated by repeated spaces.
+    cols = [c for c in _TABLE_COL_SPLIT_RE.split(stripped) if c]
+    if len(cols) < 3:
+        return False
+    alpha_cols = sum(1 for c in cols if re.search(r"[A-Za-z]", c))
+    digit_cols = sum(1 for c in cols if re.search(r"\d", c))
+    return alpha_cols >= 2 and (digit_cols >= 1 or len(cols) >= 4)
+
+
+def _ensure_code_block_breaks(text: str) -> str:
+    """Insert paragraph breaks at prose↔code transitions to preserve code blocks."""
+    lines = text.split("\n")
+    out: list[str] = []
+    prev_nonempty_is_code: bool | None = None
+
+    for line in lines:
+        if not line.strip():
+            out.append(line)
+            continue
+
+        is_code = _is_code_line(line)
+        if prev_nonempty_is_code is not None and is_code != prev_nonempty_is_code:
+            if out and out[-1].strip() != "":
+                out.append("")
+        out.append(line)
+        prev_nonempty_is_code = is_code
+
+    return "\n".join(out)
+
+
+def _ensure_table_breaks(text: str) -> str:
+    """Insert paragraph breaks at prose↔table transitions to preserve table blocks."""
+    lines = text.split("\n")
+    if not lines:
+        return text
+
+    table_mask = [_is_table_row(line) for line in lines]
+
+    # Keep one-line table headers with their table block.
+    for i in range(1, len(lines)):
+        if table_mask[i] and not table_mask[i - 1]:
+            header = lines[i - 1].strip()
+            if header and len(header) <= 120 and not re.search(r"[.!?]\s*$", header):
+                table_mask[i - 1] = True
+
+    # Allow a blank separator inside a table region.
+    for i in range(1, len(lines) - 1):
+        if not lines[i].strip() and table_mask[i - 1] and table_mask[i + 1]:
+            table_mask[i] = True
+
+    out: list[str] = []
+    prev_nonempty_is_table: bool | None = None
+    for i, line in enumerate(lines):
+        if not line.strip():
+            out.append(line)
+            continue
+        is_table = table_mask[i]
+        if prev_nonempty_is_table is not None and is_table != prev_nonempty_is_table:
+            if out and out[-1].strip() != "":
+                out.append("")
+        out.append(line)
+        prev_nonempty_is_table = is_table
+
+    return "\n".join(out)
+
+
 def chunk_documents(
     documents: list[Document],
     *,
@@ -77,13 +197,14 @@ def chunk_documents(
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
     document_id_key: str = "file_name",
     respect_heading_lines: bool = True,
+    respect_structure: bool = True,
 ) -> list[Document]:
     """Split documents into smaller chunks, preserving metadata and adding chunk_index.
 
     Uses LangChain RecursiveCharacterTextSplitter (paragraph → sentence → word
-    boundaries). When respect_heading_lines is True (default), inserts paragraph
-    breaks before short lines that look like section headings so they stay with
-    the following paragraph (e.g. "The system memory" starts a new segment).
+    boundaries). When enabled, applies lightweight structure heuristics:
+    - respect_heading_lines: inserts paragraph breaks before heading-like lines.
+    - respect_structure: inserts paragraph breaks around code/table regions.
 
     Each chunk keeps the source document's metadata (source, file_name,
     page, total_pages, document_title/author when present) and gets:
@@ -99,6 +220,8 @@ def chunk_documents(
         document_id_key: Metadata key to use as document_id (default: file_name).
         respect_heading_lines: If True, add paragraph breaks before heading-like
             lines so they start a new segment (default: True).
+        respect_structure: If True, add paragraph breaks at prose↔code and
+            prose↔table transitions (default: True).
 
     Returns:
         List of chunk Documents with preserved and added metadata.
@@ -119,6 +242,10 @@ def chunk_documents(
         content = doc.page_content
         if respect_heading_lines:
             content = _ensure_heading_paragraph_breaks(content)
+        if respect_structure:
+            content = _ensure_code_block_breaks(content)
+            content = _ensure_table_breaks(content)
+        if content != doc.page_content:
             doc = Document(page_content=content, metadata=dict(doc.metadata))
         doc_id = doc.metadata.get(document_id_key) or doc.metadata.get("source", "")
         split_chunks = splitter.split_documents([doc])

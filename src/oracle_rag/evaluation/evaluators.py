@@ -1,8 +1,8 @@
 """Oracle-RAG evaluators for LangSmith experiments.
 
-LLM-as-judge: configurable via ORACLE_RAG_EVALUATOR_PROVIDER (openai | anthropic).
-OpenAI: gpt-4o for correctness/relevance, gpt-4o-mini for context-heavy evaluators.
-Anthropic: claude-3-5-sonnet for correctness/relevance, claude-3-5-haiku for context-heavy.
+LLM-as-judge (correctness, groundedness): ORACLE_RAG_EVALUATOR_PROVIDER (openai | anthropic).
+OpenAI: gpt-4o for correctness, gpt-4o-mini for groundedness.
+Anthropic: claude-3-5-sonnet for correctness, claude-3-5-haiku for groundedness.
 Code evaluators have no LLM cost.
 """
 
@@ -30,13 +30,6 @@ Treat technical synonyms as equivalent (e.g. "bits" and "pixels" for sprite widt
 If the student answer covers the key facts from the ground truth, even if worded differently or with additional detail, grade as correct.
 Explain your reasoning step by step."""
 
-_RELEVANCE_PROMPT = """You are a teacher grading a quiz.
-QUESTION: {question}
-STUDENT ANSWER: {answer}
-
-Is the answer concise, relevant, and helpful for the question?
-Explain your reasoning step by step."""
-
 _GROUNDEDNESS_PROMPT = """You are a teacher grading a quiz.
 FACTS (retrieved documents):
 {context}
@@ -47,35 +40,15 @@ Is the answer grounded in the FACTS? Does it hallucinate information not in FACT
 If there are no FACTS (empty context), judge whether the answer makes unsupported claims.
 Explain your reasoning step by step."""
 
-_RETRIEVAL_RELEVANCE_PROMPT = """You are a teacher grading a quiz.
-QUESTION: {question}
-FACTS (retrieved documents):
-{context}
-
-Are the FACTS relevant to the QUESTION? It is OK if some facts are tangential as long
-as they contain keywords or semantic meaning related to the question.
-If there are no FACTS (empty context), the retrieved docs are not relevant.
-Explain your reasoning step by step."""
-
 
 class _CorrectnessGrade(TypedDict):
     explanation: Annotated[str, "Step-by-step reasoning"]
     correct: Annotated[bool, "True if factually correct"]
 
 
-class _RelevanceGrade(TypedDict):
-    explanation: Annotated[str, "Step-by-step reasoning"]
-    relevant: Annotated[bool, "True if answer addresses the question"]
-
-
 class _GroundednessGrade(TypedDict):
     explanation: Annotated[str, "Step-by-step reasoning"]
     grounded: Annotated[bool, "True if no hallucination beyond the facts"]
-
-
-class _RetrievalRelevanceGrade(TypedDict):
-    explanation: Annotated[str, "Step-by-step reasoning"]
-    relevant: Annotated[bool, "True if retrieved docs are relevant"]
 
 
 def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> BaseChatModel:
@@ -110,7 +83,7 @@ def _documents_to_context(documents: list) -> str:
 
 
 # ---------------------------------------------------------------------------
-# LLM-as-judge evaluators (4)
+# LLM-as-judge evaluators (2)
 # ---------------------------------------------------------------------------
 
 
@@ -128,17 +101,6 @@ def correctness(
     return {"key": "correctness", "score": int(grade["correct"])}
 
 
-def relevance(inputs: dict, outputs: dict) -> dict:
-    """Compare outputs['answer'] to inputs['question']."""
-    grader = _get_grader_llm(_RelevanceGrade, context_heavy=False)
-    content = _RELEVANCE_PROMPT.format(
-        question=inputs.get("question", ""),
-        answer=outputs.get("answer", ""),
-    )
-    grade = grader.invoke([HumanMessage(content=content)])
-    return {"key": "relevance", "score": int(grade["relevant"])}
-
-
 def groundedness(inputs: dict, outputs: dict) -> dict:
     """Compare outputs['answer'] to outputs['documents']."""
     context = _documents_to_context(outputs.get("documents", []))
@@ -149,21 +111,6 @@ def groundedness(inputs: dict, outputs: dict) -> dict:
     )
     grade = grader.invoke([HumanMessage(content=content)])
     return {"key": "groundedness", "score": int(grade["grounded"])}
-
-
-def retrieval_relevance(inputs: dict, outputs: dict) -> dict:
-    """Compare outputs['documents'] to inputs['question']."""
-    documents = outputs.get("documents", [])
-    if not documents:
-        return {"key": "retrieval_relevance", "score": 0}
-    context = _documents_to_context(documents)
-    grader = _get_grader_llm(_RetrievalRelevanceGrade, context_heavy=True)
-    content = _RETRIEVAL_RELEVANCE_PROMPT.format(
-        question=inputs.get("question", ""),
-        context=context,
-    )
-    grade = grader.invoke([HumanMessage(content=content)])
-    return {"key": "retrieval_relevance", "score": int(grade["relevant"])}
 
 
 # ---------------------------------------------------------------------------
@@ -202,9 +149,7 @@ def source_in_expected_docs(
 
 EVALUATORS = [
     correctness,
-    relevance,
     groundedness,
-    retrieval_relevance,
     has_sources,
     answer_not_empty,
     source_in_expected_docs,

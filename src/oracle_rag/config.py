@@ -66,7 +66,7 @@ def get_evaluator_provider() -> str:
 
 
 def get_evaluator_model(*, context_heavy: bool = False) -> str:
-    """Return evaluator model for correctness/relevance (context_heavy=False) or groundedness/retrieval (context_heavy=True)."""
+    """Return evaluator model for correctness (context_heavy=False) or groundedness (context_heavy=True)."""
     val = os.environ.get(
         "ORACLE_RAG_EVALUATOR_MODEL_CONTEXT" if context_heavy else "ORACLE_RAG_EVALUATOR_MODEL"
     )
@@ -299,6 +299,7 @@ def get_child_chunk_size() -> int:
 
 # Response style for RAG answer: thorough (default) or concise
 DEFAULT_RESPONSE_STYLE = "thorough"
+DEFAULT_STRUCTURE_AWARE_CHUNKING = True
 
 
 def get_response_style() -> str:
@@ -310,3 +311,16 @@ def get_response_style() -> str:
     if v in ("thorough", "concise"):
         return v
     return DEFAULT_RESPONSE_STYLE
+
+
+def get_structure_aware_chunking() -> bool:
+    """Return whether to apply structure-aware chunking heuristics (default: true)."""
+    val = os.environ.get("ORACLE_RAG_STRUCTURE_AWARE_CHUNKING")
+    if val is None or not str(val).strip():
+        return DEFAULT_STRUCTURE_AWARE_CHUNKING
+    v = str(val).strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return DEFAULT_STRUCTURE_AWARE_CHUNKING

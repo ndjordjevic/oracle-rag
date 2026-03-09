@@ -251,7 +251,7 @@
 ### Chunking Improvement
 - [x] **Chunk size tuning** (needs evaluation framework first) — Tune chunk size to ~512 tokens (~2000 chars) with 10–20% overlap; benchmark retrieval quality before/after with evaluation dataset.
 - [x] **Parent-child retrieval** — Implemented via LangChain `ParentDocumentRetriever`. Embed small child chunks (400 chars default) for precise matching, return larger parent chunks (2000 chars default) for context. Config: `ORACLE_RAG_USE_PARENT_CHILD` (default false), `ORACLE_RAG_PARENT_CHUNK_SIZE`, `ORACLE_RAG_CHILD_CHUNK_SIZE`. Uses `LocalFileStore` docstore for persistence. Requires re-indexing when enabling.
-- [ ] **Structure-aware chunking** — Detect and preserve tables and code blocks as atomic chunks (avoid splitting mid-table or mid-block).
+- [x] **Structure-aware chunking** — Implemented in `oracle_rag.chunking.splitter`: `_ensure_code_block_breaks()` (detect C and 68k assembly, insert `\n\n` at prose↔code transitions) and `_ensure_table_breaks()` (detect aligned/register tables, insert `\n\n` at prose↔table transitions). RecursiveCharacterTextSplitter then prefers breaking at those boundaries. Config: `ORACLE_RAG_STRUCTURE_AWARE_CHUNKING` (default true). Tests: `tests/test_structure_aware_chunking.py`, `tests/test_structure_config.py`. Helps digitally-born C/technical PDFs (e.g. Pi Pico book); Amiga OCR PDFs benefit less due to two-column extraction.
 
 ### Response Generation
 - [ ] **Streaming** — Implement streaming response generation in `run_rag` and expose via MCP server.
@@ -305,6 +305,7 @@
 ### Advanced PDF Processing
 - [ ] **OCR integration** — Detect image-only pages and run OCR automatically (or offer as option in `add_pdf`). Research done: ocrmypdf + Tesseract used externally.
 - [ ] **Complex structure handling** — Handle multi-column layouts, tables (preserve as atomic chunks), code blocks, and embedded images/diagrams.
+- [ ] **pdfplumber extraction backend** — Add pdfplumber as optional PDF extraction backend for better table extraction (atomic chunks), multi-column layout handling, and richer structure signals. Addresses two-column garbling in OCR'd PDFs (e.g. Amiga book). See notes/pdf-parsing-library-analysis.md. MIT licensed.
 - [ ] **Richer structure signals** — Use PDF outline/bookmarks as section/heading labels; detect headings via font size/style (pdfplumber or PyMuPDF).
 - [ ] **Filter by section** — Implement section filter in `query_index`, `run_rag`, `query_pdf` (depends on reliable `section` metadata above).
 

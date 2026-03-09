@@ -15,6 +15,7 @@ from oracle_rag.chunking import chunk_documents
 from oracle_rag.config import (
     get_child_chunk_size,
     get_collection_name,
+    get_structure_aware_chunking,
     get_use_parent_child,
 )
 from oracle_rag.indexing.discord_loader import (
@@ -73,6 +74,7 @@ def index_discord(
     """
     if collection_name is None:
         collection_name = get_collection_name()
+    respect_structure = get_structure_aware_chunking()
     txt_path = Path(path).expanduser().resolve()
     load_result = load_discord_export_as_documents(
         txt_path,
@@ -111,6 +113,7 @@ def index_discord(
             collection_name=collection_name,
             embedding=embedding,
             tag=tag,
+            respect_structure=respect_structure,
         )
     else:
         upload_ts = datetime.now(timezone.utc).isoformat()
@@ -158,6 +161,7 @@ def _index_discord_parent_child(
     collection_name: str,
     embedding: Optional[Embeddings],
     tag: Optional[str],
+    respect_structure: bool,
 ) -> int:
     """Index Discord using parent-child retrieval: embed small chunks, store large parents in docstore."""
     child_size = get_child_chunk_size()
@@ -194,6 +198,7 @@ def _index_discord_parent_child(
             chunk_size=child_size,
             chunk_overlap=child_overlap,
             document_id_key="document_id",
+            respect_structure=respect_structure,
         )
         for c in child_chunks:
             c.metadata["doc_id"] = parent_id
