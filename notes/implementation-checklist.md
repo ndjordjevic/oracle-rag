@@ -249,7 +249,7 @@
   - [x] **Prompt engineering iteration** — Implemented: (1) internal step-by-step instruction in system prompt (“Think step-by-step internally before finalizing your answer, but do not reveal hidden reasoning”); (2) response style **thorough** (default) vs **concise** via `get_rag_prompt(response_style)` and `run_rag(..., response_style=...)`. Config: `ORACLE_RAG_RESPONSE_STYLE` (thorough | concise); evaluation target and MCP `query` tool support it. See `oracle_rag.rag.prompts`, `evaluation-strategy.md` (response style comparison).
 
 ### Chunking Improvement
-- [ ] **Chunk size tuning** (needs evaluation framework first) — Tune chunk size to ~512 tokens (~2000 chars) with 10–20% overlap; benchmark retrieval quality before/after with evaluation dataset.
+- [x] **Chunk size tuning** (needs evaluation framework first) — Tune chunk size to ~512 tokens (~2000 chars) with 10–20% overlap; benchmark retrieval quality before/after with evaluation dataset.
 - [ ] **Parent-child retrieval** — Embed small chunks (128–256 tokens) for precise matching, return larger parent chunks (1000–2000 tokens) for context. Evaluate LangChain `ParentDocumentRetriever`.
 - [ ] **Structure-aware chunking** — Detect and preserve tables and code blocks as atomic chunks (avoid splitting mid-table or mid-block).
 
