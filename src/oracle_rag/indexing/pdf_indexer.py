@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,12 +12,20 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
 from oracle_rag.chunking import chunk_documents
-from oracle_rag.config import get_chunk_overlap, get_chunk_size, get_collection_name
+from oracle_rag.config import (
+    get_child_chunk_size,
+    get_chunk_overlap,
+    get_chunk_size,
+    get_collection_name,
+    get_parent_chunk_size,
+    get_use_parent_child,
+)
 from oracle_rag.pdf.pypdf_loader import PathLike, load_pdf_as_documents
 from oracle_rag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
+from oracle_rag.vectorstore.docstore import get_parent_docstore
 from oracle_rag.vectorstore.retriever import build_retrieval_filter
 
 
@@ -69,54 +78,144 @@ def index_pdf(
         collection_name = get_collection_name()
     pdf_path = Path(path).expanduser().resolve()
     pdf_result = load_pdf_as_documents(pdf_path)
+    document_id = pdf_path.name
 
-    # Turn per-page documents into chunk documents (preserving metadata).
-    size = chunk_size if chunk_size is not None else get_chunk_size()
-    overlap = chunk_overlap if chunk_overlap is not None else get_chunk_overlap()
-    chunk_docs: list[Document] = chunk_documents(
-        pdf_result.documents,
-        chunk_size=size,
-        chunk_overlap=overlap,
+    if get_use_parent_child():
+        chunk_docs, total_chunks = _index_pdf_parent_child(
+            pdf_result=pdf_result,
+            pdf_path=pdf_path,
+            persist_directory=persist_directory,
+            collection_name=collection_name,
+            embedding=embedding,
+            tag=tag,
+        )
+    else:
+        # Turn per-page documents into chunk documents (preserving metadata).
+        size = chunk_size if chunk_size is not None else get_chunk_size()
+        overlap = chunk_overlap if chunk_overlap is not None else get_chunk_overlap()
+        chunk_docs = chunk_documents(
+            pdf_result.documents,
+            chunk_size=size,
+            chunk_overlap=overlap,
+        )
+
+        # Get/create the Chroma store.
+        store = get_chroma_store(
+            persist_directory=persist_directory,
+            collection_name=collection_name,
+            embedding=embedding,
+        )
+
+        # Add document-level metadata to each chunk (upload time, size stats).
+        doc_bytes = pdf_path.stat().st_size
+        upload_ts = datetime.now(timezone.utc).isoformat()
+        doc_pages = pdf_result.total_pages
+        doc_total_chunks = len(chunk_docs)
+        for doc in chunk_docs:
+            doc.metadata["upload_timestamp"] = upload_ts
+            doc.metadata["doc_pages"] = doc_pages
+            doc.metadata["doc_bytes"] = doc_bytes
+            doc.metadata["doc_total_chunks"] = doc_total_chunks
+            if tag is not None and str(tag).strip():
+                doc.metadata["tag"] = str(tag).strip()
+
+        # Replace existing chunks for this document to avoid duplicates.
+        store._collection.delete(where={"document_id": document_id})
+
+        # Add in batches to avoid OpenAI/Chroma batch size limits (e.g. token or record limits)
+        batch_size = 100
+        if chunk_docs:
+            for i in range(0, len(chunk_docs), batch_size):
+                batch = chunk_docs[i : i + batch_size]
+                store.add_documents(batch)
+        total_chunks = len(chunk_docs)
+
+    return IndexResult(
+        source_path=pdf_result.source_path,
+        total_pages=pdf_result.total_pages,
+        total_chunks=total_chunks,
+        persist_directory=Path(persist_directory).expanduser().resolve(),
+        collection_name=collection_name,
     )
 
-    # Get/create the Chroma store.
+
+def _index_pdf_parent_child(
+    *,
+    pdf_result: "PdfLoadResult",
+    pdf_path: Path,
+    persist_directory: PathLike,
+    collection_name: str,
+    embedding: Optional[Embeddings],
+    tag: Optional[str],
+) -> tuple[list[Document], int]:
+    """Index PDF using parent-child retrieval: embed small chunks, store large parents in docstore."""
+    parent_size = get_parent_chunk_size()
+    parent_overlap = min(200, parent_size // 10)
+    child_size = get_child_chunk_size()
+    child_overlap = min(50, child_size // 10)
+
+    # Split into parent chunks.
+    parent_chunks = chunk_documents(
+        pdf_result.documents,
+        chunk_size=parent_size,
+        chunk_overlap=parent_overlap,
+    )
+
     store = get_chroma_store(
         persist_directory=persist_directory,
         collection_name=collection_name,
         embedding=embedding,
     )
+    docstore = get_parent_docstore(persist_directory, collection_name)
 
-    # Add document-level metadata to each chunk (upload time, size stats).
     doc_bytes = pdf_path.stat().st_size
     upload_ts = datetime.now(timezone.utc).isoformat()
     doc_pages = pdf_result.total_pages
-    doc_total_chunks = len(chunk_docs)
-    for doc in chunk_docs:
-        doc.metadata["upload_timestamp"] = upload_ts
-        doc.metadata["doc_pages"] = doc_pages
-        doc.metadata["doc_bytes"] = doc_bytes
-        doc.metadata["doc_total_chunks"] = doc_total_chunks
-        if tag is not None and str(tag).strip():
-            doc.metadata["tag"] = str(tag).strip()
-
-    # Replace existing chunks for this document to avoid duplicates.
     document_id = pdf_path.name
+
+    all_children: list[Document] = []
+    parent_docstore_entries: list[tuple[str, Document]] = []
+
+    for parent in parent_chunks:
+        parent_id = str(uuid.uuid4())
+        parent.metadata["doc_id"] = parent_id
+        parent.metadata["document_id"] = document_id
+        parent.metadata["upload_timestamp"] = upload_ts
+        parent.metadata["doc_pages"] = doc_pages
+        parent.metadata["doc_bytes"] = doc_bytes
+        if tag is not None and str(tag).strip():
+            parent.metadata["tag"] = str(tag).strip()
+
+        child_chunks = chunk_documents(
+            [parent],
+            chunk_size=child_size,
+            chunk_overlap=child_overlap,
+        )
+        for c in child_chunks:
+            c.metadata["doc_id"] = parent_id
+            c.metadata["document_id"] = document_id
+            c.metadata["upload_timestamp"] = upload_ts
+            c.metadata["doc_pages"] = doc_pages
+            c.metadata["doc_bytes"] = doc_bytes
+            c.metadata["doc_total_chunks"] = len(child_chunks)
+            if tag is not None and str(tag).strip():
+                c.metadata["tag"] = str(tag).strip()
+            all_children.append(c)
+
+        parent.metadata["doc_total_chunks"] = len(child_chunks)
+        parent_docstore_entries.append((parent_id, parent))
+
     store._collection.delete(where={"document_id": document_id})
 
-    # Add in batches to avoid OpenAI/Chroma batch size limits (e.g. token or record limits)
-    batch_size = 100
-    if chunk_docs:
-        for i in range(0, len(chunk_docs), batch_size):
-            batch = chunk_docs[i : i + batch_size]
-            store.add_documents(batch)
+    if parent_docstore_entries:
+        docstore.mset(parent_docstore_entries)
 
-    return IndexResult(
-        source_path=pdf_result.source_path,
-        total_pages=pdf_result.total_pages,
-        total_chunks=len(chunk_docs),
-        persist_directory=Path(persist_directory).expanduser().resolve(),
-        collection_name=collection_name,
-    )
+    batch_size = 100
+    for i in range(0, len(all_children), batch_size):
+        batch = all_children[i : i + batch_size]
+        store.add_documents(batch)
+
+    return all_children, len(all_children)
 
 
 def query_index(

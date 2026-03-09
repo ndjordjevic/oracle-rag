@@ -55,7 +55,7 @@
 - [x] **Vector Store Implementation**
   - [x] Implement embedding storage with metadata (via `index_pdf` → `get_chroma_store().add_documents()`)
   - [x] Implement similarity search/retrieval (`query_index` + Chroma `similarity_search`; tests in `tests/test_indexing.py` and `tests/test_vectorstore.py`)
-  - [x] Test basic retrieval functionality (CLI: `scripts/index_pdf_cli.py`, `scripts/query_rag_cli.py`; tests: `test_indexing.py`, `test_vectorstore.py`)
+  - [x] Test basic retrieval functionality (CLI: `scripts/index_cli.py`, `scripts/query_rag_cli.py`; tests: `test_indexing.py`, `test_vectorstore.py`)
 
 ### RAG Pipeline
 - [x] **LLM Setup**
@@ -250,7 +250,7 @@
 
 ### Chunking Improvement
 - [x] **Chunk size tuning** (needs evaluation framework first) — Tune chunk size to ~512 tokens (~2000 chars) with 10–20% overlap; benchmark retrieval quality before/after with evaluation dataset.
-- [ ] **Parent-child retrieval** — Embed small chunks (128–256 tokens) for precise matching, return larger parent chunks (1000–2000 tokens) for context. Evaluate LangChain `ParentDocumentRetriever`.
+- [x] **Parent-child retrieval** — Implemented via LangChain `ParentDocumentRetriever`. Embed small child chunks (400 chars default) for precise matching, return larger parent chunks (2000 chars default) for context. Config: `ORACLE_RAG_USE_PARENT_CHILD` (default false), `ORACLE_RAG_PARENT_CHUNK_SIZE`, `ORACLE_RAG_CHILD_CHUNK_SIZE`. Uses `LocalFileStore` docstore for persistence. Requires re-indexing when enabling.
 - [ ] **Structure-aware chunking** — Detect and preserve tables and code blocks as atomic chunks (avoid splitting mid-table or mid-block).
 
 ### Response Generation
@@ -309,7 +309,6 @@
 - [ ] **Filter by section** — Implement section filter in `query_index`, `run_rag`, `query_pdf` (depends on reliable `section` metadata above).
 
 ### Advanced Chunking
-- [ ] **Parent-child retrieval** — Embed small chunks (128–256 tokens) for precise matching, return larger parent chunks (1000–2000 tokens) for context. Evaluate LangChain `ParentDocumentRetriever`.
 - [ ] **Multi-representation indexing** (optional) — Embed per-chunk summaries/propositions in the vector store; store full raw docs in a separate doc store keyed by doc_id. Ref: rag-from-scratch 12.
 - [ ] **RAPTOR / hierarchical indexing** (optional) — Cluster leaf chunks, summarize clusters, recurse; index all levels together. Ref: RAPTOR paper; rag-from-scratch 13.
 

@@ -250,6 +250,53 @@ def get_multi_query_count() -> int:
         return DEFAULT_MULTI_QUERY_COUNT
 
 
+# Parent-child retrieval: embed small chunks, return larger parent chunks
+DEFAULT_USE_PARENT_CHILD = False
+DEFAULT_PARENT_CHUNK_SIZE = 2000
+DEFAULT_CHILD_CHUNK_SIZE = 800
+
+
+def get_use_parent_child() -> bool:
+    """Return whether to use parent-child retrieval (embed small, return large chunks)."""
+    val = os.environ.get("ORACLE_RAG_USE_PARENT_CHILD")
+    if val is None or not str(val).strip():
+        return DEFAULT_USE_PARENT_CHILD
+    v = str(val).strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return DEFAULT_USE_PARENT_CHILD
+
+
+def get_parent_chunk_size() -> int:
+    """Return parent chunk size in chars for parent-child retrieval (default 2000)."""
+    val = os.environ.get("ORACLE_RAG_PARENT_CHUNK_SIZE")
+    if val is None:
+        return DEFAULT_PARENT_CHUNK_SIZE
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_PARENT_CHUNK_SIZE
+        return n
+    except ValueError:
+        return DEFAULT_PARENT_CHUNK_SIZE
+
+
+def get_child_chunk_size() -> int:
+    """Return child chunk size in chars for parent-child retrieval (default 400)."""
+    val = os.environ.get("ORACLE_RAG_CHILD_CHUNK_SIZE")
+    if val is None:
+        return DEFAULT_CHILD_CHUNK_SIZE
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_CHILD_CHUNK_SIZE
+        return n
+    except ValueError:
+        return DEFAULT_CHILD_CHUNK_SIZE
+
+
 # Response style for RAG answer: thorough (default) or concise
 DEFAULT_RESPONSE_STYLE = "thorough"
 

@@ -88,26 +88,36 @@ uv run python scripts/print_pdf_chunks.py data/pdfs/sample.pdf --page 7 --limit 
 
 ---
 
-## index_pdf_cli.py
+## index_cli.py
 
-Index a PDF into the local Chroma vector store using the project’s indexing pipeline.
+Unified CLI to index PDFs and Discord exports into Chroma. Replaces existing chunks per document. Uses  from  when set (parent-child retrieval).
 
 **Arguments**
 
 | Argument | Description |
 |----------|-------------|
-| `pdf_path` | Path to the PDF file to index (positional). |
-| `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
-| `--collection` | Chroma collection name (default: `oracle_rag`). |
+| `paths` | Paths to index (files or directories). Omit with `--from-chroma` to reindex from Chroma metadata. |
+| `--from-chroma` | Discover paths from existing Chroma metadata and reindex those documents. |
+| `--persist-dir` | Chroma persistence directory (default: from config). |
+| `--collection` | Chroma collection name (default: from config). |
+| `--tag` | Optional tag for indexed documents. |
+| `--dry-run` | List documents that would be indexed without indexing. |
 
 **Examples**
 
 ```bash
-# Index a sample PDF into the default store
-uv run python scripts/index_pdf_cli.py data/pdfs/sample-text.pdf
+# Index specific files
+uv run python scripts/index_cli.py data/pdfs/sample-text.pdf
+uv run python scripts/index_cli.py data/discord-channels/alicia1200/file.txt
 
-# Index into a custom directory and collection
-uv run python scripts/index_pdf_cli.py data/pdfs/your.pdf --persist-dir my_chroma --collection my_collection
+# Index directories (recursive)
+uv run python scripts/index_cli.py data/pdfs/ data/discord-channels/alicia1200/
+
+# Reindex all documents whose source paths are stored in Chroma
+uv run python scripts/index_cli.py --from-chroma
+
+# Dry run
+uv run python scripts/index_cli.py --from-chroma --dry-run
 ```
 
 ---
@@ -195,7 +205,7 @@ Run the full RAG chain: ask a question over indexed PDFs and get an answer with 
 **Examples**
 
 ```bash
-# After indexing a PDF with index_pdf_cli.py
+# After indexing with index_cli.py
 uv run python scripts/rag_cli.py "What is this document about?"
 uv run python scripts/rag_cli.py "Summarize the main points." --k 8
 ```
@@ -211,7 +221,7 @@ Run the Oracle-RAG MCP (Model Context Protocol) server, exposing RAG tools (`que
 - `OPENAI_API_KEY` must be set in `.env` or environment variables
 - PDFs can be indexed using either:
   - The `add_pdf` MCP tool (via MCP client)
-  - The `index_pdf_cli.py` CLI script
+  - The `index_cli.py` CLI script
 
 **Transport**
 

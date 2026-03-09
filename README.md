@@ -126,6 +126,11 @@ Environment variables:
 | `ORACLE_RAG_CHUNK_SIZE` | `1000` | Text chunk size |
 | `ORACLE_RAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
 | `ORACLE_RAG_COLLECTION_NAME` | `oracle_rag` | Chroma collection name. Single shared collection by default. |
+| **Parent-child retrieval** | | |
+| `ORACLE_RAG_USE_PARENT_CHILD` | `false` | Set to `true` to embed small chunks (precise matching) and return larger parent chunks (rich context). Requires re-indexing. |
+| `ORACLE_RAG_PARENT_CHUNK_SIZE` | `2000` | Parent chunk size (chars) when `ORACLE_RAG_USE_PARENT_CHILD=true`. |
+| `ORACLE_RAG_CHILD_CHUNK_SIZE` | `400` | Child chunk size (chars) when `ORACLE_RAG_USE_PARENT_CHILD=true`. |
+| **Retrieval** | | |
 | `ORACLE_RAG_RETRIEVE_K` | `20` | Number of chunks to retrieve. When rerank is on, this is the fallback for the pre-rerank fetch if `ORACLE_RAG_RERANK_RETRIEVE_K` is unset. |
 | **Re-ranking** | | |
 | `ORACLE_RAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: fetch more chunks, re-score with Cohere, pass top N to the LLM. Requires `pip install oracle-rag[cohere]` and `COHERE_API_KEY`. |
@@ -138,6 +143,8 @@ Environment variables:
 | `ORACLE_RAG_RESPONSE_STYLE` | `thorough` | RAG answer style: `thorough` (detailed) or `concise`. Used by evaluation target and as default when MCP `query` omits `response_style`. |
 
 > **Re-indexing when changing embedding provider:** Changing `ORACLE_RAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
+>
+> **Re-indexing when enabling parent-child:** Setting `ORACLE_RAG_USE_PARENT_CHILD=true` requires re-indexing; the new structure (child chunks in Chroma, parent chunks in docstore) is created only during indexing.
 
 ### Multiple providers and collections
 

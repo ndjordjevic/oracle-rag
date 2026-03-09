@@ -10,6 +10,14 @@ Designed so single-query retrieval fails on most questions, and multi-query expa
 
 Key design principle: questions must have enough semantic content for query variants to
 help — multi-phrase or partial-sentence queries work better than bare 1-2 word acronyms.
+
+Polishing history:
+  - "cookie cut blitter operation" → "Blitter BOB over background minterm value"
+    (corpus uses "cookie cutter" once; actual indexed phrasing is "BOB", "minterm $CA", "D=AB+/AC")
+  - "HAM mode colour fringing artifact" → "HAM hold-and-modify dependence on previous pixel"
+    ("fringing" absent from corpus; book says "previous pixel (the pixel to the left of this one)")
+  - "blitter line draw error accumulator register" → "Blitter line draw BLTAPTL initial value formula"
+    ("error accumulator" absent from corpus; book gives BLTAPTL formula with d_min / d_max)
 """
 
 from __future__ import annotations
@@ -39,11 +47,11 @@ DOCUMENT_ID = "Bare-metal Amiga programming 2021_ocr.pdf"
 EXAMPLES: list[tuple[str, str, list[int], str]] = [
     # --- GROUP 1: Terse phrase queries (single-query misses; multi-query expansion helps) ---
 
-    # "cookie cut" is a blitter technique, not a well-known phrase - expansion to "shaped object overlay"
-    # or "minterms for masking" helps retrieval of p148-149
+    # "BOB over background" is the actual corpus phrasing; "cookie cutter" appears only once.
+    # Expansion to "blitter object mask background minterm" helps retrieval of p148-149.
     (
-        "cookie cut blitter operation",
-        "The cookie-cut operation (place a shaped object over background) uses minterms $CA which gives D = (A AND B) OR (NOT A AND C).",
+        "Blitter BOB over background minterm value",
+        "Placing a BOB (blitter object) over a background uses source A as a mask, source B as the BOB graphic, and source C as the background. The required minterm is $CA, which implements the logic function D = AB + /AC (use B where A is set, use C where A is clear). In code: OR.W #$0FCA, d0 with USEA, B, C and D bits set, then MOVE.W d0, BLTCON0.",
         [148, 149],
         "terse-phrase",
     ),
@@ -54,11 +62,11 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
         [57],
         "preprocess-boilerplate",
     ),
-    # HAM fringing is an unusual compound; expansion to "Hold-And-Modify colour artifact" or
-    # "pixel colour depends on neighbour" helps retrieval of p82-83
+    # "fringing" never appears in the corpus; the actual phrasing is "previous pixel" / "pixel to the left".
+    # Expansion to "hold-and-modify colour depends on previous pixel" retrieves p82-83.
     (
-        "HAM mode colour fringing artifact",
-        "This allows displaying all 4,096 OCS colours on screen simultaneously, but with the limitation that each pixel depends on its left neighbour, causing colour fringing on sharp edges.",
+        "HAM hold-and-modify dependence on previous pixel",
+        "In HAM (hold-and-modify) mode each pixel depends on the previous pixel to its left. The hold-and-modify mechanism takes the three colour components of the previous pixel, holds two components at the same value, and modifies only the third. Because each colour is derived from its left neighbour rather than a palette register, HAM mode is less suitable for displaying windows and text with sharp colour transitions.",
         [82, 83],
         "terse-phrase",
     ),
@@ -97,11 +105,11 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
 
     # --- GROUP 2: Incomplete sentence queries (missing noun/verb; multi-query completes them) ---
 
-    # Blitter line draw error: expansion from "blitter error accumulator" to
-    # "Bresenham line drawing start value register" finds p152-153
+    # "error accumulator" never appears in the corpus; actual register is BLTAPTL with a formula.
+    # Expansion to "BLTAPTL initial value line draw delta formula" finds p152-153.
     (
-        "blitter line draw error accumulator register",
-        "BLTAPT holds the initial error accumulator value for Blitter line drawing. In line-draw mode, source A provides a pixel mask (a single bit set), source C and destination D point to the same bitplane, and BLTAPT holds the initial error accumulator value.",
+        "Blitter line draw BLTAPTL initial value formula",
+        "For Blitter line drawing, BLTAPTL is initialised with the formula BLTAPTL = (4 × d_min) - (2 × d_max), where d_min and d_max are the normalised minimum and maximum deltas. If the result is negative the SIGN bit of BLTCON1 must be set. The normalised deltas are also stored into BLTAMOD and BLTBMOD. Source channel A provides a single pixel mask (BLTADAT = $8000), while source C and destination D both point to the same bitplane being drawn into.",
         [152, 153],
         "incomplete",
     ),

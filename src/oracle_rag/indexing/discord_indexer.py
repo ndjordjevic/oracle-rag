@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Union
 
+from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from oracle_rag.config import get_collection_name
+from oracle_rag.chunking import chunk_documents
+from oracle_rag.config import (
+    get_child_chunk_size,
+    get_collection_name,
+    get_use_parent_child,
+)
 from oracle_rag.indexing.discord_loader import (
+    DiscordLoadResult,
     _document_id_from_channel_and_path,
     load_discord_export_as_documents,
 )
@@ -18,6 +26,7 @@ from oracle_rag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
+from oracle_rag.vectorstore.docstore import get_parent_docstore
 
 
 PathLike = Union[str, Path]
@@ -93,39 +102,124 @@ def index_discord(
         )
 
     doc_id = load_result.documents[0].metadata["document_id"]
-    upload_ts = datetime.now(timezone.utc).isoformat()
-    doc_bytes = txt_path.stat().st_size
-    doc_total_chunks = len(load_result.documents)
 
-    for doc in load_result.documents:
-        doc.metadata["upload_timestamp"] = upload_ts
-        doc.metadata["doc_bytes"] = doc_bytes
-        doc.metadata["doc_total_chunks"] = doc_total_chunks
-        doc.metadata["doc_messages"] = load_result.total_messages
-        if tag is not None and str(tag).strip():
-            doc.metadata["tag"] = str(tag).strip()
+    if get_use_parent_child():
+        total_chunks = _index_discord_parent_child(
+            load_result=load_result,
+            txt_path=txt_path,
+            persist_directory=persist_directory,
+            collection_name=collection_name,
+            embedding=embedding,
+            tag=tag,
+        )
+    else:
+        upload_ts = datetime.now(timezone.utc).isoformat()
+        doc_bytes = txt_path.stat().st_size
+        doc_total_chunks = len(load_result.documents)
 
-    store = get_chroma_store(
-        persist_directory=persist_directory,
-        collection_name=collection_name,
-        embedding=embedding,
-    )
-    store._collection.delete(where={"document_id": doc_id})
+        for doc in load_result.documents:
+            doc.metadata["upload_timestamp"] = upload_ts
+            doc.metadata["doc_bytes"] = doc_bytes
+            doc.metadata["doc_total_chunks"] = doc_total_chunks
+            doc.metadata["doc_messages"] = load_result.total_messages
+            if tag is not None and str(tag).strip():
+                doc.metadata["tag"] = str(tag).strip()
 
-    batch_size = 100
-    for i in range(0, len(load_result.documents), batch_size):
-        batch = load_result.documents[i : i + batch_size]
-        store.add_documents(batch)
+        store = get_chroma_store(
+            persist_directory=persist_directory,
+            collection_name=collection_name,
+            embedding=embedding,
+        )
+        store._collection.delete(where={"document_id": doc_id})
+
+        batch_size = 100
+        for i in range(0, len(load_result.documents), batch_size):
+            batch = load_result.documents[i : i + batch_size]
+            store.add_documents(batch)
+        total_chunks = len(load_result.documents)
 
     return DiscordIndexResult(
         source_path=load_result.source_path,
         total_messages=load_result.total_messages,
-        total_chunks=len(load_result.documents),
+        total_chunks=total_chunks,
         persist_directory=Path(persist_directory).expanduser().resolve(),
         collection_name=collection_name,
         document_id=doc_id,
         channel=load_result.channel,
         guild=load_result.guild,
     )
+
+
+def _index_discord_parent_child(
+    *,
+    load_result: "DiscordLoadResult",
+    txt_path: Path,
+    persist_directory: PathLike,
+    collection_name: str,
+    embedding: Optional[Embeddings],
+    tag: Optional[str],
+) -> int:
+    """Index Discord using parent-child retrieval: embed small chunks, store large parents in docstore."""
+    child_size = get_child_chunk_size()
+    child_overlap = min(50, child_size // 10)
+
+    store = get_chroma_store(
+        persist_directory=persist_directory,
+        collection_name=collection_name,
+        embedding=embedding,
+    )
+    docstore = get_parent_docstore(persist_directory, collection_name)
+
+    upload_ts = datetime.now(timezone.utc).isoformat()
+    doc_bytes = txt_path.stat().st_size
+    document_id = load_result.documents[0].metadata["document_id"]
+    source_path_str = str(txt_path)
+
+    all_children: list[Document] = []
+    parent_docstore_entries: list[tuple[str, Document]] = []
+
+    for parent in load_result.documents:
+        parent_id = str(uuid.uuid4())
+        parent.metadata["doc_id"] = parent_id
+        parent.metadata["document_id"] = document_id
+        parent.metadata["upload_timestamp"] = upload_ts
+        parent.metadata["doc_bytes"] = doc_bytes
+        parent.metadata["doc_messages"] = load_result.total_messages
+        parent.metadata["source"] = source_path_str
+        if tag is not None and str(tag).strip():
+            parent.metadata["tag"] = str(tag).strip()
+
+        child_chunks = chunk_documents(
+            [parent],
+            chunk_size=child_size,
+            chunk_overlap=child_overlap,
+            document_id_key="document_id",
+        )
+        for c in child_chunks:
+            c.metadata["doc_id"] = parent_id
+            c.metadata["document_id"] = document_id
+            c.metadata["upload_timestamp"] = upload_ts
+            c.metadata["doc_bytes"] = doc_bytes
+            c.metadata["doc_messages"] = load_result.total_messages
+            c.metadata["doc_total_chunks"] = len(child_chunks)
+            c.metadata["source"] = source_path_str
+            if tag is not None and str(tag).strip():
+                c.metadata["tag"] = str(tag).strip()
+            all_children.append(c)
+
+        parent.metadata["doc_total_chunks"] = len(child_chunks)
+        parent_docstore_entries.append((parent_id, parent))
+
+    store._collection.delete(where={"document_id": document_id})
+
+    if parent_docstore_entries:
+        docstore.mset(parent_docstore_entries)
+
+    batch_size = 100
+    for i in range(0, len(all_children), batch_size):
+        batch = all_children[i : i + batch_size]
+        store.add_documents(batch)
+
+    return len(all_children)
 
 
