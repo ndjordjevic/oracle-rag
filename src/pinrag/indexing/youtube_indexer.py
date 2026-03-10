@@ -11,8 +11,8 @@ from typing import Optional, Union
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from oracle_rag.chunking import chunk_documents
-from oracle_rag.config import (
+from pinrag.chunking import chunk_documents
+from pinrag.config import (
     get_child_chunk_size,
     get_chunk_overlap,
     get_chunk_size,
@@ -21,12 +21,12 @@ from oracle_rag.config import (
     get_structure_aware_chunking,
     get_use_parent_child,
 )
-from oracle_rag.indexing.youtube_loader import YouTubeLoadResult, load_youtube_transcript_as_documents
-from oracle_rag.vectorstore.chroma_client import (
+from pinrag.indexing.youtube_loader import YouTubeLoadResult, load_youtube_transcript_as_documents
+from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
-from oracle_rag.vectorstore.docstore import get_parent_docstore
+from pinrag.vectorstore.docstore import get_parent_docstore
 
 
 PathLike = Union[str, Path]
@@ -65,8 +65,8 @@ def index_youtube(
         persist_directory: Chroma persistence directory.
         collection_name: Chroma collection name. If None, uses config default.
         embedding: Optional embedding model; if None, uses default.
-        chunk_size: Chunk size in chars; if None, uses ORACLE_RAG_CHUNK_SIZE.
-        chunk_overlap: Chunk overlap in chars; if None, uses ORACLE_RAG_CHUNK_OVERLAP.
+        chunk_size: Chunk size in chars; if None, uses PINRAG_CHUNK_SIZE.
+        chunk_overlap: Chunk overlap in chars; if None, uses PINRAG_CHUNK_OVERLAP.
         tag: Optional tag for this document; stored on all chunks for filtering.
 
     Returns:

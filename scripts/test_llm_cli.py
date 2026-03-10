@@ -9,7 +9,7 @@ import sys
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 
-from oracle_rag.llm import get_chat_model
+from pinrag.llm import get_chat_model
 
 
 def main() -> None:

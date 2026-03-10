@@ -5,8 +5,8 @@ Reports min k per question and summary.
 
 Usage:
     uv run python scripts/min_k_per_question.py [DATASET_NAME]
-    uv run python scripts/min_k_per_question.py                  # default: oracle-rag-hard-10
-    uv run python scripts/min_k_per_question.py oracle-rag-golden
+    uv run python scripts/min_k_per_question.py                  # default: pinrag-hard-10
+    uv run python scripts/min_k_per_question.py pinrag-golden
 
 Requires: LANGSMITH_API_KEY, and OPENAI_API_KEY or ANTHROPIC_API_KEY (for evaluator).
 """
@@ -20,10 +20,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langsmith import Client
 
-# Load .env so ORACLE_RAG_* and API keys are set
+# Load .env so PINRAG_* and API keys are set
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-DEFAULT_DATASET = "oracle-rag-hard-10"
+DEFAULT_DATASET = "pinrag-hard-10"
 K_VALUES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 MAX_K = max(K_VALUES)
 
@@ -34,8 +34,8 @@ def main() -> None:
     if not os.environ.get("LANGSMITH_API_KEY"):
         raise RuntimeError("LANGSMITH_API_KEY not set. Check .env")
 
-    from oracle_rag.evaluation.evaluators import correctness
-    from oracle_rag.evaluation.target import oracle_rag_target
+    from pinrag.evaluation.evaluators import correctness
+    from pinrag.evaluation.target import pinrag_target
 
     client = Client()
     examples = list(client.list_examples(dataset_name=dataset_name))
@@ -46,7 +46,7 @@ def main() -> None:
     print(f"Dataset: {dataset_name} ({len(examples)} questions)", flush=True)
 
     # Force no rerank so we're only varying k
-    os.environ["ORACLE_RAG_USE_RERANK"] = "false"
+    os.environ["PINRAG_USE_RERANK"] = "false"
 
     results: list[tuple[str, int | None, int]] = []  # (question_short, min_k, tries)
 
@@ -57,9 +57,9 @@ def main() -> None:
         tries = 0
 
         for k in K_VALUES:
-            os.environ["ORACLE_RAG_RETRIEVE_K"] = str(k)
+            os.environ["PINRAG_RETRIEVE_K"] = str(k)
             tries += 1
-            result = oracle_rag_target(ex.inputs)
+            result = pinrag_target(ex.inputs)
             grade = correctness(ex.inputs, result, ex.outputs)
             if grade["score"] == 1:
                 min_k = k

@@ -12,11 +12,11 @@ from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 
-from oracle_rag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
-from oracle_rag.rag.prompts import get_rag_prompt
+from pinrag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
+from pinrag.rag.prompts import get_rag_prompt
 
-from oracle_rag.llm import get_chat_model
-from oracle_rag.vectorstore import create_retriever
+from pinrag.llm import get_chat_model
+from pinrag.vectorstore import create_retriever
 
 
 def test_format_docs_empty() -> None:
@@ -117,8 +117,8 @@ def test_rag_chain_invoke(tmp_path: Path) -> None:
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present")
 
-    from oracle_rag.indexing import index_pdf
-    from oracle_rag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
+    from pinrag.embeddings import get_embedding_model
 
     persist_dir = tmp_path / "chroma_rag"
     index_pdf(
@@ -155,8 +155,8 @@ def test_run_rag_with_retriever(tmp_path: Path) -> None:
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present")
 
-    from oracle_rag.indexing import index_pdf
-    from oracle_rag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
+    from pinrag.embeddings import get_embedding_model
 
     persist_dir = tmp_path / "chroma_rag"
     index_pdf(
@@ -199,7 +199,7 @@ def test_run_rag_zero_retrieval_returns_clear_message() -> None:
 
 
 def test_run_rag_with_multi_query(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """run_rag with ORACLE_RAG_USE_MULTI_QUERY=true returns valid RAGResult."""
+    """run_rag with PINRAG_USE_MULTI_QUERY=true returns valid RAGResult."""
     from dotenv import load_dotenv
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
@@ -210,11 +210,11 @@ def test_run_rag_with_multi_query(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present")
 
-    from oracle_rag.indexing import index_pdf
-    from oracle_rag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
+    from pinrag.embeddings import get_embedding_model
 
-    monkeypatch.setenv("ORACLE_RAG_USE_MULTI_QUERY", "true")
-    monkeypatch.delenv("ORACLE_RAG_USE_RERANK", raising=False)
+    monkeypatch.setenv("PINRAG_USE_MULTI_QUERY", "true")
+    monkeypatch.delenv("PINRAG_USE_RERANK", raising=False)
 
     persist_dir = tmp_path / "chroma_mq"
     index_pdf(
@@ -243,7 +243,7 @@ def test_run_rag_use_rerank_false_uses_normal_retrieval(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """With use_rerank=False (or unset), run_rag uses normal retriever; no crash."""
-    monkeypatch.delenv("ORACLE_RAG_USE_RERANK", raising=False)
+    monkeypatch.delenv("PINRAG_USE_RERANK", raising=False)
     monkeypatch.delenv("COHERE_API_KEY", raising=False)
 
     class FakeRetriever(BaseRetriever):
@@ -257,7 +257,7 @@ def test_run_rag_use_rerank_false_uses_normal_retrieval(
                 )
             ]
 
-    llm = __import__("oracle_rag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    llm = __import__("pinrag.llm", fromlist=["get_chat_model"]).get_chat_model()
     result = run_rag(
         "test question",
         llm,
@@ -272,11 +272,11 @@ def test_run_rag_use_rerank_true_no_cohere_falls_back(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """With use_rerank=True but COHERE_API_KEY missing, rerank is disabled and normal retrieval is used (no crash)."""
-    monkeypatch.setenv("ORACLE_RAG_USE_RERANK", "true")
+    monkeypatch.setenv("PINRAG_USE_RERANK", "true")
     monkeypatch.delenv("COHERE_API_KEY", raising=False)
 
     # Use empty Chroma - we get "No relevant passages" but no crash
-    llm = __import__("oracle_rag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    llm = __import__("pinrag.llm", fromlist=["get_chat_model"]).get_chat_model()
     result = run_rag(
         "any question",
         llm,
@@ -292,8 +292,8 @@ def test_run_rag_use_rerank_true_no_cohere_falls_back(
 def test_run_rag_use_rerank_override_false(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Passing use_rerank=False overrides env ORACLE_RAG_USE_RERANK=true."""
-    monkeypatch.setenv("ORACLE_RAG_USE_RERANK", "true")
+    """Passing use_rerank=False overrides env PINRAG_USE_RERANK=true."""
+    monkeypatch.setenv("PINRAG_USE_RERANK", "true")
     monkeypatch.delenv("COHERE_API_KEY", raising=False)
 
     class FakeRetriever(BaseRetriever):
@@ -307,7 +307,7 @@ def test_run_rag_use_rerank_override_false(
                 )
             ]
 
-    llm = __import__("oracle_rag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    llm = __import__("pinrag.llm", fromlist=["get_chat_model"]).get_chat_model()
     result = run_rag(
         "override test",
         llm,
@@ -350,8 +350,8 @@ def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> No
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present; skipping multi-PDF integration test")
 
-    from oracle_rag.indexing import index_pdf
-    from oracle_rag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
+    from pinrag.embeddings import get_embedding_model
 
     # Two "documents" from same content so we have distinct document_ids and tags
     doc_a = tmp_path / "doc_alpha.pdf"

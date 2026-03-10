@@ -12,12 +12,12 @@ alwaysApply: true
 
 ## Reference Projects
 
-**Do not list projects here.** Use the workspace overview for the canonical list of reference projects, their structure, and how they relate to this project (oracle-rag):
+**Do not list projects here.** Use the workspace overview for the canonical list of reference projects, their structure, and how they relate to this project (pinrag):
 
 - **`notes/workspace-projects-overview.md`** — Read this file for:
   - All workspace projects (langchain-academy, lca-lc-foundations, lca-langchainV1-essentials, lca-langgraph-essentials, rag-from-scratch, langsmith-cookbook, cookbooks)
   - Module/lesson breakdowns and key dependencies per project
-  - "Value for Oracle-RAG" notes that explain which parts of each project are most relevant
+  - "Value for PinRAG" notes that explain which parts of each project are most relevant
 
 When you need example patterns, API usage, or RAG/agent references, consult the overview first to choose the right project and section, then use the paths and descriptions there to locate code.
 

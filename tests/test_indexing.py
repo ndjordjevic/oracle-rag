@@ -9,8 +9,8 @@ import pytest
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from oracle_rag.indexing import IndexResult, index_pdf, query_index
-from oracle_rag.vectorstore import get_chroma_store
+from pinrag.indexing import IndexResult, index_pdf, query_index
+from pinrag.vectorstore import get_chroma_store
 
 
 class _MockEmbeddings(Embeddings):
@@ -275,19 +275,19 @@ def test_index_pdf_replaces_duplicate(tmp_path: Path) -> None:
 def test_index_pdf_uses_config_chunk_size_from_env(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """index_pdf uses ORACLE_RAG_CHUNK_SIZE / ORACLE_RAG_CHUNK_OVERLAP when not passed."""
+    """index_pdf uses PINRAG_CHUNK_SIZE / PINRAG_CHUNK_OVERLAP when not passed."""
     repo_root = Path(__file__).resolve().parents[1]
     sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present; skipping indexing test")
 
-    monkeypatch.setenv("ORACLE_RAG_USE_PARENT_CHILD", "false")  # use flat mode for chunk_size test
+    monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "false")  # use flat mode for chunk_size test
     persist_dir = tmp_path / "chroma_idx"
     emb = _MockEmbeddings()
 
     # Default config (no env set) → default chunk size
-    monkeypatch.delenv("ORACLE_RAG_CHUNK_SIZE", raising=False)
-    monkeypatch.delenv("ORACLE_RAG_CHUNK_OVERLAP", raising=False)
+    monkeypatch.delenv("PINRAG_CHUNK_SIZE", raising=False)
+    monkeypatch.delenv("PINRAG_CHUNK_OVERLAP", raising=False)
     result_default = index_pdf(
         sample_pdf,
         persist_directory=str(persist_dir),
@@ -296,8 +296,8 @@ def test_index_pdf_uses_config_chunk_size_from_env(
     )
 
     # Set env to smaller chunk size → index_pdf (without kwargs) should use it → more chunks
-    monkeypatch.setenv("ORACLE_RAG_CHUNK_SIZE", "200")
-    monkeypatch.setenv("ORACLE_RAG_CHUNK_OVERLAP", "0")
+    monkeypatch.setenv("PINRAG_CHUNK_SIZE", "200")
+    monkeypatch.setenv("PINRAG_CHUNK_OVERLAP", "0")
     result_from_env = index_pdf(
         sample_pdf,
         persist_directory=str(persist_dir),
@@ -314,7 +314,7 @@ def test_index_pdf_respects_chunk_size_override(tmp_path: Path, monkeypatch: pyt
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present; skipping indexing test")
 
-    monkeypatch.setenv("ORACLE_RAG_USE_PARENT_CHILD", "false")  # use flat mode for chunk_size test
+    monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "false")  # use flat mode for chunk_size test
     persist_dir = tmp_path / "chroma_idx"
     result_default = index_pdf(
         sample_pdf,

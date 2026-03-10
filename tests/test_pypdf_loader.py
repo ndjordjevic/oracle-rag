@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from oracle_rag.pdf.pypdf_loader import load_pdf_as_documents, iter_pdf_page_text
+from pinrag.pdf.pypdf_loader import load_pdf_as_documents, iter_pdf_page_text
 
 
 def test_load_pdf_as_documents_missing_file() -> None:
@@ -58,7 +58,7 @@ def test_load_pdf_as_documents_corrupted_pdf_raises() -> None:
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present; skipping corrupted-PDF test")
 
-    with patch("oracle_rag.pdf.pypdf_loader.PdfReader") as mock_reader:
+    with patch("pinrag.pdf.pypdf_loader.PdfReader") as mock_reader:
         mock_reader.side_effect = PyPdfError("Invalid PDF structure")
         with pytest.raises(ValueError, match="PDF appears corrupted or unreadable"):
             load_pdf_as_documents(sample_pdf)

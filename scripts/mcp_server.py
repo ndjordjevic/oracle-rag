@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from oracle_rag.mcp.server import mcp
+from pinrag.mcp.server import mcp
 
 # Load .env from project root so LangSmith and other vars are found
 # even when Cursor (or another MCP client) starts the server with a different cwd.

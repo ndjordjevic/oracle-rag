@@ -7,19 +7,19 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from oracle_rag.chunking.splitter import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
+from pinrag.chunking.splitter import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 
 # Ensure .env is loaded when config is first imported
 load_dotenv()
 
 # Use project-local chroma_db so CLI, tools, and MCP all see the same index.
-# Override with ORACLE_RAG_PERSIST_DIR for ~/.oracle-rag/chroma_db or custom path.
+# Override with PINRAG_PERSIST_DIR for ~/.pinrag/chroma_db or custom path.
 DEFAULT_PERSIST_DIR = "chroma_db"
 
 # LLM provider: openai | anthropic
 DEFAULT_LLM_PROVIDER = "anthropic"
 DEFAULT_LLM_MODEL_OPENAI = "gpt-4o-mini"
-# Anthropic models (set ORACLE_RAG_LLM_MODEL in .env). See https://docs.anthropic.com/en/docs/about-claude/models
+# Anthropic models (set PINRAG_LLM_MODEL in .env). See https://docs.anthropic.com/en/docs/about-claude/models
 # Default: claude-haiku-4-5 (cheapest, fastest). Others: claude-sonnet-4-6, claude-opus-4-6
 DEFAULT_LLM_MODEL_ANTHROPIC = "claude-haiku-4-5"
 
@@ -37,8 +37,8 @@ DEFAULT_EMBEDDING_MODEL_COHERE = "embed-english-v3.0"
 
 
 def get_llm_provider() -> str:
-    """Return LLM provider from ORACLE_RAG_LLM_PROVIDER env (openai | anthropic)."""
-    val = os.environ.get("ORACLE_RAG_LLM_PROVIDER", DEFAULT_LLM_PROVIDER)
+    """Return LLM provider from PINRAG_LLM_PROVIDER env (openai | anthropic)."""
+    val = os.environ.get("PINRAG_LLM_PROVIDER", DEFAULT_LLM_PROVIDER)
     p = (val or "").strip().lower()
     if p in ("openai", "anthropic"):
         return p
@@ -46,8 +46,8 @@ def get_llm_provider() -> str:
 
 
 def get_llm_model() -> str:
-    """Return LLM model name from ORACLE_RAG_LLM_MODEL env, or provider default."""
-    val = os.environ.get("ORACLE_RAG_LLM_MODEL")
+    """Return LLM model name from PINRAG_LLM_MODEL env, or provider default."""
+    val = os.environ.get("PINRAG_LLM_MODEL")
     if val and str(val).strip():
         return str(val).strip()
     provider = get_llm_provider()
@@ -57,8 +57,8 @@ def get_llm_model() -> str:
 
 
 def get_evaluator_provider() -> str:
-    """Return evaluator (LLM-as-judge) provider from ORACLE_RAG_EVALUATOR_PROVIDER env (openai | anthropic)."""
-    val = os.environ.get("ORACLE_RAG_EVALUATOR_PROVIDER", DEFAULT_EVALUATOR_PROVIDER)
+    """Return evaluator (LLM-as-judge) provider from PINRAG_EVALUATOR_PROVIDER env (openai | anthropic)."""
+    val = os.environ.get("PINRAG_EVALUATOR_PROVIDER", DEFAULT_EVALUATOR_PROVIDER)
     p = (val or "").strip().lower()
     if p in ("openai", "anthropic"):
         return p
@@ -68,7 +68,7 @@ def get_evaluator_provider() -> str:
 def get_evaluator_model(*, context_heavy: bool = False) -> str:
     """Return evaluator model for correctness (context_heavy=False) or groundedness (context_heavy=True)."""
     val = os.environ.get(
-        "ORACLE_RAG_EVALUATOR_MODEL_CONTEXT" if context_heavy else "ORACLE_RAG_EVALUATOR_MODEL"
+        "PINRAG_EVALUATOR_MODEL_CONTEXT" if context_heavy else "PINRAG_EVALUATOR_MODEL"
     )
     if val and str(val).strip():
         return str(val).strip()
@@ -87,8 +87,8 @@ def get_evaluator_model(*, context_heavy: bool = False) -> str:
 
 
 def get_embedding_provider() -> str:
-    """Return embedding provider from ORACLE_RAG_EMBEDDING_PROVIDER env (openai | cohere)."""
-    val = os.environ.get("ORACLE_RAG_EMBEDDING_PROVIDER", DEFAULT_EMBEDDING_PROVIDER)
+    """Return embedding provider from PINRAG_EMBEDDING_PROVIDER env (openai | cohere)."""
+    val = os.environ.get("PINRAG_EMBEDDING_PROVIDER", DEFAULT_EMBEDDING_PROVIDER)
     p = (val or "").strip().lower()
     if p in ("openai", "cohere"):
         return p
@@ -96,8 +96,8 @@ def get_embedding_provider() -> str:
 
 
 def get_embedding_model_name() -> str:
-    """Return embedding model name from ORACLE_RAG_EMBEDDING_MODEL env, or provider default."""
-    val = os.environ.get("ORACLE_RAG_EMBEDDING_MODEL")
+    """Return embedding model name from PINRAG_EMBEDDING_MODEL env, or provider default."""
+    val = os.environ.get("PINRAG_EMBEDDING_MODEL")
     if val and str(val).strip():
         return str(val).strip()
     provider = get_embedding_provider()
@@ -107,27 +107,27 @@ def get_embedding_model_name() -> str:
 
 
 def get_persist_dir() -> str:
-    """Return Chroma persist directory from ORACLE_RAG_PERSIST_DIR env var, or chroma_db (project-local)."""
-    return os.environ.get("ORACLE_RAG_PERSIST_DIR", DEFAULT_PERSIST_DIR)
+    """Return Chroma persist directory from PINRAG_PERSIST_DIR env var, or chroma_db (project-local)."""
+    return os.environ.get("PINRAG_PERSIST_DIR", DEFAULT_PERSIST_DIR)
 
 
 def get_collection_name() -> str:
     """Return Chroma collection name.
 
-    If ORACLE_RAG_COLLECTION_NAME is set, use it. Otherwise return 'oracle_rag'.
+    If PINRAG_COLLECTION_NAME is set, use it. Otherwise return 'pinrag'.
     Use a single collection per persist dir; if you switch embedding providers,
-    re-index or use a separate ORACLE_RAG_PERSIST_DIR / ORACLE_RAG_COLLECTION_NAME
+    re-index or use a separate PINRAG_PERSIST_DIR / PINRAG_COLLECTION_NAME
     to avoid dimension mismatches.
     """
-    env_name = os.environ.get("ORACLE_RAG_COLLECTION_NAME")
+    env_name = os.environ.get("PINRAG_COLLECTION_NAME")
     if env_name and str(env_name).strip():
         return str(env_name).strip()
-    return "oracle_rag"
+    return "pinrag"
 
 
 def get_chunk_size() -> int:
-    """Return chunk size from ORACLE_RAG_CHUNK_SIZE env var, or default (1000)."""
-    val = os.environ.get("ORACLE_RAG_CHUNK_SIZE")
+    """Return chunk size from PINRAG_CHUNK_SIZE env var, or default (1000)."""
+    val = os.environ.get("PINRAG_CHUNK_SIZE")
     if val is None:
         return DEFAULT_CHUNK_SIZE
     try:
@@ -140,8 +140,8 @@ def get_chunk_size() -> int:
 
 
 def get_chunk_overlap() -> int:
-    """Return chunk overlap from ORACLE_RAG_CHUNK_OVERLAP env var, or default (200)."""
-    val = os.environ.get("ORACLE_RAG_CHUNK_OVERLAP")
+    """Return chunk overlap from PINRAG_CHUNK_OVERLAP env var, or default (200)."""
+    val = os.environ.get("PINRAG_CHUNK_OVERLAP")
     if val is None:
         return DEFAULT_CHUNK_OVERLAP
     try:
@@ -163,7 +163,7 @@ DEFAULT_RERANK_TOP_N = 10
 
 def get_retrieve_k() -> int:
     """Return how many chunks to retrieve (default 20). Used for both rerank on and off."""
-    val = os.environ.get("ORACLE_RAG_RETRIEVE_K")
+    val = os.environ.get("PINRAG_RETRIEVE_K")
     if val is None:
         return DEFAULT_RETRIEVE_K
     try:
@@ -176,8 +176,8 @@ def get_retrieve_k() -> int:
 
 
 def get_use_rerank() -> bool:
-    """Return whether to use Cohere re-ranking. Requires oracle-rag[cohere] and COHERE_API_KEY."""
-    val = os.environ.get("ORACLE_RAG_USE_RERANK")
+    """Return whether to use Cohere re-ranking. Requires pinrag[cohere] and COHERE_API_KEY."""
+    val = os.environ.get("PINRAG_USE_RERANK")
     if val is None or not str(val).strip():
         return DEFAULT_USE_RERANK
     v = str(val).strip().lower()
@@ -189,8 +189,8 @@ def get_use_rerank() -> bool:
 
 
 def get_rerank_retrieve_k() -> int:
-    """Return how many chunks the base retriever fetches before reranking. Falls back to ORACLE_RAG_RETRIEVE_K when unset."""
-    val = os.environ.get("ORACLE_RAG_RERANK_RETRIEVE_K")
+    """Return how many chunks the base retriever fetches before reranking. Falls back to PINRAG_RETRIEVE_K when unset."""
+    val = os.environ.get("PINRAG_RERANK_RETRIEVE_K")
     if val is None:
         return get_retrieve_k()
     try:
@@ -204,7 +204,7 @@ def get_rerank_retrieve_k() -> int:
 
 def get_rerank_top_n() -> int:
     """Return how many chunks the reranker returns to the LLM (default 10)."""
-    val = os.environ.get("ORACLE_RAG_RERANK_TOP_N")
+    val = os.environ.get("PINRAG_RERANK_TOP_N")
     if val is None:
         return DEFAULT_RERANK_TOP_N
     try:
@@ -223,7 +223,7 @@ DEFAULT_MULTI_QUERY_COUNT = 4
 
 def get_use_multi_query() -> bool:
     """Return whether to use multi-query retrieval (3-5 query variants, merge results)."""
-    val = os.environ.get("ORACLE_RAG_USE_MULTI_QUERY")
+    val = os.environ.get("PINRAG_USE_MULTI_QUERY")
     if val is None or not str(val).strip():
         return DEFAULT_USE_MULTI_QUERY
     v = str(val).strip().lower()
@@ -236,7 +236,7 @@ def get_use_multi_query() -> bool:
 
 def get_multi_query_count() -> int:
     """Return number of alternative queries to generate for multi-query retrieval (default 4)."""
-    val = os.environ.get("ORACLE_RAG_MULTI_QUERY_COUNT")
+    val = os.environ.get("PINRAG_MULTI_QUERY_COUNT")
     if val is None:
         return DEFAULT_MULTI_QUERY_COUNT
     try:
@@ -258,7 +258,7 @@ DEFAULT_CHILD_CHUNK_SIZE = 800
 
 def get_use_parent_child() -> bool:
     """Return whether to use parent-child retrieval (embed small, return large chunks)."""
-    val = os.environ.get("ORACLE_RAG_USE_PARENT_CHILD")
+    val = os.environ.get("PINRAG_USE_PARENT_CHILD")
     if val is None or not str(val).strip():
         return DEFAULT_USE_PARENT_CHILD
     v = str(val).strip().lower()
@@ -271,7 +271,7 @@ def get_use_parent_child() -> bool:
 
 def get_parent_chunk_size() -> int:
     """Return parent chunk size in chars for parent-child retrieval (default 2000)."""
-    val = os.environ.get("ORACLE_RAG_PARENT_CHUNK_SIZE")
+    val = os.environ.get("PINRAG_PARENT_CHUNK_SIZE")
     if val is None:
         return DEFAULT_PARENT_CHUNK_SIZE
     try:
@@ -285,7 +285,7 @@ def get_parent_chunk_size() -> int:
 
 def get_child_chunk_size() -> int:
     """Return child chunk size in chars for parent-child retrieval (default 800)."""
-    val = os.environ.get("ORACLE_RAG_CHILD_CHUNK_SIZE")
+    val = os.environ.get("PINRAG_CHILD_CHUNK_SIZE")
     if val is None:
         return DEFAULT_CHILD_CHUNK_SIZE
     try:
@@ -303,8 +303,8 @@ DEFAULT_STRUCTURE_AWARE_CHUNKING = True
 
 
 def get_response_style() -> str:
-    """Return RAG response style from ORACLE_RAG_RESPONSE_STYLE (thorough | concise)."""
-    val = os.environ.get("ORACLE_RAG_RESPONSE_STYLE")
+    """Return RAG response style from PINRAG_RESPONSE_STYLE (thorough | concise)."""
+    val = os.environ.get("PINRAG_RESPONSE_STYLE")
     if val is None or not str(val).strip():
         return DEFAULT_RESPONSE_STYLE
     v = str(val).strip().lower()
@@ -315,7 +315,7 @@ def get_response_style() -> str:
 
 def get_structure_aware_chunking() -> bool:
     """Return whether to apply structure-aware chunking heuristics (default: true)."""
-    val = os.environ.get("ORACLE_RAG_STRUCTURE_AWARE_CHUNKING")
+    val = os.environ.get("PINRAG_STRUCTURE_AWARE_CHUNKING")
     if val is None or not str(val).strip():
         return DEFAULT_STRUCTURE_AWARE_CHUNKING
     v = str(val).strip().lower()

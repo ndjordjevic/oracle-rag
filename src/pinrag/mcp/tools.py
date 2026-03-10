@@ -7,8 +7,8 @@ from typing import Any, Literal
 
 from langsmith import traceable
 
-from oracle_rag.embeddings import get_embedding_model
-from oracle_rag.indexing import (
+from pinrag.embeddings import get_embedding_model
+from pinrag.indexing import (
     DiscordIndexResult,
     IndexResult,
     YouTubeIndexResult,
@@ -17,11 +17,11 @@ from oracle_rag.indexing import (
     index_pdf,
     index_youtube,
 )
-from oracle_rag.llm import get_chat_model
-from oracle_rag.rag import run_rag
-from oracle_rag.config import get_collection_name, get_persist_dir, get_use_parent_child
-from oracle_rag.vectorstore import get_chroma_store
-from oracle_rag.vectorstore.docstore import get_parent_docstore
+from pinrag.llm import get_chat_model
+from pinrag.rag import run_rag
+from pinrag.config import get_collection_name, get_persist_dir, get_use_parent_child
+from pinrag.vectorstore import get_chroma_store
+from pinrag.vectorstore.docstore import get_parent_docstore
 
 
 def _detect_source_format(path_or_url: str) -> Literal["youtube", "pdf", "discord"] | None:
@@ -81,8 +81,8 @@ def query(
 ) -> dict[str, Any]:
     """Query indexed documents (PDF, Discord) and return an answer with citations.
 
-    Retrieval is driven by .env: ORACLE_RAG_RETRIEVE_K, rerank, multi-query, etc.
-    Persist dir and collection come from ORACLE_RAG_PERSIST_DIR and ORACLE_RAG_COLLECTION_NAME.
+    Retrieval is driven by .env: PINRAG_RETRIEVE_K, rerank, multi-query, etc.
+    Persist dir and collection come from PINRAG_PERSIST_DIR and PINRAG_COLLECTION_NAME.
 
     Args:
         query: Natural language question to ask.
@@ -166,7 +166,7 @@ def add_file(
     Args:
         path: Path to a file/directory, or YouTube URL (e.g. https://youtu.be/ID).
         persist_dir: Chroma persistence directory (default: "chroma_db").
-        collection: Chroma collection name (default: "oracle_rag").
+        collection: Chroma collection name (default: "pinrag").
         tag: Optional tag for indexed documents; stored on all chunks for filtering.
 
     Returns:
@@ -329,7 +329,7 @@ def add_files(
     Args:
         paths: List of file or directory paths to index.
         persist_dir: Chroma persistence directory (default: "chroma_db").
-        collection: Chroma collection name (default: "oracle_rag").
+        collection: Chroma collection name (default: "pinrag").
         tags: Optional list of tags, one per path (same order as paths). Empty string = no tag.
 
     Returns:
@@ -386,8 +386,8 @@ def list_documents(
     """List all indexed documents (PDF, Discord, etc.) in the Oracle-RAG index.
 
     Args:
-        persist_dir: Chroma persistence directory (default: from ORACLE_RAG_PERSIST_DIR or chroma_db).
-        collection: Chroma collection name (default: "oracle_rag").
+        persist_dir: Chroma persistence directory (default: from PINRAG_PERSIST_DIR or chroma_db).
+        collection: Chroma collection name (default: "pinrag").
         tag: Optional tag to filter: only list documents that have this tag.
 
     Returns:
@@ -484,7 +484,7 @@ def remove_document(
     Args:
         document_id: Document identifier to remove (same as in list_documents).
         persist_dir: Chroma persistence directory (default: "chroma_db").
-        collection: Chroma collection name (default: "oracle_rag").
+        collection: Chroma collection name (default: "pinrag").
 
     Returns:
         Dictionary with "deleted_chunks" (int), "document_id" (str),

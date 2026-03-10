@@ -1,10 +1,10 @@
-"""Create the oracle-rag multi-query stress evaluation dataset in LangSmith.
+"""Create the pinrag multi-query stress evaluation dataset in LangSmith.
 
 Run once to create the dataset:
     uv run python scripts/create_multiquery_stress_dataset.py
 
 The dataset contains terse, incomplete, or jargon-heavy questions (like real MCP chat)
-from "Bare-metal Amiga programming 2021_ocr.pdf". Same schema as oracle-rag-golden.
+from "Bare-metal Amiga programming 2021_ocr.pdf". Same schema as pinrag-golden.
 Designed so single-query retrieval fails on most questions, and multi-query expansion
 (which adds semantic rephrasing) recovers the correct pages.
 
@@ -31,9 +31,9 @@ from langsmith import Client
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-DATASET_NAME = "oracle-rag-multiquery-stress"
+DATASET_NAME = "pinrag-multiquery-stress"
 DATASET_DESCRIPTION = (
-    "Multi-query stress dataset for oracle-rag. "
+    "Multi-query stress dataset for pinrag. "
     "Terse/keyword-style questions from 'Bare-metal Amiga programming 2021_ocr.pdf'. "
     "Designed to be hard for single-query retrieval (no rerank) and easier with query expansion."
 )
@@ -182,7 +182,7 @@ EXAMPLES: list[tuple[str, str, list[int], str]] = [
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Create oracle-rag multi-query stress dataset in LangSmith."
+        description="Create pinrag multi-query stress dataset in LangSmith."
     )
     parser.add_argument(
         "--force",

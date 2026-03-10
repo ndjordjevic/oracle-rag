@@ -9,8 +9,8 @@
 | **Embeddings** | `langchain_openai.OpenAIEmbeddings` | Embedding client (text-embedding-3-small); `embed_query()`, `embed_documents()`. |
 | **Vector store** | `langchain_chroma.Chroma` | Persisted Chroma store; `add_documents()`, `similarity_search()`, `as_retriever()`. |
 | **Retrieval** | `langchain_core.retrievers.BaseRetriever` / `store.as_retriever()` | RAG pipeline uses a retriever: `create_retriever()` builds one with `search_kwargs` (k, filter); `run_rag(retriever=...)` accepts a retriever or builds one from legacy params. |
-| **Retrieval** | `langchain_classic.retrievers.contextual_compression.ContextualCompressionRetriever` | Wraps retriever with a document compressor; used with `CohereRerank` for "retrieve k=10, rerank to top 5" strategy when `ORACLE_RAG_USE_RERANK=true`. |
-| **Cohere** | `langchain_cohere.CohereRerank` | Document compressor for re-ranking; improves relevance when embedding similarity ranks "related but wrong" chunks high. Requires `oracle-rag[cohere]` and `COHERE_API_KEY`. |
+| **Retrieval** | `langchain_classic.retrievers.contextual_compression.ContextualCompressionRetriever` | Wraps retriever with a document compressor; used with `CohereRerank` for "retrieve k=10, rerank to top 5" strategy when `PINRAG_USE_RERANK=true`. |
+| **Cohere** | `langchain_cohere.CohereRerank` | Document compressor for re-ranking; improves relevance when embedding similarity ranks "related but wrong" chunks high. Requires `pinrag[cohere]` and `COHERE_API_KEY`. |
 | **Core** | `langchain_core.embeddings.Embeddings` | Type for injectable embedding (e.g. mock in tests). |
 | **Chat models** | `langchain_openai.ChatOpenAI` | LLM client for answer generation; used directly (`get_chat_model`) and inside the RAG chain. |
 | **Prompts** | `langchain_core.prompts.ChatPromptTemplate` | RAG prompt with system + human messages (`RAG_PROMPT`), templated with `{context}` and `{question}`. |

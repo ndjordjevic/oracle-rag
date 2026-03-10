@@ -1,5 +1,5 @@
 [project]
-name = "oracle-rag"
+name = "pinrag"
 version = "0.7.0"
 description = "A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed to be wrapped as an MCP server"
 requires-python = ">=3.12"
@@ -28,9 +28,10 @@ dev = [
 ]
 
 [project.scripts]
-oracle-rag-mcp = "oracle_rag.cli:main"
+pinrag-mcp = "pinrag.cli:main"
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 filterwarnings = [
     "ignore::pydantic.warnings.PydanticDeprecatedSince20",
 ]

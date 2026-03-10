@@ -156,7 +156,7 @@ List which documents are currently indexed in the local Chroma store.
 | Argument | Description |
 |----------|-------------|
 | `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
-| `--collection` | Chroma collection name (default: `oracle_rag`). |
+| `--collection` | Chroma collection name (default: `pinrag`). |
 
 **Examples**
 
@@ -200,7 +200,7 @@ Run the full RAG chain: ask a question over indexed PDFs and get an answer with 
 | `query` | Natural language question (positional). |
 | `--k` | Number of chunks to retrieve (default: `5`). |
 | `--persist-dir` | Chroma persistence directory (default: `chroma_db`). |
-| `--collection` | Chroma collection name (default: `oracle_rag`). |
+| `--collection` | Chroma collection name (default: `pinrag`). |
 
 **Examples**
 
@@ -242,7 +242,7 @@ The server uses `stdio` transport (standard for MCP), reading from stdin and wri
 uv run python scripts/mcp_server.py
 
 # Test with MCP Inspector (one command: Inspector spawns the server)
-cd /path/to/oracle-rag
+cd /path/to/pinrag
 npx -y @modelcontextprotocol/inspector uv run python scripts/mcp_server.py
 # The terminal prints a URL like: http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=<token>
 # Open that full URL in your browser (the token is required). Use the Tools tab to call query_pdf and add_pdf.
@@ -270,7 +270,7 @@ Query the indexed chunks in Chroma and print matching chunks with metadata.
 | `query` | Natural language query string (positional). |
 | `--k` | Number of top chunks to return (default: `5`). |
 | `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
-| `--collection` | Chroma collection name (default: `oracle_rag`). |
+| `--collection` | Chroma collection name (default: `pinrag`). |
 | `--preview` | Max characters of chunk text to show (`0` = full, default: `240`). |
 
 **Examples**
@@ -292,7 +292,7 @@ uv run python scripts/query_rag_cli.py "audio hardware" --persist-dir my_chroma 
 
 ### create_eval_dataset.py
 
-Create the golden evaluation dataset in LangSmith (`oracle-rag-golden`). Contains ~30 Q/A examples from the Bare-metal Amiga programming PDF, ordered easy → medium → hard across chapters. Run once; requires `LANGSMITH_API_KEY` in `.env`. If the dataset already exists, the script exits without overwriting (delete it in LangSmith first to recreate).
+Create the golden evaluation dataset in LangSmith (`pinrag-golden`). Contains ~30 Q/A examples from the Bare-metal Amiga programming PDF, ordered easy → medium → hard across chapters. Run once; requires `LANGSMITH_API_KEY` in `.env`. If the dataset already exists, the script exits without overwriting (delete it in LangSmith first to recreate).
 
 **Examples**
 
@@ -304,20 +304,20 @@ uv run python scripts/create_eval_dataset.py
 
 ### min_k_per_question.py
 
-Find the minimum retrieval `k` per question such that the correctness evaluator passes. Tries k=5, 10, 15, … up to 50 for each question and reports the smallest k that yields a correct answer. Useful for tuning `ORACLE_RAG_RETRIEVE_K`. Disables rerank for the run. Requires `LANGSMITH_API_KEY` and `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`.
+Find the minimum retrieval `k` per question such that the correctness evaluator passes. Tries k=5, 10, 15, … up to 50 for each question and reports the smallest k that yields a correct answer. Useful for tuning `PINRAG_RETRIEVE_K`. Disables rerank for the run. Requires `LANGSMITH_API_KEY` and `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`.
 
 **Arguments**
 
 | Argument | Description |
 |----------|-------------|
-| `dataset_name` | Optional. LangSmith dataset name (default: `oracle-rag-hard-10`). |
+| `dataset_name` | Optional. LangSmith dataset name (default: `pinrag-hard-10`). |
 
 **Examples**
 
 ```bash
-# Default dataset (oracle-rag-hard-10)
+# Default dataset (pinrag-hard-10)
 uv run python scripts/min_k_per_question.py
 
 # Use the golden dataset
-uv run python scripts/min_k_per_question.py oracle-rag-golden
+uv run python scripts/min_k_per_question.py pinrag-golden
 ```

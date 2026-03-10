@@ -8,8 +8,8 @@ import pytest
 
 from langchain_core.documents import Document
 
-from oracle_rag.chunking.splitter import chunk_documents
-from oracle_rag.pdf.pypdf_loader import load_pdf_as_documents
+from pinrag.chunking.splitter import chunk_documents
+from pinrag.pdf.pypdf_loader import load_pdf_as_documents
 
 
 def test_chunk_documents_empty() -> None:

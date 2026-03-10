@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from oracle_rag.indexing import query_index
+from pinrag.indexing import query_index
 
 
 def main() -> None:
@@ -26,8 +26,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--collection",
-        default="oracle_rag",
-        help="Chroma collection name (default: oracle_rag)",
+        default="pinrag",
+        help="Chroma collection name (default: pinrag)",
     )
     parser.add_argument(
         "--preview",

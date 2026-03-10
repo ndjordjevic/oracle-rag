@@ -1883,60 +1883,6 @@ wheels = [
 ]
 
 [[package]]
-name = "oracle-rag"
-version = "0.6.0"
-source = { editable = "." }
-dependencies = [
-    { name = "chromadb" },
-    { name = "langchain" },
-    { name = "langchain-anthropic" },
-    { name = "langchain-chroma" },
-    { name = "langchain-community" },
-    { name = "langchain-core" },
-    { name = "langchain-openai" },
-    { name = "langchain-text-splitters" },
-    { name = "mcp" },
-    { name = "pypdf" },
-    { name = "python-dotenv" },
-    { name = "youtube-transcript-api" },
-]
-
-[package.optional-dependencies]
-cohere = [
-    { name = "langchain-cohere" },
-]
-dev = [
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-eval = [
-    { name = "langsmith" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "chromadb", specifier = ">=1.4.1" },
-    { name = "langchain", specifier = ">=1.2.10" },
-    { name = "langchain-anthropic", specifier = ">=0.3.0" },
-    { name = "langchain-chroma", specifier = ">=0.1.0" },
-    { name = "langchain-cohere", marker = "extra == 'cohere'", specifier = ">=0.2.0" },
-    { name = "langchain-community", specifier = ">=0.4.1" },
-    { name = "langchain-core", specifier = ">=1.2.11" },
-    { name = "langchain-openai", specifier = ">=1.1.9" },
-    { name = "langchain-text-splitters", specifier = ">=1.1.0" },
-    { name = "langsmith", marker = "extra == 'eval'", specifier = ">=0.1.0" },
-    { name = "mcp", specifier = ">=1.26.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11.1" },
-    { name = "pypdf", specifier = ">=6.6.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.1" },
-    { name = "youtube-transcript-api", specifier = ">=1.2.0" },
-]
-provides-extras = ["cohere", "eval", "dev"]
-
-[[package]]
 name = "orjson"
 version = "3.11.5"
 source = { registry = "https://pypi.org/simple" }
@@ -2054,6 +2000,60 @@ sdist = { url = "https://files.pythonhosted.org/packages/4c/b2/bb8e495d5262bfec4
 wheels = [
     { url = "https://files.pythonhosted.org/packages/32/2b/121e912bd60eebd623f873fd090de0e84f322972ab25a7f9044c056804ed/pathspec-1.0.3-py3-none-any.whl", hash = "sha256:e80767021c1cc524aa3fb14bedda9c34406591343cc42797b386ce7b9354fb6c", size = 55021, upload-time = "2026-01-09T15:46:44.652Z" },
 ]
+
+[[package]]
+name = "pinrag"
+version = "0.7.0"
+source = { editable = "." }
+dependencies = [
+    { name = "chromadb" },
+    { name = "langchain" },
+    { name = "langchain-anthropic" },
+    { name = "langchain-chroma" },
+    { name = "langchain-community" },
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+    { name = "langchain-text-splitters" },
+    { name = "mcp" },
+    { name = "pypdf" },
+    { name = "python-dotenv" },
+    { name = "youtube-transcript-api" },
+]
+
+[package.optional-dependencies]
+cohere = [
+    { name = "langchain-cohere" },
+]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+eval = [
+    { name = "langsmith" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "chromadb", specifier = ">=1.4.1" },
+    { name = "langchain", specifier = ">=1.2.10" },
+    { name = "langchain-anthropic", specifier = ">=0.3.0" },
+    { name = "langchain-chroma", specifier = ">=0.1.0" },
+    { name = "langchain-cohere", marker = "extra == 'cohere'", specifier = ">=0.2.0" },
+    { name = "langchain-community", specifier = ">=0.4.1" },
+    { name = "langchain-core", specifier = ">=1.2.11" },
+    { name = "langchain-openai", specifier = ">=1.1.9" },
+    { name = "langchain-text-splitters", specifier = ">=1.1.0" },
+    { name = "langsmith", marker = "extra == 'eval'", specifier = ">=0.1.0" },
+    { name = "mcp", specifier = ">=1.26.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11.1" },
+    { name = "pypdf", specifier = ">=6.6.1" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.1" },
+    { name = "youtube-transcript-api", specifier = ">=1.2.0" },
+]
+provides-extras = ["cohere", "eval", "dev"]
 
 [[package]]
 name = "pluggy"

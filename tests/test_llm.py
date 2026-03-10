@@ -10,15 +10,15 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 
-from oracle_rag.llm.openai_client import DEFAULT_MODEL, get_chat_model
+from pinrag.llm.openai_client import DEFAULT_MODEL, get_chat_model
 
 
 def test_get_chat_model_returns_client(monkeypatch: pytest.MonkeyPatch) -> None:
-    """get_chat_model returns ChatOpenAI when ORACLE_RAG_LLM_PROVIDER=openai."""
+    """get_chat_model returns ChatOpenAI when PINRAG_LLM_PROVIDER=openai."""
     from dotenv import load_dotenv
     load_dotenv()
-    monkeypatch.setenv("ORACLE_RAG_LLM_PROVIDER", "openai")
-    monkeypatch.setenv("ORACLE_RAG_LLM_MODEL", DEFAULT_MODEL)  # override .env
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openai")
+    monkeypatch.setenv("PINRAG_LLM_MODEL", DEFAULT_MODEL)  # override .env
     try:
         llm = get_chat_model()
     except Exception:
@@ -28,10 +28,10 @@ def test_get_chat_model_returns_client(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_get_chat_model_returns_anthropic_when_configured(monkeypatch: pytest.MonkeyPatch) -> None:
-    """get_chat_model returns ChatAnthropic when ORACLE_RAG_LLM_PROVIDER=anthropic."""
+    """get_chat_model returns ChatAnthropic when PINRAG_LLM_PROVIDER=anthropic."""
     from dotenv import load_dotenv
     load_dotenv()
-    monkeypatch.setenv("ORACLE_RAG_LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "anthropic")
     if not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("ANTHROPIC_API_KEY not set; skipping")
     llm = get_chat_model()

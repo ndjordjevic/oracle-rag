@@ -1,4 +1,4 @@
-# Rationale: Using LangGraph for Oracle-RAG
+# Rationale: Using LangGraph for PinRAG
 
 ## Overview
 
@@ -105,7 +105,7 @@ graph.add_edge("generate", END)
 - ✅ Want to support streaming, interruption, or human feedback
 - ✅ Building for extensibility and future features
 
-## Decision Criteria for Oracle-RAG
+## Decision Criteria for PinRAG
 
 **Choose LangGraph if:**
 - We want to build a more sophisticated PDF RAG system

@@ -1,4 +1,4 @@
-# Rationale: Using LangChain for Oracle-RAG
+# Rationale: Using LangChain for PinRAG
 
 ## Overview
 
@@ -75,7 +75,7 @@ chain = (
 - ✅ Linear workflow is sufficient
 - ✅ Planning to wrap as a simple MCP tool (input → output)
 
-## Decision Criteria for Oracle-RAG
+## Decision Criteria for PinRAG
 
 **Choose LangChain if:**
 - We want to start simple and iterate

@@ -25,7 +25,7 @@ PDFs typically **do not contain a reliable semantic layer** for “sections” /
   - Text extraction can be memory-heavy for some PDFs (pypdf explicitly warns about this) ([docs](https://pypdf.readthedocs.io/en/stable/user/extract-text.html))
   - Limited layout/structure signals compared to coordinate-level parsers
 
-**Fit for Oracle-RAG Phase 1:** strong (already in our deps, low friction, license-safe).
+**Fit for PinRAG Phase 1:** strong (already in our deps, low friction, license-safe).
 
 ### Option B — `pdfplumber` (good Phase 2 “quality” upgrade)
 
@@ -38,7 +38,7 @@ PDFs typically **do not contain a reliable semantic layer** for “sections” /
   - Usually slower and heavier than simpler extractors (it’s built on `pdfminer.six`)
   - More code/knobs to tune
 
-**Fit for Oracle-RAG:** great when we need better layout + metadata for “section/page/span” attribution beyond just page numbers.
+**Fit for PinRAG:** great when we need better layout + metadata for “section/page/span” attribution beyond just page numbers.
 
 ### Option C — `PyMuPDF` (fast, but licensing may be a blocker)
 
@@ -49,7 +49,7 @@ PDFs typically **do not contain a reliable semantic layer** for “sections” /
   - Licensing: available under **AGPL** or a commercial license ([PyMuPDF docs](https://pymupdf.readthedocs.io/en/latest/about.html#license-and-copyright), [PyPI](https://pypi.org/project/PyMuPDF/))
   - AGPL can be incompatible with some distribution/commercial plans (we should decide before adopting)
 
-**Fit for Oracle-RAG:** excellent technically, but we should only adopt if we’re comfortable with AGPL or plan for a commercial license.
+**Fit for PinRAG:** excellent technically, but we should only adopt if we’re comfortable with AGPL or plan for a commercial license.
 
 ## Recommendation
 

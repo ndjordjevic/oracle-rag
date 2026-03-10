@@ -11,8 +11,8 @@ from typing import Optional, Union
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from oracle_rag.chunking import chunk_documents
-from oracle_rag.config import (
+from pinrag.chunking import chunk_documents
+from pinrag.config import (
     get_child_chunk_size,
     get_chunk_overlap,
     get_chunk_size,
@@ -21,13 +21,13 @@ from oracle_rag.config import (
     get_structure_aware_chunking,
     get_use_parent_child,
 )
-from oracle_rag.pdf.pypdf_loader import PathLike, load_pdf_as_documents
-from oracle_rag.vectorstore.chroma_client import (
+from pinrag.pdf.pypdf_loader import PathLike, load_pdf_as_documents
+from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
-from oracle_rag.vectorstore.docstore import get_parent_docstore
-from oracle_rag.vectorstore.retriever import build_retrieval_filter
+from pinrag.vectorstore.docstore import get_parent_docstore
+from pinrag.vectorstore.retriever import build_retrieval_filter
 
 
 PathLike = Union[str, Path]
@@ -66,10 +66,10 @@ def index_pdf(
     Args:
         path: PDF path to index.
         persist_directory: Chroma persistence directory.
-        collection_name: Chroma collection name. If None, uses provider-based name (e.g. oracle_rag_openai).
+        collection_name: Chroma collection name. If None, uses provider-based name (e.g. pinrag_openai).
         embedding: Optional embedding model; if None, uses default OpenAI embeddings.
-        chunk_size: Chunk size in chars; if None, uses ORACLE_RAG_CHUNK_SIZE env or 1000.
-        chunk_overlap: Chunk overlap in chars; if None, uses ORACLE_RAG_CHUNK_OVERLAP env or 200.
+        chunk_size: Chunk size in chars; if None, uses PINRAG_CHUNK_SIZE env or 1000.
+        chunk_overlap: Chunk overlap in chars; if None, uses PINRAG_CHUNK_OVERLAP env or 200.
         tag: Optional single tag for this document (e.g. "amiga"); stored on all chunks for filtering.
 
     Returns:

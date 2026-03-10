@@ -1,4 +1,4 @@
-# Oracle-RAG Cloud: MCP-Native RAG-as-a-Service
+# PinRAG Cloud: MCP-Native RAG-as-a-Service
 
 *Product idea. Phase 4 retrieval quality is largely done (30/30 golden, 10/10 hard-10 with reranking). Remaining Phase 4 items: multi-query, hybrid search, streaming. Next: finish those, validate demand, then build cloud infra.*
 
@@ -20,12 +20,12 @@ None of these are optimized for the emerging MCP-native agent ecosystem.
 
 ## The Solution
 
-Oracle-RAG Cloud: a hosted service where developers upload PDFs (and later other doc types), and immediately get MCP-compatible tools (`query_pdf`, `add_pdf`, `list_pdfs`, `ask_about_documents`) that any MCP host can call. Also exposed as a REST API for non-MCP clients.
+PinRAG Cloud: a hosted service where developers upload PDFs (and later other doc types), and immediately get MCP-compatible tools (`query_pdf`, `add_pdf`, `list_pdfs`, `ask_about_documents`) that any MCP host can call. Also exposed as a REST API for non-MCP clients.
 
 **Developer experience:**
 1. Sign up, get an API key.
 2. Upload documents via dashboard or API.
-3. Point your agent's MCP config at `https://api.oracle-rag.com/mcp/{your-key}`.
+3. Point your agent's MCP config at `https://api.pinrag.com/mcp/{your-key}`.
 4. Your agent can now query your documents. Done.
 
 ## Why MCP-Native Is the Differentiator
@@ -33,21 +33,21 @@ Oracle-RAG Cloud: a hosted service where developers upload PDFs (and later other
 - MCP is the emerging standard: Anthropic (Nov 2024), OpenAI, Google Cloud (Dec 2025) all support it.
 - Developers building agents in Cursor, Claude Desktop, ChatGPT, and custom LangGraph/LangChain apps need MCP-compatible tools.
 - **No one owns "MCP-native RAG cloud" for the indie/SMB developer segment.** Contextual AI has an enterprise MCP RAG server, but nothing targets the $29–$99/mo developer market.
-- The MCP angle makes oracle-rag a *tool the agent discovers and uses*, not just an API the developer manually integrates.
+- The MCP angle makes pinrag a *tool the agent discovers and uses*, not just an API the developer manually integrates.
 
 ## Cursor Integration
 
-Cursor supports MCP in two ways: **Marketplace** (one-click install for listed servers, OAuth) and **custom servers** via a JSON config file. Cloud oracle-rag is added as a **custom** server — users do not need a Marketplace listing.
+Cursor supports MCP in two ways: **Marketplace** (one-click install for listed servers, OAuth) and **custom servers** via a JSON config file. Cloud pinrag is added as a **custom** server — users do not need a Marketplace listing.
 
 **Config file:** `~/.cursor/mcp.json` (or project-level `mcp.json`). Same file as today; users add a new entry under `mcpServers`.
 
 **Format for remote (cloud) MCP:** Cursor’s docs specify a **Remote Server** shape: `url` (HTTP or SSE endpoint) plus optional `headers` (e.g. API key). No local `command`/`args` — Cursor connects to the cloud URL.
 
-**Example — cloud oracle-rag in `mcp.json`:**
+**Example — cloud pinrag in `mcp.json`:**
 
 ```json
-"oracle-rag-cloud": {
-  "url": "https://api.oracle-rag.com/mcp",
+"pinrag-cloud": {
+  "url": "https://api.pinrag.com/mcp",
   "headers": {
     "Authorization": "Bearer YOUR_API_KEY"
   }
@@ -56,7 +56,7 @@ Cursor supports MCP in two ways: **Marketplace** (one-click install for listed s
 
 (Exact header name depends on our auth design: `Authorization: Bearer ...`, `X-API-Key`, etc.)
 
-**Summary:** Users add cloud oracle-rag by editing `mcp.json` with the Remote Server entry above. One-click from the Marketplace would require publishing there later; until then, we provide this snippet in docs and the dashboard.
+**Summary:** Users add cloud pinrag by editing `mcp.json` with the Remote Server entry above. One-click from the Marketplace would require publishing there later; until then, we provide this snippet in docs and the dashboard.
 
 Ref: Cursor Docs → [Model Context Protocol (MCP)](https://cursor.com/docs/mcp) → “Using mcp.json” → Remote Server.
 
@@ -77,7 +77,7 @@ Ref: Cursor Docs → [Model Context Protocol (MCP)](https://cursor.com/docs/mcp)
 
 These are the **direct competitors** — cloud RAG services that already expose an MCP server, usable from Cursor, Claude Desktop, etc.
 
-| Player | MCP transport | Pricing | Docs/PDF support | What they do well | Gap vs Oracle-RAG Cloud |
+| Player | MCP transport | Pricing | Docs/PDF support | What they do well | Gap vs PinRAG Cloud |
 |--------|--------------|---------|-------------------|-------------------|------------------------|
 | **Ragie** | Native HTTP streaming (hosted URL per partition) | Free (1k docs) / $100 (Starter) / $500 (Pro) / Enterprise | PDF, Google Drive, Notion, JIRA, audio/video | Hybrid + hierarchical search, reranking, entity extraction, multi-language, partitions for data isolation | Expensive ($100/mo minimum paid); aimed at teams, not solo devs; no $29 tier |
 | **CustomGPT.ai** | Hosted SSE (`mcp.customgpt.ai`) | Included with existing plans (no free tier listed) | PDF, Google Drive, Notion, Confluence, web scraping | #1 ranked RAG accuracy (independent benchmark), SOC2, fully managed, zero-infra | Enterprise-oriented; pricing opaque; overkill for a developer who just needs "query my PDFs from Cursor" |
@@ -110,7 +110,7 @@ These are the **direct competitors** — cloud RAG services that already expose 
 
 | Player | Why developers use them instead | Gap |
 |--------|-------------------------------|-----|
-| **LangChain/LlamaIndex** | DIY RAG with full control | Not hosted — oracle-rag removes the ops burden |
+| **LangChain/LlamaIndex** | DIY RAG with full control | Not hosted — pinrag removes the ops burden |
 | **Supabase + pgvector** | Database they already use | BYO chunking, embedding, prompt — not turnkey |
 | **OpenAI Assistants API** | Built-in file search | Locked to OpenAI models, limited retrieval tuning, no MCP |
 
@@ -127,7 +127,7 @@ MCP-native RAG cloud exists but splits into:
 - **Cheap but limited:** R2R/SciPhi ($25/mo, 300 free RAG req/mo, small file limits).
 - **Self-hosted only:** RAGFlow, pdf-rag-mcp-server.
 
-**The gap:** A simple, developer-friendly, MCP-native RAG cloud at **$29–$79/mo** focused on **PDF document Q&A from Cursor/Claude/agents**. Not a knowledge graph platform. Not an enterprise compliance suite. Just: upload PDFs → get MCP tools → your agent queries them. R2R/SciPhi is the closest on price, but oracle-rag could differentiate on simplicity, PDF focus, and Cursor-first DX.
+**The gap:** A simple, developer-friendly, MCP-native RAG cloud at **$29–$79/mo** focused on **PDF document Q&A from Cursor/Claude/agents**. Not a knowledge graph platform. Not an enterprise compliance suite. Just: upload PDFs → get MCP tools → your agent queries them. R2R/SciPhi is the closest on price, but pinrag could differentiate on simplicity, PDF focus, and Cursor-first DX.
 
 ## Pricing Model (Draft)
 
@@ -149,7 +149,7 @@ Per query cost breakdown (estimates):
 - **Total per query: ~$0.003–$0.01**
 
 At $29/mo with 5,000 queries: revenue $29, cost ~$15–$50. **Margin is tight if generation is included.** Options:
-1. **BYOK (Bring Your Own Key):** User provides their LLM API key — oracle-rag handles only retrieval. Dramatically improves margins.
+1. **BYOK (Bring Your Own Key):** User provides their LLM API key — pinrag handles only retrieval. Dramatically improves margins.
 2. **Retrieval-only tier:** Return ranked chunks + metadata, let the user's agent handle generation. Most MCP/agent use cases work this way naturally.
 3. **Generation included at higher tiers** with markup.
 
@@ -267,7 +267,7 @@ Before starting the SaaS build, finish these items from `implementation-checklis
 | Risk | Mitigation |
 |------|-----------|
 | MCP doesn't become dominant standard | Also offer REST API; MCP is branding/positioning, not the only interface |
-| OpenAI/Anthropic build this in (Assistants API already has file search) | They optimize for their own models; oracle-rag is model-agnostic and tunable |
+| OpenAI/Anthropic build this in (Assistants API already has file search) | They optimize for their own models; pinrag is model-agnostic and tunable |
 | Margin compression at low price points | BYOK model, retrieval-only pricing, optimize embedding costs |
 | Solo founder capacity | Focus on one persona, one feature, ship weekly |
 | Retrieval quality not competitive | Core quality proven (30/30, 10/10). Multi-query adds robustness for unseen queries. Evaluate on real user queries during beta. |

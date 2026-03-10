@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from langchain_core.documents import Document
 
-from oracle_rag.chunking.splitter import chunk_documents
+from pinrag.chunking.splitter import chunk_documents
 
 
 def _mkdoc(text: str) -> Document:

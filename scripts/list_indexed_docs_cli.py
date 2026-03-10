@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from oracle_rag.vectorstore import get_chroma_store
+from pinrag.vectorstore import get_chroma_store
 
 
 def main() -> None:
@@ -19,8 +19,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--collection",
-        default="oracle_rag",
-        help="Chroma collection name (default: oracle_rag)",
+        default="pinrag",
+        help="Chroma collection name (default: pinrag)",
     )
     args = parser.parse_args()
 

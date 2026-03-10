@@ -9,9 +9,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from oracle_rag.embeddings import get_embedding_model
-from oracle_rag.llm import get_chat_model
-from oracle_rag.rag import run_rag
+from pinrag.embeddings import get_embedding_model
+from pinrag.llm import get_chat_model
+from pinrag.rag import run_rag
 
 
 def main() -> None:
@@ -37,8 +37,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--collection",
-        default="oracle_rag",
-        help="Chroma collection name (default: oracle_rag)",
+        default="pinrag",
+        help="Chroma collection name (default: pinrag)",
     )
     parser.add_argument(
         "--document",

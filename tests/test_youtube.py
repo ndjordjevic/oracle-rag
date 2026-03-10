@@ -7,12 +7,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from oracle_rag.indexing.youtube_loader import (
+from pinrag.indexing.youtube_loader import (
     _fetch_video_title,
     extract_video_id,
     load_youtube_transcript_as_documents,
 )
-from oracle_rag.rag.formatting import format_docs, format_sources
+from pinrag.rag.formatting import format_docs, format_sources
 from langchain_core.documents import Document
 
 
@@ -66,14 +66,14 @@ def test_fetch_video_title_success() -> None:
         def __exit__(self, *a):
             pass
 
-    with patch("oracle_rag.indexing.youtube_loader.urllib.request.urlopen", return_value=FakeResponse()):
+    with patch("pinrag.indexing.youtube_loader.urllib.request.urlopen", return_value=FakeResponse()):
         title = _fetch_video_title("dQw4w9WgXcQ")
     assert title == "Rick Astley - Never Gonna Give You Up"
 
 
 def test_fetch_video_title_returns_none_on_error() -> None:
     """_fetch_video_title returns None when fetch fails."""
-    with patch("oracle_rag.indexing.youtube_loader.urllib.request.urlopen", side_effect=Exception("network error")):
+    with patch("pinrag.indexing.youtube_loader.urllib.request.urlopen", side_effect=Exception("network error")):
         title = _fetch_video_title("dQw4w9WgXcQ")
     assert title is None
 
@@ -98,7 +98,7 @@ def test_load_youtube_transcript_success() -> None:
         mock_instance = MagicMock()
         mock_instance.fetch.return_value = [mock_segment]
         mock_api.return_value = mock_instance
-        with patch("oracle_rag.indexing.youtube_loader._fetch_video_title", return_value="Test Video Title"):
+        with patch("pinrag.indexing.youtube_loader._fetch_video_title", return_value="Test Video Title"):
             result = load_youtube_transcript_as_documents("https://youtu.be/dQw4w9WgXcQ")
 
     assert result.video_id == "dQw4w9WgXcQ"

@@ -11,7 +11,7 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from oracle_rag.vectorstore.chroma_client import (
+from pinrag.vectorstore.chroma_client import (
     DEFAULT_COLLECTION_NAME,
     get_chroma_store,
 )
@@ -74,7 +74,7 @@ def test_chroma_add_and_search_with_real_embedding(tmp_path: Path) -> None:
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping real-embedding Chroma test")
 
-    from oracle_rag.embeddings import get_embedding_model
+    from pinrag.embeddings import get_embedding_model
     store = get_chroma_store(
         persist_directory=str(tmp_path),
         collection_name="test_real_embed",

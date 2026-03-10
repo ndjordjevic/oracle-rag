@@ -1,32 +1,32 @@
-# Oracle-RAG: Distribution Options for End Users
+# PinRAG: Distribution Options for End Users
 
-How others can use Oracle-RAG MCP **without cloning the GitHub repo**. Options range from simple downloads to cloud-hosted services.
+How others can use PinRAG MCP **without cloning the GitHub repo**. Options range from simple downloads to cloud-hosted services.
 
 ---
 
 ## 1. PyPI Package (pip / uv install)
 
-**What:** Publish to [PyPI](https://pypi.org). Users run `pip install oracle-rag` or `uv add oracle-rag`.
+**What:** Publish to [PyPI](https://pypi.org). Users run `pip install pinrag` or `uv add pinrag`.
 
 **User flow:**
 ```bash
-pip install oracle-rag
-# or: uv tool install oracle-rag
+pip install pinrag
+# or: uv tool install pinrag
 ```
 
 **Pros:**
 - Standard Python distribution; familiar to Python users
-- Versioned releases (`pip install oracle-rag==1.0.0`)
+- Versioned releases (`pip install pinrag==1.0.0`)
 - Works with `pip`, `uv`, `poetry`, `conda`
 - No clone required; install from anywhere
 
 **Cons:**
 - Requires Python 3.12+ on the user's machine
-- User must configure Cursor MCP to run `oracle-rag-mcp` (no cwd needed; .env and chroma_db use ~/.oracle-rag/)
+- User must configure Cursor MCP to run `pinrag-mcp` (no cwd needed; .env and chroma_db use ~/.pinrag/)
 
 **Implementation (current state):**
-- `[project.scripts]` in `pyproject.toml` exposes `oracle-rag-mcp = "oracle_rag.cli:main"`.
-- Config is loaded from `~/.config/oracle-rag/.env`, `~/.oracle-rag/.env`, or `{cwd}/.env`; the Chroma index defaults to `~/.oracle-rag/chroma_db` (overridable via `ORACLE_RAG_PERSIST_DIR`).
+- `[project.scripts]` in `pyproject.toml` exposes `pinrag-mcp = "pinrag.cli:main"`.
+- Config is loaded from `~/.config/pinrag/.env`, `~/.pinrag/.env`, or `{cwd}/.env`; the Chroma index defaults to `~/.pinrag/chroma_db` (overridable via `PINRAG_PERSIST_DIR`).
 - Publish flow: bump `version` in `pyproject.toml` → `git commit` → `git tag -a vX.Y.Z -m "Release vX.Y.Z"` → `git push origin main` → `git push origin vX.Y.Z`. A GitHub Action publishes to PyPI on tag push. For manual publish (e.g. if the Action fails): run `uv build && uv publish` locally.
 
 ---
@@ -40,8 +40,8 @@ pip install oracle-rag
 **User flow:**
 ```bash
 # Download from GitHub Releases, e.g. v1.0.0
-curl -L -o oracle-rag.zip https://github.com/you/oracle-rag/releases/download/v1.0.0/oracle-rag-1.0.0.zip
-unzip oracle-rag.zip && cd oracle-rag-1.0.0
+curl -L -o pinrag.zip https://github.com/you/pinrag/releases/download/v1.0.0/pinrag-1.0.0.zip
+unzip pinrag.zip && cd pinrag-1.0.0
 uv sync   # or pip install -e .
 # Configure .env, then point Cursor to: uv run python scripts/mcp_server.py
 ```
@@ -49,7 +49,7 @@ uv sync   # or pip install -e .
 **Pros:**
 - No PyPI account or publishing step
 - Users get a specific version; no clone
-- Can also attach pre-built wheels for `pip install oracle-rag-1.0.0-py3-none-any.whl`
+- Can also attach pre-built wheels for `pip install pinrag-1.0.0-py3-none-any.whl`
 
 **Cons:**
 - Manual download and setup; more steps than `pip install`
@@ -68,13 +68,13 @@ uv sync   # or pip install -e .
 
 **Cons:**
 - MCP stdio transport expects a local process. For Docker, we need either:
-  - **Option A:** Run the container with a volume; Cursor runs `docker run -i oracle-rag` and talks via stdio (possible, but Cursor config is trickier).
+  - **Option A:** Run the container with a volume; Cursor runs `docker run -i pinrag` and talks via stdio (possible, but Cursor config is trickier).
   - **Option B:** Run the server in HTTP/SSE mode inside the container and expose a port; users connect to `http://localhost:8000` (or a remote URL). Requires implementing SSE transport.
 - Chroma persistence: need a volume for `chroma_db`; user must manage `OPENAI_API_KEY` (env or config)
 
 **Implementation:**
 - Use MCP’s SSE transport for remote servers (or Streamable HTTP per newer spec)
-- Add `Dockerfile`; expose HTTP port; document `docker run -p 8000:8000 -e OPENAI_API_KEY=... -v ./chroma_db:/app/chroma_db oracle-rag`
+- Add `Dockerfile`; expose HTTP port; document `docker run -p 8000:8000 -e OPENAI_API_KEY=... -v ./chroma_db:/app/chroma_db pinrag`
 
 ---
 
@@ -100,15 +100,15 @@ uv sync   # or pip install -e .
 - **Cloudflare Workers:** Edge runtime; 50ms per event limit may be tight for RAG/LLM calls
 
 **User flow:**
-- You host at `https://oracle-rag.yourdomain.com`
-- User adds MCP server in Cursor: type **URL**, URL = `https://oracle-rag.yourdomain.com/sse`
+- You host at `https://pinrag.yourdomain.com`
+- User adds MCP server in Cursor: type **URL**, URL = `https://pinrag.yourdomain.com/sse`
 - Cursor connects over HTTP; no local Python or Docker
 
 ---
 
 ## 5. Standalone Executable (PyInstaller / Nuitka)
 
-**What:** Build a single binary (e.g. `oracle-rag-mcp.exe` on Windows, `oracle-rag-mcp` on macOS/Linux). No Python install needed.
+**What:** Build a single binary (e.g. `pinrag-mcp.exe` on Windows, `pinrag-mcp` on macOS/Linux). No Python install needed.
 
 **Pros:**
 - One binary; no Python, pip, or uv
@@ -121,7 +121,7 @@ uv sync   # or pip install -e .
 
 **Implementation:**
 - Use PyInstaller or Nuitka; entry point = MCP server
-- Distribute via GitHub Releases (e.g. `oracle-rag-mcp-1.0.0-macos-arm64`)
+- Distribute via GitHub Releases (e.g. `pinrag-mcp-1.0.0-macos-arm64`)
 
 ---
 
@@ -131,7 +131,7 @@ uv sync   # or pip install -e .
 
 **Pros:**
 - Familiar for users of those platforms
-- `brew install oracle-rag` or `choco install oracle-rag`
+- `brew install pinrag` or `choco install pinrag`
 
 **Cons:**
 - Separate packaging for each platform
@@ -146,7 +146,7 @@ uv sync   # or pip install -e .
 
 ## 7. Cursor / MCP Marketplace (if available)
 
-**What:** If Cursor (or another MCP client) adds a marketplace, users could add Oracle-RAG with one click.
+**What:** If Cursor (or another MCP client) adds a marketplace, users could add PinRAG with one click.
 
 **Status:** As of early 2025, no public Cursor MCP marketplace is widely documented. This could change in the future.
 
@@ -167,7 +167,7 @@ uv sync   # or pip install -e .
 
 ## Recommended Path
 
-1. **Short term:** Publish to **PyPI** and add a **GitHub Release** with a source zip and wheels. Most users can `pip install oracle-rag` or download the release.
+1. **Short term:** Publish to **PyPI** and add a **GitHub Release** with a source zip and wheels. Most users can `pip install pinrag` or download the release.
 2. **Medium term:** Add **Docker** support with SSE transport for users who prefer containers or want to deploy to cloud.
 3. **Long term:** If you want a hosted offering, deploy **cloud-hosted** MCP for teams or users who want zero local setup.
 
@@ -175,9 +175,9 @@ uv sync   # or pip install -e .
 
 ## Implementation Checklist (for PyPI)
 
-- [x] Add `[project.scripts]` entry point for `oracle-rag-mcp`
-- [x] Configure default paths: `.env` from `~/.config/oracle-rag/`, `~/.oracle-rag/`, cwd; `chroma_db` at `~/.oracle-rag/chroma_db` by default
-- [x] Document `pip install oracle-rag` and Cursor MCP config in README
+- [x] Add `[project.scripts]` entry point for `pinrag-mcp`
+- [x] Configure default paths: `.env` from `~/.config/pinrag/`, `~/.pinrag/`, cwd; `chroma_db` at `~/.pinrag/chroma_db` by default
+- [x] Document `pip install pinrag` and Cursor MCP config in README
 - [x] Create PyPI account; `uv build` and `uv publish`
 - [x] GitHub Action to publish to PyPI on tag push
 
@@ -197,24 +197,24 @@ uv sync   # or pip install -e .
 
 1. **Install:**
    ```bash
-   pipx install oracle-rag
-   # or: uv tool install oracle-rag
+   pipx install pinrag
+   # or: uv tool install pinrag
    ```
 2. **Configure:**
    ```bash
-   mkdir -p ~/.oracle-rag
-   echo "OPENAI_API_KEY=sk-..." > ~/.oracle-rag/.env
+   mkdir -p ~/.pinrag
+   echo "OPENAI_API_KEY=sk-..." > ~/.pinrag/.env
    ```
 3. **Verify:**
    ```bash
-   oracle-rag-mcp
+   pinrag-mcp
    ```
    Server should start and wait for stdio input (Ctrl+C to stop).
 4. **Cursor MCP:** Add to `~/.cursor/mcp.json`:
    ```json
-   "oracle-rag": {
-     "command": "oracle-rag-mcp"
+   "pinrag": {
+     "command": "pinrag-mcp"
    }
    ```
    Restart Cursor; verify `add_pdf`, `list_pdfs`, `query_pdf`, `remove_pdf` tools appear.
-   No `cwd` needed — index is stored in `~/.oracle-rag/chroma_db` by default.
+   No `cwd` needed — index is stored in `~/.pinrag/chroma_db` by default.

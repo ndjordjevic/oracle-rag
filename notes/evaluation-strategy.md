@@ -1,6 +1,6 @@
-# Oracle-RAG Evaluation Strategy
+# PinRAG Evaluation Strategy
 
-This document defines how we evaluate oracle-rag as we add, optimise, and improve features.
+This document defines how we evaluate pinrag as we add, optimise, and improve features.
 Evaluation is built on **LangSmith** — datasets, `client.evaluate()`, and LLM-as-judge evaluators.
 
 ---
@@ -40,10 +40,10 @@ Plus three code-based checks (no LLM cost):
 
 ## 3. Dataset
 
-**Dataset name:** `oracle-rag-golden` (in LangSmith)
+**Dataset name:** `pinrag-golden` (in LangSmith)
 **Size:** 30 examples
 
-**Multi-query stress dataset:** `oracle-rag-multiquery-stress` (15 examples) — terse or incomplete phrases from "Bare-metal Amiga programming 2021_ocr.pdf" (e.g. "cookie cut blitter operation", "Copper danger bit lower registers"). Questions are short but have enough semantic content for query expansion to help; bare 1–2 word acronyms (e.g. "BPLCON3") are avoided because multi-query often hurts those. Use to measure improvement from `ORACLE_RAG_USE_MULTI_QUERY=true`. Create or overwrite with `uv run python scripts/create_multiquery_stress_dataset.py` (use `--force` to replace an existing dataset).
+**Multi-query stress dataset:** `pinrag-multiquery-stress` (15 examples) — terse or incomplete phrases from "Bare-metal Amiga programming 2021_ocr.pdf" (e.g. "cookie cut blitter operation", "Copper danger bit lower registers"). Questions are short but have enough semantic content for query expansion to help; bare 1–2 word acronyms (e.g. "BPLCON3") are avoided because multi-query often hurts those. Use to measure improvement from `PINRAG_USE_MULTI_QUERY=true`. Create or overwrite with `uv run python scripts/create_multiquery_stress_dataset.py` (use `--force` to replace an existing dataset).
 
 ### Example structure
 
@@ -67,7 +67,7 @@ Inputs contain only `question` — retrieval is unfiltered (no `document_id` or 
 
 ## 4. Evaluator implementations
 
-All evaluators live in `src/oracle_rag/evaluation/evaluators.py`.
+All evaluators live in `src/pinrag/evaluation/evaluators.py`.
 LLM-as-judge graders require `OPENAI_API_KEY`. **gpt-4o** is used for `correctness` and `relevance` (consistent grading of technical synonyms); **gpt-4o-mini** is used for `groundedness` and `retrieval_relevance` (context-heavy, would hit gpt-4o TPM limits at k=30–40).
 
 ### 4.1 Correctness
@@ -94,7 +94,7 @@ Returns `score: 1` if the retrieved chunks are relevant to the question.
 
 ## 5. Target function
 
-`src/oracle_rag/evaluation/target.py` — `oracle_rag_target(inputs) -> dict`
+`src/pinrag/evaluation/target.py` — `pinrag_target(inputs) -> dict`
 
 1. Reads `question`, `document_id`, `page_min`, `page_max` from dataset inputs.
 2. Calls `run_rag(question, llm, retriever=None, ...)` so the chain builds the retriever internally.
@@ -104,17 +104,17 @@ The `documents` list is the raw retrieved chunks — needed by groundedness and 
 relevance evaluators. The `sources` list is the deduplicated source metadata returned
 by `run_rag`.
 
-> **Note:** `k` comes from `ORACLE_RAG_RETRIEVE_K` (default 10). When rerank is on, `ORACLE_RAG_RERANK_RETRIEVE_K` can override the pre-rerank fetch count; `ORACLE_RAG_RERANK_TOP_N` (default 5) sets chunks passed to the LLM.
+> **Note:** `k` comes from `PINRAG_RETRIEVE_K` (default 10). When rerank is on, `PINRAG_RERANK_RETRIEVE_K` can override the pre-rerank fetch count; `PINRAG_RERANK_TOP_N` (default 5) sets chunks passed to the LLM.
 
 ---
 
 ## 6. Running an evaluation experiment
 
 ```bash
-# From oracle-rag project root:
-uv run python -m oracle_rag.evaluation \
-  --dataset oracle-rag-golden \
-  --prefix oracle-rag-baseline \
+# From pinrag project root:
+uv run python -m pinrag.evaluation \
+  --dataset pinrag-golden \
+  --prefix pinrag-baseline \
   --limit 30 \
   --metadata '{"version":"3.0.1","rerank":"false"}'
 ```
@@ -123,19 +123,19 @@ All CLI options:
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--dataset` | `oracle-rag-golden` | LangSmith dataset name |
-| `--prefix` | `oracle-rag-baseline` | Experiment name prefix |
+| `--dataset` | `pinrag-golden` | LangSmith dataset name |
+| `--prefix` | `pinrag-baseline` | Experiment name prefix |
 | `--limit N` | all | Max examples to run (use 30 for full golden set) |
 | `--metadata '{...}'` | none | JSON metadata attached to the experiment |
 
 Results are visible at [smith.langchain.com](https://smith.langchain.com/) under the
-`oracle-rag` project.
+`pinrag` project.
 
 ### Before/after workflow
 
 1. Run baseline experiment → record scores.
 2. Implement the change (re-ranking, new prompt, etc.).
-3. Re-run with a different `--prefix` (e.g. `oracle-rag-rerank`).
+3. Re-run with a different `--prefix` (e.g. `pinrag-rerank`).
 4. Compare side-by-side in LangSmith.
 
 ### Multi-query stress comparison
@@ -143,17 +143,17 @@ Results are visible at [smith.langchain.com](https://smith.langchain.com/) under
 To compare single-query vs multi-query on the stress dataset (rerank off):
 
 ```bash
-ORACLE_RAG_USE_RERANK=false ORACLE_RAG_USE_MULTI_QUERY=false uv run python -m oracle_rag.evaluation --dataset oracle-rag-multiquery-stress --prefix oracle-rag-mq-off --limit 20
-ORACLE_RAG_USE_RERANK=false ORACLE_RAG_USE_MULTI_QUERY=true  uv run python -m oracle_rag.evaluation --dataset oracle-rag-multiquery-stress --prefix oracle-rag-mq-on  --limit 20
+PINRAG_USE_RERANK=false PINRAG_USE_MULTI_QUERY=false uv run python -m pinrag.evaluation --dataset pinrag-multiquery-stress --prefix pinrag-mq-off --limit 20
+PINRAG_USE_RERANK=false PINRAG_USE_MULTI_QUERY=true  uv run python -m pinrag.evaluation --dataset pinrag-multiquery-stress --prefix pinrag-mq-on  --limit 20
 ```
 
 Compare correctness (and cost, in LangSmith) between the two experiments.
 
-To compare **response style** (thorough vs concise), set `ORACLE_RAG_RESPONSE_STYLE` and use distinct prefixes:
+To compare **response style** (thorough vs concise), set `PINRAG_RESPONSE_STYLE` and use distinct prefixes:
 
 ```bash
-ORACLE_RAG_RESPONSE_STYLE=thorough uv run python -m oracle_rag.evaluation --dataset oracle-rag-golden --prefix thorough --limit 30
-ORACLE_RAG_RESPONSE_STYLE=concise uv run python -m oracle_rag.evaluation --dataset oracle-rag-golden --prefix concise --limit 30
+PINRAG_RESPONSE_STYLE=thorough uv run python -m pinrag.evaluation --dataset pinrag-golden --prefix thorough --limit 30
+PINRAG_RESPONSE_STYLE=concise uv run python -m pinrag.evaluation --dataset pinrag-golden --prefix concise --limit 30
 ```
 
 ---
@@ -173,9 +173,9 @@ ORACLE_RAG_RESPONSE_STYLE=concise uv run python -m oracle_rag.evaluation --datas
 
 ## 8. Experiment results
 
-**Setup:** Embedding text-embedding-3-small, collection `oracle_rag`. Judge: gpt-4o (correctness/relevance), gpt-4o-mini (groundedness/retrieval_relevance).
+**Setup:** Embedding text-embedding-3-small, collection `pinrag`. Judge: gpt-4o (correctness/relevance), gpt-4o-mini (groundedness/retrieval_relevance).
 
-Early runs showed correctness improves with k and with prompt/ref-answer fixes; the judge was set to gpt-4o for correctness/relevance to grade technical answers consistently. Min-k sweep on `oracle-rag-golden` (30 Qs): all questions pass with **k=10** (two need k=10, rest k=5).
+Early runs showed correctness improves with k and with prompt/ref-answer fixes; the judge was set to gpt-4o for correctness/relevance to grade technical answers consistently. Min-k sweep on `pinrag-golden` (30 Qs): all questions pass with **k=10** (two need k=10, rest k=5).
 
 ### Rerank and no-rerank (hard-10 and golden)
 
@@ -187,9 +187,9 @@ Early runs showed correctness improves with k and with prompt/ref-answer fixes; 
 | gpt-4o-mini | k=10, no rerank | — | 30/30 |
 | gpt-4o-mini | k=30, no rerank | 10/10 | — |
 
-**Recommended:** Rerank on → k=20, top_n=10 with claude-haiku-4-5. Rerank off → k=10 (or 30 if you prefer a single safe value). For terse or incomplete user queries, enable multi-query (`ORACLE_RAG_USE_MULTI_QUERY=true`); on the multiquery-stress set it improves correctness with ~12% higher LLM cost. See `config.py` and `implementation-checklist.md` (Re-ranking, Query translation / multi-query).
+**Recommended:** Rerank on → k=20, top_n=10 with claude-haiku-4-5. Rerank off → k=10 (or 30 if you prefer a single safe value). For terse or incomplete user queries, enable multi-query (`PINRAG_USE_MULTI_QUERY=true`); on the multiquery-stress set it improves correctness with ~12% higher LLM cost. See `config.py` and `implementation-checklist.md` (Re-ranking, Query translation / multi-query).
 
-### Multi-query and rerank (oracle-rag-multiquery-stress, 15 examples)
+### Multi-query and rerank (pinrag-multiquery-stress, 15 examples)
 
 Runs: rerank off; LLM and embedding as in §8. Same evaluators.
 
@@ -209,6 +209,6 @@ Runs: rerank off; LLM and embedding as in §8. Same evaluators.
 
 | Dataset | Size | Use |
 |---------|------|-----|
-| `oracle-rag-golden` | 30 | Full regression |
-| `oracle-rag-hard-10` | 10 | Fast tuning (~3 min/run) |
-| `oracle-rag-multiquery-stress` | 15 | Multi-query vs single-query; terse phrases, same doc as golden |
+| `pinrag-golden` | 30 | Full regression |
+| `pinrag-hard-10` | 10 | Fast tuning (~3 min/run) |
+| `pinrag-multiquery-stress` | 15 | Multi-query vs single-query; terse phrases, same doc as golden |

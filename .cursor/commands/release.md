@@ -1,6 +1,6 @@
-# Release oracle-rag
+# Release pinrag
 
-Cut a new oracle-rag release: bump version, tag, push, and create a GitHub Release (which triggers PyPI publish).
+Cut a new pinrag release: bump version, tag, push, and create a GitHub Release (which triggers PyPI publish).
 
 ## Steps
 

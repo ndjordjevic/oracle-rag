@@ -10,7 +10,7 @@ from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 
-from oracle_rag.rag.multiquery import wrap_retriever_with_multiquery, _get_multiquery_prompt
+from pinrag.rag.multiquery import wrap_retriever_with_multiquery, _get_multiquery_prompt
 
 
 def test_get_multiquery_prompt_has_question_variable() -> None:
@@ -40,7 +40,7 @@ def test_wrap_retriever_with_multiquery_returns_retriever() -> None:
     if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("No LLM API key; skipping multi-query test")
 
-    from oracle_rag.llm import get_chat_model
+    from pinrag.llm import get_chat_model
 
     base = FakeRetriever()
     llm = get_chat_model()

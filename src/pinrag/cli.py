@@ -34,6 +34,6 @@ def main() -> None:
         )
         sys.exit(1)
 
-    from oracle_rag.mcp.server import mcp
+    from pinrag.mcp.server import mcp
 
     mcp.run(transport="stdio")

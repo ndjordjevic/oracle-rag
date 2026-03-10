@@ -17,8 +17,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from oracle_rag.config import DEFAULT_PERSIST_DIR, get_collection_name
-from oracle_rag.mcp.tools import add_file
+from pinrag.config import DEFAULT_PERSIST_DIR, get_collection_name
+from pinrag.mcp.tools import add_file
 
 # Load .env from project root
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")

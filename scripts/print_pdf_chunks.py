@@ -6,8 +6,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from oracle_rag.chunking import chunk_documents
-from oracle_rag.pdf.pypdf_loader import load_pdf_as_documents
+from pinrag.chunking import chunk_documents
+from pinrag.pdf.pypdf_loader import load_pdf_as_documents
 
 
 def main() -> None:

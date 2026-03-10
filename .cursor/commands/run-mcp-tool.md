@@ -1,6 +1,6 @@
-# Run Oracle-RAG MCP tool
+# Run PinRAG MCP tool
 
-Run an Oracle-RAG MCP tool via `call_mcp_tool` with server `user-oracle-rag`.
+Run an PinRAG MCP tool via `call_mcp_tool` with server `user-pinrag`.
 
 ## Available tools
 
@@ -15,7 +15,7 @@ Run an Oracle-RAG MCP tool via `call_mcp_tool` with server `user-oracle-rag`.
 
 1. Determine which tool the user wants from their message (e.g. a question → `query_tool`, "list docs" → `list_documents_tool`).
 2. Call `call_mcp_tool` with:
-   - `server`: `"user-oracle-rag"`
+   - `server`: `"user-pinrag"`
    - `toolName`: the tool name (e.g. `"query_tool"`)
    - `arguments`: a dict with the required and any optional parameters
 3. Present the result clearly to the user.

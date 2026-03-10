@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from pydantic import Field
 from mcp.server.fastmcp import FastMCP
 
-from oracle_rag.config import (
+from pinrag.config import (
     get_chunk_overlap,
     get_chunk_size,
     get_child_chunk_size,
@@ -34,7 +34,7 @@ from oracle_rag.config import (
     get_use_parent_child,
     get_use_rerank,
 )
-from oracle_rag.mcp.tools import (
+from pinrag.mcp.tools import (
     add_files,
     list_documents,
     query as query_index,
@@ -50,7 +50,7 @@ os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 # Configure logging to stderr so it appears in Cursor's Output panel for this MCP
 _log_handler = logging.StreamHandler(sys.stderr)
 _log_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
-_log = logging.getLogger("oracle_rag.mcp")
+_log = logging.getLogger("pinrag.mcp")
 _log.setLevel(logging.INFO)
 _log.propagate = False
 if not _log.handlers:
@@ -70,7 +70,7 @@ if not os.environ.get("OPENAI_API_KEY"):
     _log.warning("OPENAI_API_KEY not set. MCP tools will fail without it.")
 
 # Create FastMCP server instance
-mcp = FastMCP("Oracle-RAG", json_response=True)
+mcp = FastMCP("PinRAG", json_response=True)
 
 
 def _user_friendly_api_error(exc: BaseException) -> str | None:
@@ -78,10 +78,10 @@ def _user_friendly_api_error(exc: BaseException) -> str | None:
     msg = str(exc).lower()
     if "api key" in msg or "api_key" in msg or "authentication" in msg or "invalid key" in msg or "no api key" in msg:
         if "anthropic" in msg or "claude" in msg:
-            return "Anthropic API key missing or invalid. Set ANTHROPIC_API_KEY in ~/.oracle-rag/.env (or your config)."
+            return "Anthropic API key missing or invalid. Set ANTHROPIC_API_KEY in ~/.pinrag/.env (or your config)."
         if "cohere" in msg:
-            return "Cohere API key missing or invalid. Set COHERE_API_KEY in ~/.oracle-rag/.env (or your config)."
-        return "OpenAI API key not found or invalid. Set OPENAI_API_KEY in ~/.oracle-rag/.env (or your config)."
+            return "Cohere API key missing or invalid. Set COHERE_API_KEY in ~/.pinrag/.env (or your config)."
+        return "OpenAI API key not found or invalid. Set OPENAI_API_KEY in ~/.pinrag/.env (or your config)."
     if "rate" in msg and "limit" in msg:
         return "API rate limit exceeded. Please try again in a moment."
     return None
@@ -185,7 +185,7 @@ def add_document_tool(
 def list_documents_tool(
     tag: Annotated[str, Field(description="Optional tag to filter: only list documents that have this tag.")] = "",
 ) -> dict:
-    """List all indexed documents in the Oracle-RAG index.
+    """List all indexed documents in the PinRAG index.
 
     Returns unique document IDs (PDF file names, video IDs, discord-alicia-1200-pcb, etc.)
     currently in the vector store, plus total chunk count. Uses server config
@@ -210,7 +210,7 @@ def list_documents_tool(
 def remove_document_tool(
     document_id: Annotated[str, Field(description="Document identifier to remove (from list_documents_tool).")],
 ) -> dict:
-    """Remove a document and all its chunks from the Oracle-RAG index.
+    """Remove a document and all its chunks from the PinRAG index.
 
     Deletes all chunks and embeddings for the given document. Use
     list_documents_tool to see document_ids (e.g. "mybook.pdf", "bwgLXEQdq20", "discord-alicia-1200-pcb").
@@ -230,9 +230,9 @@ def remove_document_tool(
 
 
 @mcp.resource(
-    "oracle-rag://documents",
+    "pinrag://documents",
     title="Indexed documents list",
-    description="Read-only list of documents currently indexed in Oracle-RAG (default collection).",
+    description="Read-only list of documents currently indexed in PinRAG (default collection).",
 )
 def documents_resource() -> str:
     """Return a plain-text list of indexed documents for the default collection.
@@ -283,32 +283,32 @@ def _env_set(name: str) -> bool:
 
 
 @mcp.resource(
-    "oracle-rag://server-config",
+    "pinrag://server-config",
     title="Server configuration",
-    description="Environment variables and config params used by the Oracle-RAG MCP server.",
+    description="Environment variables and config params used by the PinRAG MCP server.",
 )
 def server_config_resource() -> str:
     """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
     config_items = [
-        ("ORACLE_RAG_PERSIST_DIR", get_persist_dir),
-        ("ORACLE_RAG_COLLECTION_NAME", get_collection_name),
-        ("ORACLE_RAG_LLM_PROVIDER", get_llm_provider),
-        ("ORACLE_RAG_LLM_MODEL", get_llm_model),
-        ("ORACLE_RAG_EMBEDDING_PROVIDER", get_embedding_provider),
-        ("ORACLE_RAG_EMBEDDING_MODEL", get_embedding_model_name),
-        ("ORACLE_RAG_CHUNK_SIZE", lambda: str(get_chunk_size())),
-        ("ORACLE_RAG_CHUNK_OVERLAP", lambda: str(get_chunk_overlap())),
-        ("ORACLE_RAG_STRUCTURE_AWARE_CHUNKING", lambda: str(get_structure_aware_chunking())),
-        ("ORACLE_RAG_RETRIEVE_K", lambda: str(get_retrieve_k())),
-        ("ORACLE_RAG_USE_RERANK", lambda: str(get_use_rerank()).lower()),
-        ("ORACLE_RAG_RERANK_RETRIEVE_K", lambda: str(get_rerank_retrieve_k())),
-        ("ORACLE_RAG_RERANK_TOP_N", lambda: str(get_rerank_top_n())),
-        ("ORACLE_RAG_USE_MULTI_QUERY", lambda: str(get_use_multi_query()).lower()),
-        ("ORACLE_RAG_MULTI_QUERY_COUNT", lambda: str(get_multi_query_count())),
-        ("ORACLE_RAG_USE_PARENT_CHILD", lambda: str(get_use_parent_child()).lower()),
-        ("ORACLE_RAG_PARENT_CHUNK_SIZE", lambda: str(get_parent_chunk_size())),
-        ("ORACLE_RAG_CHILD_CHUNK_SIZE", lambda: str(get_child_chunk_size())),
-        ("ORACLE_RAG_RESPONSE_STYLE", get_response_style),
+        ("PINRAG_PERSIST_DIR", get_persist_dir),
+        ("PINRAG_COLLECTION_NAME", get_collection_name),
+        ("PINRAG_LLM_PROVIDER", get_llm_provider),
+        ("PINRAG_LLM_MODEL", get_llm_model),
+        ("PINRAG_EMBEDDING_PROVIDER", get_embedding_provider),
+        ("PINRAG_EMBEDDING_MODEL", get_embedding_model_name),
+        ("PINRAG_CHUNK_SIZE", lambda: str(get_chunk_size())),
+        ("PINRAG_CHUNK_OVERLAP", lambda: str(get_chunk_overlap())),
+        ("PINRAG_STRUCTURE_AWARE_CHUNKING", lambda: str(get_structure_aware_chunking())),
+        ("PINRAG_RETRIEVE_K", lambda: str(get_retrieve_k())),
+        ("PINRAG_USE_RERANK", lambda: str(get_use_rerank()).lower()),
+        ("PINRAG_RERANK_RETRIEVE_K", lambda: str(get_rerank_retrieve_k())),
+        ("PINRAG_RERANK_TOP_N", lambda: str(get_rerank_top_n())),
+        ("PINRAG_USE_MULTI_QUERY", lambda: str(get_use_multi_query()).lower()),
+        ("PINRAG_MULTI_QUERY_COUNT", lambda: str(get_multi_query_count())),
+        ("PINRAG_USE_PARENT_CHILD", lambda: str(get_use_parent_child()).lower()),
+        ("PINRAG_PARENT_CHUNK_SIZE", lambda: str(get_parent_chunk_size())),
+        ("PINRAG_CHILD_CHUNK_SIZE", lambda: str(get_child_chunk_size())),
+        ("PINRAG_RESPONSE_STYLE", get_response_style),
     ]
     set_items: list[str] = []
     default_items: list[str] = []
@@ -321,7 +321,7 @@ def server_config_resource() -> str:
             default_items.append(line + " (default)")
 
     lines = [
-        "Oracle-RAG MCP Server Configuration",
+        "PinRAG MCP Server Configuration",
         "=" * 40,
         "",
         "--- Set (from env) ---",
@@ -342,11 +342,11 @@ def server_config_resource() -> str:
 def ask_about_documents(question: str) -> str:
     """Ask a question about the indexed documents.
 
-    Use the query_tool to search the Oracle-RAG index and return an answer
+    Use the query_tool to search the PinRAG index and return an answer
     with citations. The question will be sent as the user message to guide the AI.
     """
     return (
-        f"Answer this question using the Oracle-RAG indexed documents: {question}\n\n"
+        f"Answer this question using the PinRAG indexed documents: {question}\n\n"
         f"You MUST call the query_tool first to retrieve relevant context. "
         "Required: query (the question). Optional params: document_id (filter to one doc), "
         "page_min/page_max (PDF page range only), tag (filter by tag), document_type ('pdf', 'youtube', 'discord'), response_style ('thorough' or 'concise'). "

@@ -12,11 +12,11 @@ MCP servers expose three main primitives:
 2. **Resources**: File-like data (e.g., document metadata, chunk information)
 3. **Prompts**: Pre-written templates for specific tasks
 
-### Why MCP for Oracle-RAG?
+### Why MCP for PinRAG?
 
-- **Standardized Interface**: Makes oracle-rag accessible to any MCP-compatible client (Claude Desktop, Cursor, custom apps)
+- **Standardized Interface**: Makes pinrag accessible to any MCP-compatible client (Claude Desktop, Cursor, custom apps)
 - **Tool Integration**: LLMs can directly call `query_pdf` and `add_pdf` as tools
-- **Separation of Concerns**: RAG logic stays in `oracle_rag` package, MCP server is a thin wrapper
+- **Separation of Concerns**: RAG logic stays in `pinrag` package, MCP server is a thin wrapper
 - **Future Extensibility**: Easy to add more tools/resources/prompts
 
 ## Language Choice: Python vs Other Options
@@ -38,16 +38,16 @@ The Model Context Protocol provides official SDKs for multiple languages:
 | **Ruby** | Official | Ruby/Rails ecosystems |
 | **PHP** | Official | Web applications |
 
-### Why Python for Oracle-RAG?
+### Why Python for PinRAG?
 
 **✅ Chosen: Python SDK** (`mcp` package)
 
 **Reasons:**
 
-1. **Existing Codebase**: Oracle-RAG is 100% Python:
+1. **Existing Codebase**: PinRAG is 100% Python:
    - LangChain (Python-native)
    - ChromaDB (Python client)
-   - All existing code (`oracle_rag` package) is Python
+   - All existing code (`pinrag` package) is Python
    - No language boundary overhead
 
 2. **Direct Integration**: 
@@ -86,7 +86,7 @@ The Model Context Protocol provides official SDKs for multiple languages:
 - More complex deployment (two languages)
 - No direct access to Python LangChain APIs
 
-**Verdict**: Not suitable for Oracle-RAG since the entire codebase is Python.
+**Verdict**: Not suitable for PinRAG since the entire codebase is Python.
 
 ### Other Languages
 
@@ -95,7 +95,7 @@ The Model Context Protocol provides official SDKs for multiple languages:
 - Need specific language features (e.g., Go's concurrency, Rust's safety)
 - Integrating with existing codebases in those languages
 
-**For Oracle-RAG**: Python is the clear choice given the existing codebase.
+**For PinRAG**: Python is the clear choice given the existing codebase.
 
 ## Implementation Approach
 
@@ -106,7 +106,7 @@ The Model Context Protocol provides official SDKs for multiple languages:
 ```python
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("Oracle-RAG", json_response=True)
+mcp = FastMCP("PinRAG", json_response=True)
 
 @mcp.tool()
 def query_pdf(query: str, k: int = 5) -> dict:
@@ -139,7 +139,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
-server = Server("Oracle-RAG")
+server = Server("PinRAG")
 
 @server.list_tools()
 async def list_tools() -> list[Tool]:
@@ -177,9 +177,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 ## Recommended Structure
 
 ```
-oracle-rag/
+pinrag/
 ├── src/
-│   └── oracle_rag/
+│   └── pinrag/
 │       └── mcp/                    # New module
 │           ├── __init__.py
 │           ├── server.py           # FastMCP server definition
@@ -200,7 +200,7 @@ oracle-rag/
 - `query` (str, required): Natural language question
 - `k` (int, optional, default=5): Number of chunks to retrieve
 - `persist_dir` (str, optional, default="chroma_db"): Chroma persistence directory
-- `collection` (str, optional, default="oracle_rag"): Collection name
+- `collection` (str, optional, default="pinrag"): Collection name
 
 **Returns**:
 ```json
@@ -213,7 +213,7 @@ oracle-rag/
 }
 ```
 
-**Implementation**: Wraps `get_rag_chain()` from `oracle_rag.rag`
+**Implementation**: Wraps `get_rag_chain()` from `pinrag.rag`
 
 ### 2. `add_pdf` Tool
 
@@ -222,7 +222,7 @@ oracle-rag/
 **Parameters**:
 - `pdf_path` (str, required): Path to PDF file
 - `persist_dir` (str, optional, default="chroma_db"): Chroma persistence directory
-- `collection` (str, optional, default="oracle_rag"): Collection name
+- `collection` (str, optional, default="pinrag"): Collection name
 
 **Returns**:
 ```json
@@ -231,11 +231,11 @@ oracle-rag/
   "total_pages": 42,
   "total_chunks": 156,
   "persist_directory": "chroma_db",
-  "collection_name": "oracle_rag"
+  "collection_name": "pinrag"
 }
 ```
 
-**Implementation**: Wraps `index_pdf()` from `oracle_rag.indexing`
+**Implementation**: Wraps `index_pdf()` from `pinrag.indexing`
 
 ## Testing Strategy
 
@@ -254,7 +254,7 @@ The MCP Inspector is a testing tool:
 # Install inspector
 npx -y @modelcontextprotocol/inspector
 
-# Run oracle-rag MCP server
+# Run pinrag MCP server
 uv run scripts/mcp_server.py
 
 # In another terminal, connect inspector to server
@@ -310,11 +310,11 @@ if __name__ == "__main__":
 - **Language & SDK:** Python with the official `mcp` SDK.
 - **Server framework:** `FastMCP` (decorator-based) instead of the low-level server API.
 - **Transport:** `stdio` for real use (Cursor, uv tool install); `streamable-http` only for local testing/Inspector.
-- **Entry point:** `oracle-rag-mcp` script from `pyproject.toml` (`oracle_rag.cli:main`), which:
-  - Loads `.env` from `~/.config/oracle-rag/.env`, `~/.oracle-rag/.env`, then `{cwd}/.env`.
+- **Entry point:** `pinrag-mcp` script from `pyproject.toml` (`pinrag.cli:main`), which:
+  - Loads `.env` from `~/.config/pinrag/.env`, `~/.pinrag/.env`, then `{cwd}/.env`.
   - Verifies `OPENAI_API_KEY` is set before starting the MCP server.
-- **Persistence defaults:** Chroma persist dir `~/.oracle-rag/chroma_db` (overridable via `ORACLE_RAG_PERSIST_DIR`); collection name `oracle_rag`.
-- **Tools exposed:** `query_pdf_tool`, `add_pdf_tool`, `list_pdfs_tool`, `remove_pdf_tool` as thin wrappers around the existing Oracle-RAG functions.
+- **Persistence defaults:** Chroma persist dir `~/.pinrag/chroma_db` (overridable via `PINRAG_PERSIST_DIR`); collection name `pinrag`.
+- **Tools exposed:** `query_pdf_tool`, `add_pdf_tool`, `list_pdfs_tool`, `remove_pdf_tool` as thin wrappers around the existing PinRAG functions.
 
 ## Error Handling
 
@@ -326,7 +326,7 @@ MCP tools should:
 
 ## What MCP Can Expose
 
-MCP servers can expose **tools**, **resources**, **prompts**, **tasks**, and more. The current Oracle-RAG server **only exposes tools** (`query_pdf_tool`, `add_pdf_tool`).
+MCP servers can expose **tools**, **resources**, **prompts**, **tasks**, and more. The current PinRAG server **only exposes tools** (`query_pdf_tool`, `add_pdf_tool`).
 
 ## Future Enhancements (Phase 2+)
 

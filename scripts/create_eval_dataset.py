@@ -1,4 +1,4 @@
-"""Create the oracle-rag golden evaluation dataset in LangSmith.
+"""Create the pinrag golden evaluation dataset in LangSmith.
 
 Run once to create the dataset:
     uv run python scripts/create_eval_dataset.py
@@ -17,9 +17,9 @@ from langsmith import Client
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-DATASET_NAME = "oracle-rag-golden"
+DATASET_NAME = "pinrag-golden"
 DATASET_DESCRIPTION = (
-    "Golden evaluation dataset for oracle-rag. "
+    "Golden evaluation dataset for pinrag. "
     "~30 Q/A pairs from 'Bare-metal Amiga programming 2021_ocr.pdf' "
     "covering all 12 chapters, ordered easy → hard."
 )

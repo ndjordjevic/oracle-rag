@@ -11,23 +11,23 @@ from typing import Optional, Union
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from oracle_rag.chunking import chunk_documents
-from oracle_rag.config import (
+from pinrag.chunking import chunk_documents
+from pinrag.config import (
     get_child_chunk_size,
     get_collection_name,
     get_structure_aware_chunking,
     get_use_parent_child,
 )
-from oracle_rag.indexing.discord_loader import (
+from pinrag.indexing.discord_loader import (
     DiscordLoadResult,
     _document_id_from_channel_and_path,
     load_discord_export_as_documents,
 )
-from oracle_rag.vectorstore.chroma_client import (
+from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
-from oracle_rag.vectorstore.docstore import get_parent_docstore
+from pinrag.vectorstore.docstore import get_parent_docstore
 
 
 PathLike = Union[str, Path]

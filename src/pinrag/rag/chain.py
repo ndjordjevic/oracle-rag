@@ -13,7 +13,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.retrievers import BaseRetriever
 from langsmith import traceable
 
-from oracle_rag.config import (
+from pinrag.config import (
     get_collection_name,
     get_multi_query_count,
     get_retrieve_k,
@@ -22,13 +22,13 @@ from oracle_rag.config import (
     get_use_multi_query,
     get_use_rerank,
 )
-from oracle_rag.rag.formatting import format_docs, format_sources
-from oracle_rag.rag.multiquery import wrap_retriever_with_multiquery
-from oracle_rag.rag.query_preprocess import preprocess_query
-from oracle_rag.rag.prompts import get_rag_prompt
-from oracle_rag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
-from oracle_rag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
-from oracle_rag.vectorstore.retriever import create_retriever
+from pinrag.rag.formatting import format_docs, format_sources
+from pinrag.rag.multiquery import wrap_retriever_with_multiquery
+from pinrag.rag.query_preprocess import preprocess_query
+from pinrag.rag.prompts import get_rag_prompt
+from pinrag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
+from pinrag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
+from pinrag.vectorstore.retriever import create_retriever
 
 
 PathLike = Union[str, Path]
@@ -87,15 +87,15 @@ def run_rag(
     Uses LangChain Retriever (store.as_retriever()). Pass a retriever directly for maximum
     flexibility (e.g. wrapped with reranking), or use legacy params to build one from Chroma.
 
-    When ORACLE_RAG_USE_MULTI_QUERY=true, generates query variants via LLM, retrieves per
+    When PINRAG_USE_MULTI_QUERY=true, generates query variants via LLM, retrieves per
     variant, merges (unique union), then optionally reranks. Improves recall for terse queries.
 
     Args:
         query: Natural language question to answer.
         llm: Chat model for generation (e.g. from get_chat_model()).
         retriever: Optional BaseRetriever. If provided, used directly; else built from legacy params.
-        k: Number of chunks to retrieve. If None, uses ORACLE_RAG_RETRIEVE_K (default 10). Ignored when retriever is provided.
-        use_rerank: Override config to enable/disable Cohere re-ranking. If None, uses ORACLE_RAG_USE_RERANK.
+        k: Number of chunks to retrieve. If None, uses PINRAG_RETRIEVE_K (default 10). Ignored when retriever is provided.
+        use_rerank: Override config to enable/disable Cohere re-ranking. If None, uses PINRAG_USE_RERANK.
         persist_directory: Chroma persistence directory (used when retriever is None).
         collection_name: Chroma collection name (used when retriever is None). If None, uses provider-based name.
         embedding: Optional embedding model for retrieval (used when retriever is None).

@@ -1,4 +1,4 @@
-# Oracle-RAG Implementation Checklist
+# PinRAG Implementation Checklist
 
 ## Phase 0: Planning & Setup
 
@@ -49,7 +49,7 @@
 - [x] **Vector Database Selection**
   - [x] Research vector databases (Chroma, FAISS, Pinecone, etc.) — see [vector-database-decision.md](vector-database-decision.md)
   - [x] Choose vector database (**Chroma** for local, simple setup)
-  - [x] Install and configure vector database (`chromadb`, `langchain-chroma`; `oracle_rag.vectorstore.get_chroma_store()` with persist dir `chroma_db`)
+  - [x] Install and configure vector database (`chromadb`, `langchain-chroma`; `pinrag.vectorstore.get_chroma_store()` with persist dir `chroma_db`)
   - [x] Unit tests for Chroma store (`tests/test_vectorstore.py`: get_chroma_store, persist dir, add_documents + similarity_search)
 
 - [x] **Vector Store Implementation**
@@ -60,11 +60,11 @@
 ### RAG Pipeline
 - [x] **LLM Setup**
   - [x] Choose LLM provider (OpenAI for chat/completion)
-  - [x] Set up LLM client (`oracle_rag.llm.get_chat_model()` — ChatOpenAI, gpt-4o-mini; OPENAI_API_KEY from env)
+  - [x] Set up LLM client (`pinrag.llm.get_chat_model()` — ChatOpenAI, gpt-4o-mini; OPENAI_API_KEY from env)
   - [x] Test basic LLM calls (`tests/test_llm.py`, `scripts/test_llm_cli.py`)
 
 - [x] **RAG Chain Implementation**
-  - [x] Design prompt template with context and question (`oracle_rag.rag.prompts.RAG_PROMPT`)
+  - [x] Design prompt template with context and question (`pinrag.rag.prompts.RAG_PROMPT`)
   - [x] Implement retrieval step (wire `query_index` in chain)
   - [x] Implement context formatting (`format_docs`, numbered with doc/page for citations)
   - [x] Implement generation step (prompt | llm | StrOutputParser)
@@ -80,7 +80,7 @@
 - [x] **MCP Server Setup**
   - [x] Research MCP server implementation patterns (see `notes/mcp-server-research.md`)
   - [x] Install MCP Python SDK (`mcp>=1.26.0`)
-  - [x] Create `src/oracle_rag/mcp/` module structure
+  - [x] Create `src/pinrag/mcp/` module structure
   - [x] Set up FastMCP server framework (`mcp/server.py`)
   - [x] Create entry point script (`scripts/mcp_server.py`)
 
@@ -88,11 +88,11 @@
   - [x] Implement `query_pdf` tool (wraps `run_rag()`)
   - [x] Implement `add_pdf` tool (wraps `index_pdf()`)
   - [x] Implement `remove_pdf` tool (remove PDF and all its chunks/embeddings from Chroma)
-  - [x] Implement `list_pdfs` tool (list all indexed books in Oracle-RAG)
+  - [x] Implement `list_pdfs` tool (list all indexed books in PinRAG)
   - [x] Add error handling and input validation
   - [x] Test with MCP Inspector (`npx @modelcontextprotocol/inspector`)
   - [x] Add unit tests (`tests/test_mcp_server.py`)
-  - [x] Test MCP server from Cursor (add Oracle-RAG to Cursor MCP config, invoke query_pdf / add_pdf / list_pdfs; see `notes/cursor-mcp-setup.md` and `.cursor/mcp.json`)
+  - [x] Test MCP server from Cursor (add PinRAG to Cursor MCP config, invoke query_pdf / add_pdf / list_pdfs; see `notes/cursor-mcp-setup.md` and `.cursor/mcp.json`)
 
 ---
 
@@ -100,9 +100,9 @@
 
 ### Configuration & Persistence
 - [x] **Configuration Management** (env vars)
-  - [x] Set up configuration file (YAML/JSON/env) — using `.env` + `ORACLE_RAG_*` vars; see `.env.example`
-  - [x] Make chunk size configurable (`ORACLE_RAG_CHUNK_SIZE`, default 1000)
-  - [x] Make chunk overlap configurable (`ORACLE_RAG_CHUNK_OVERLAP`, default 200)
+  - [x] Set up configuration file (YAML/JSON/env) — using `.env` + `PINRAG_*` vars; see `.env.example`
+  - [x] Make chunk size configurable (`PINRAG_CHUNK_SIZE`, default 1000)
+  - [x] Make chunk overlap configurable (`PINRAG_CHUNK_OVERLAP`, default 200)
 
 - [x] **Persistence** (done in Phase 1)
   - [x] Implement vector store persistence — Chroma persists to `chroma_db` (or custom path) on disk
@@ -137,9 +137,9 @@
 
 ### Deployment & Distribution - MVP
 - [x] **Document how others can start and use this MCP**
-  - [x] PyPI install: `pip install oracle-rag` → `oracle-rag-mcp` CLI; config from cwd or `~/.config/oracle-rag/` (see `README.md`, `notes/distribution-options.md`)
-  - [x] Cursor MCP config: command `oracle-rag-mcp` (no cwd needed; uses ~/.oracle-rag/ for .env and chroma_db)
-  - **Publish new version to PyPI:** Bump `version` in `pyproject.toml` → `git add -A && git commit -m "vX.Y.Z: ..." && git push` → `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z` → `uv build && uv publish` (use `__token__` + PyPI API token when prompted; or `uv cache clean` before `uv tool install oracle-rag --force` to get latest)
+  - [x] PyPI install: `pip install pinrag` → `pinrag-mcp` CLI; config from cwd or `~/.config/pinrag/` (see `README.md`, `notes/distribution-options.md`)
+  - [x] Cursor MCP config: command `pinrag-mcp` (no cwd needed; uses ~/.pinrag/ for .env and chroma_db)
+  - **Publish new version to PyPI:** Bump `version` in `pyproject.toml` → `git add -A && git commit -m "vX.Y.Z: ..." && git push` → `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z` → `uv build && uv publish` (use `__token__` + PyPI API token when prompted; or `uv cache clean` before `uv tool install pinrag --force` to get latest)
   - [x] Github action to publish to PyPI on a new tag/release
 
 ---
@@ -194,13 +194,13 @@
 
 ### MCP Server - Enhanced
 - [x] **MCP Resources** (read-only data by URI)
-  - [x] Expose list of indexed documents as resource (`oracle-rag://documents`)
+  - [x] Expose list of indexed documents as resource (`pinrag://documents`)
 
 - [x] **MCP Prompts** (pre-built templates with parameters)
   - [x] “Ask about this document prompt” (`ask_about_documents`)
 
 ### Retriever Abstraction
-- [x] **Retriever abstraction (oracle-rag 2.0)**
+- [x] **Retriever abstraction (pinrag 2.0)**
   - [x] Use LangChain Retriever (`store.as_retriever()`) in RAG pipeline instead of `query_index`
   - [x] Refactor `run_rag()` to accept a retriever
 
@@ -221,17 +221,17 @@
 
 ### Evaluation Iteration
 - [x] **Evaluation framework** (do before complex retrieval changes). See `notes/evaluation-strategy.md`.
-  - [x] Create evaluation dataset (question / expected-answer pairs). Golden dataset **oracle-rag-golden** in LangSmith: 30 examples from *Bare-metal Amiga programming 2021_ocr.pdf* (easy → hard); script: `scripts/create_eval_dataset.py`.
+  - [x] Create evaluation dataset (question / expected-answer pairs). Golden dataset **pinrag-golden** in LangSmith: 30 examples from *Bare-metal Amiga programming 2021_ocr.pdf* (easy → hard); script: `scripts/create_eval_dataset.py`.
   - [x] Implement evaluators and target: correctness, relevance, groundedness, retrieval relevance (LLM-as-judge) plus code evaluators (has_sources, answer_not_empty, source_in_expected_docs); target function wrapping `run_rag` with `document_id`/`tag` from dataset inputs. See evaluation-strategy §4–5.
   - [x] Run the first experiment with Anthropic for LLM and Cohere for embeddings.
   - [x] Re-run the experiment with OpenAI both for LLM and embeddings.
   - [x] Make sure you understand the metrics and why the results are like they are and some answers are wrong. **Why grades are bad:** (1) Retrieval often misses expected pages (93% of failures) → multi-query, hybrid search, increase k; (2) deep-in-book content underretrieved (55% of wrong-answer pages > page 100) → hybrid search, reranker; (3) topically adjacent wrong chunks rank high → reranker, multi-query; (4) nearly-correct answers marked 0 (~2–3 cases) → lenient reference or partial-credit grader.
-  - [x] **Increase retrieval k (one constant):** In `src/oracle_rag/evaluation/target.py`, change `k=5` to e.g. `k=8` or `k=10` in `create_retriever(...)`; re-run evaluation and compare correctness. **Done (k=10):** correctness 53.3% → 60.0% (+2 questions); baseline 73.3% — modest gain, gap remains; next: multi-query / hybrid / reranker.
+  - [x] **Increase retrieval k (one constant):** In `src/pinrag/evaluation/target.py`, change `k=5` to e.g. `k=8` or `k=10` in `create_retriever(...)`; re-run evaluation and compare correctness. **Done (k=10):** correctness 53.3% → 60.0% (+2 questions); baseline 73.3% — modest gain, gap remains; next: multi-query / hybrid / reranker.
 
 ### Discord Channel Ingestion
 *Context: DiscordChatExporter TXT format — header block (`Guild: / Channel:`) then messages as `[date] author\ncontent\n{Reactions}/{Attachments}/{Embed}` blocks. Files live in `data/discord-channels/<channel-slug>/`. One full export per channel (historical), then periodic incremental exports (date-filtered) appended as new files.*
 
-- [x] **Discord TXT loader** — Write `src/oracle_rag/indexing/discord_loader.py` (or extend `pdf_indexer.py`) that:
+- [x] **Discord TXT loader** — Write `src/pinrag/indexing/discord_loader.py` (or extend `pdf_indexer.py`) that:
   - Reads a DiscordChatExporter `.txt` file.
   - Strips the header block, `{Reactions}`, `{Attachments}` CDN URLs, `{Embed}` noise, and raw emoji.
   - Converts each message (or conversational window of N messages) into a `Document` with metadata: `source=discord`, `channel`, `guild`, `author`, `timestamp`, `document_id`, `tag`.
@@ -243,15 +243,15 @@
 
 ### Retrieval Improvement
 - [x] **Advanced Retrieval Strategies** (ordered by expected impact; items deferred to later phases noted below)
-  - [x] **Re-ranking** ⭐ — Implemented Cohere Re-Rank via `ContextualCompressionRetriever` + `CohereRerank`. Config: `ORACLE_RAG_USE_RERANK` (default false), `ORACLE_RAG_RETRIEVE_K` (default 20), `ORACLE_RAG_RERANK_RETRIEVE_K` (default 20), `ORACLE_RAG_RERANK_TOP_N` (default 10). **Recommended when enabled:** k=20→top_n=10 with `claude-haiku-4-5`; achieves 10/10 on hard-10 and 30/30 on golden. No-rerank: k=10 suffices for min_k on golden (two questions need k=10). See `evaluation-strategy.md §8` for full sweep.
-  - [x] **Query translation / multi-query** ⭐⭐⭐ — Implemented via `langchain_classic.retrievers.multi_query.MultiQueryRetriever`. Config: `ORACLE_RAG_USE_MULTI_QUERY` (default false), `ORACLE_RAG_MULTI_QUERY_COUNT` (default 4). Generate 3–5 query variants via LLM, retrieve per variant, merge (unique union), then optionally rerank. When rerank is off, merged docs are truncated to `ORACLE_RAG_RETRIEVE_K` to avoid context overflow. See `oracle_rag.rag.multiquery`, `evaluation-strategy.md` (multiquery-stress dataset).
-  - [x] **Query preprocessing** — Implemented in `oracle_rag.rag.query_preprocess`: normalize whitespace, strip common MCP/agent boilerplate (e.g. "User question:", "Query:", "Search the documents for:"). Applied before retrieval only; original query kept for prompt.
-  - [x] **Prompt engineering iteration** — Implemented: (1) internal step-by-step instruction in system prompt (“Think step-by-step internally before finalizing your answer, but do not reveal hidden reasoning”); (2) response style **thorough** (default) vs **concise** via `get_rag_prompt(response_style)` and `run_rag(..., response_style=...)`. Config: `ORACLE_RAG_RESPONSE_STYLE` (thorough | concise); evaluation target and MCP `query` tool support it. See `oracle_rag.rag.prompts`, `evaluation-strategy.md` (response style comparison).
+  - [x] **Re-ranking** ⭐ — Implemented Cohere Re-Rank via `ContextualCompressionRetriever` + `CohereRerank`. Config: `PINRAG_USE_RERANK` (default false), `PINRAG_RETRIEVE_K` (default 20), `PINRAG_RERANK_RETRIEVE_K` (default 20), `PINRAG_RERANK_TOP_N` (default 10). **Recommended when enabled:** k=20→top_n=10 with `claude-haiku-4-5`; achieves 10/10 on hard-10 and 30/30 on golden. No-rerank: k=10 suffices for min_k on golden (two questions need k=10). See `evaluation-strategy.md §8` for full sweep.
+  - [x] **Query translation / multi-query** ⭐⭐⭐ — Implemented via `langchain_classic.retrievers.multi_query.MultiQueryRetriever`. Config: `PINRAG_USE_MULTI_QUERY` (default false), `PINRAG_MULTI_QUERY_COUNT` (default 4). Generate 3–5 query variants via LLM, retrieve per variant, merge (unique union), then optionally rerank. When rerank is off, merged docs are truncated to `PINRAG_RETRIEVE_K` to avoid context overflow. See `pinrag.rag.multiquery`, `evaluation-strategy.md` (multiquery-stress dataset).
+  - [x] **Query preprocessing** — Implemented in `pinrag.rag.query_preprocess`: normalize whitespace, strip common MCP/agent boilerplate (e.g. "User question:", "Query:", "Search the documents for:"). Applied before retrieval only; original query kept for prompt.
+  - [x] **Prompt engineering iteration** — Implemented: (1) internal step-by-step instruction in system prompt (“Think step-by-step internally before finalizing your answer, but do not reveal hidden reasoning”); (2) response style **thorough** (default) vs **concise** via `get_rag_prompt(response_style)` and `run_rag(..., response_style=...)`. Config: `PINRAG_RESPONSE_STYLE` (thorough | concise); evaluation target and MCP `query` tool support it. See `pinrag.rag.prompts`, `evaluation-strategy.md` (response style comparison).
 
 ### Chunking Improvement
 - [x] **Chunk size tuning** (needs evaluation framework first) — Tune chunk size to ~512 tokens (~2000 chars) with 10–20% overlap; benchmark retrieval quality before/after with evaluation dataset.
-- [x] **Parent-child retrieval** — Implemented via LangChain `ParentDocumentRetriever`. Embed small child chunks (400 chars default) for precise matching, return larger parent chunks (2000 chars default) for context. Config: `ORACLE_RAG_USE_PARENT_CHILD` (default false), `ORACLE_RAG_PARENT_CHUNK_SIZE`, `ORACLE_RAG_CHILD_CHUNK_SIZE`. Uses `LocalFileStore` docstore for persistence. Requires re-indexing when enabling.
-- [x] **Structure-aware chunking** — Implemented in `oracle_rag.chunking.splitter`: `_ensure_code_block_breaks()` (detect C and 68k assembly, insert `\n\n` at prose↔code transitions) and `_ensure_table_breaks()` (detect aligned/register tables, insert `\n\n` at prose↔table transitions). RecursiveCharacterTextSplitter then prefers breaking at those boundaries. Config: `ORACLE_RAG_STRUCTURE_AWARE_CHUNKING` (default true). Tests: `tests/test_structure_aware_chunking.py`, `tests/test_structure_config.py`. Helps digitally-born C/technical PDFs (e.g. Pi Pico book); Amiga OCR PDFs benefit less due to two-column extraction.
+- [x] **Parent-child retrieval** — Implemented via LangChain `ParentDocumentRetriever`. Embed small child chunks (400 chars default) for precise matching, return larger parent chunks (2000 chars default) for context. Config: `PINRAG_USE_PARENT_CHILD` (default false), `PINRAG_PARENT_CHUNK_SIZE`, `PINRAG_CHILD_CHUNK_SIZE`. Uses `LocalFileStore` docstore for persistence. Requires re-indexing when enabling.
+- [x] **Structure-aware chunking** — Implemented in `pinrag.chunking.splitter`: `_ensure_code_block_breaks()` (detect C and 68k assembly, insert `\n\n` at prose↔code transitions) and `_ensure_table_breaks()` (detect aligned/register tables, insert `\n\n` at prose↔table transitions). RecursiveCharacterTextSplitter then prefers breaking at those boundaries. Config: `PINRAG_STRUCTURE_AWARE_CHUNKING` (default true). Tests: `tests/test_structure_aware_chunking.py`, `tests/test_structure_config.py`. Helps digitally-born C/technical PDFs (e.g. Pi Pico book); Amiga OCR PDFs benefit less due to two-column extraction.
 
 ---
 
@@ -269,7 +269,7 @@
 - [ ] **GitHub repo indexing** — Index repo contents (README, code, docs). Load via git clone or GitHub API; chunk markdown and code; metadata: `document_id` (repo/path), `source` (url), `file_path`. MCP `add_file` detects GitHub URLs; optional: `branch`, include/exclude patterns (e.g. `*.md`, `docs/`). Consider depth limit and file-size caps.
 
 ### Deployment & Operations
-- [ ] **Deployment packaging** — Package as Docker image, installable CLI (`pip install oracle-rag`), or hosted MCP server.
+- [ ] **Deployment packaging** — Package as Docker image, installable CLI (`pip install pinrag`), or hosted MCP server.
 - [ ] **Backup and restore** — Implement Chroma index backup/restore (export/import) for migration and recovery.
 
 ### Monitoring & Observability
@@ -385,7 +385,7 @@
 
 ### Phase 3: Advanced Configuration & Deployment ✅
 - Embedding and LLM configurable (env/config; swap providers, tune chunk settings)
-- MCP resources (`oracle-rag://documents`), MCP prompts (`ask_about_documents`)
+- MCP resources (`pinrag://documents`), MCP prompts (`ask_about_documents`)
 - Retriever abstraction: `store.as_retriever()`, `run_rag()` accepts optional retriever
 - Error handling: corrupted PDFs (user-facing ValueError), zero-retrieval and LLM failure (graceful degradation)
 - Testing: integration test for multiple PDFs with document_id/tag filters

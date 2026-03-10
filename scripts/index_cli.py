@@ -1,7 +1,7 @@
 """Unified CLI to index PDFs and Discord exports into Chroma.
 
 Indexes files or directories. Replaces existing chunks for each document.
-Uses ORACLE_RAG_USE_PARENT_CHILD from .env when set (parent-child retrieval).
+Uses PINRAG_USE_PARENT_CHILD from .env when set (parent-child retrieval).
 
 Usage:
     # Index specific files or directories
@@ -33,9 +33,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from oracle_rag.config import get_collection_name, get_persist_dir, get_use_parent_child
-from oracle_rag.indexing import index_discord, index_pdf
-from oracle_rag.vectorstore import get_chroma_store
+from pinrag.config import get_collection_name, get_persist_dir, get_use_parent_child
+from pinrag.indexing import index_discord, index_pdf
+from pinrag.vectorstore import get_chroma_store
 
 
 def _detect_format(path: Path) -> Literal["pdf", "discord"] | None:
@@ -171,12 +171,12 @@ def main() -> int:
     parser.add_argument(
         "--persist-dir",
         default=None,
-        help="Chroma persistence directory (default: from ORACLE_RAG_PERSIST_DIR or chroma_db)",
+        help="Chroma persistence directory (default: from PINRAG_PERSIST_DIR or chroma_db)",
     )
     parser.add_argument(
         "--collection",
         default=None,
-        help="Chroma collection name (default: from ORACLE_RAG_COLLECTION_NAME or oracle_rag)",
+        help="Chroma collection name (default: from PINRAG_COLLECTION_NAME or pinrag)",
     )
     parser.add_argument(
         "--tag",
@@ -232,7 +232,7 @@ def main() -> int:
 
     if args.wipe_and_reindex and not args.dry_run:
         if not get_use_parent_child():
-            print("Set ORACLE_RAG_USE_PARENT_CHILD=true in .env for parent-child reindex.", file=sys.stderr)
+            print("Set PINRAG_USE_PARENT_CHILD=true in .env for parent-child reindex.", file=sys.stderr)
             return 1
         print("Wiping index and parent docstore...")
         _wipe_index(persist_path, collection)

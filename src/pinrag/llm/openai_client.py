@@ -9,7 +9,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
-from oracle_rag.config import get_llm_model, get_llm_provider
+from pinrag.config import get_llm_model, get_llm_provider
 
 DEFAULT_MODEL = "gpt-4o-mini"
 
@@ -26,7 +26,7 @@ def get_openai_chat_model(
     overrides the environment variable.
 
     Args:
-        model: OpenAI chat model name; if None, uses config (ORACLE_RAG_LLM_MODEL or gpt-4o-mini).
+        model: OpenAI chat model name; if None, uses config (PINRAG_LLM_MODEL or gpt-4o-mini).
         api_key: Optional API key; otherwise uses OPENAI_API_KEY from env.
         temperature: Sampling temperature (default: 0 for deterministic).
 
@@ -45,7 +45,7 @@ def get_chat_model(
     api_key: Optional[str] = None,
     temperature: float = 0,
 ):
-    """Return a chat model based on ORACLE_RAG_LLM_PROVIDER (openai | anthropic).
+    """Return a chat model based on PINRAG_LLM_PROVIDER (openai | anthropic).
 
     For anthropic, requires ANTHROPIC_API_KEY and langchain-anthropic.
     For openai, requires OPENAI_API_KEY (default).
@@ -57,7 +57,7 @@ def get_chat_model(
     if provider == "anthropic":
         if find_spec("langchain_anthropic") is None:
             raise ImportError(
-                "ORACLE_RAG_LLM_PROVIDER=anthropic requires langchain-anthropic. "
+                "PINRAG_LLM_PROVIDER=anthropic requires langchain-anthropic. "
                 "Install with: pip install langchain-anthropic"
             )
         from langchain_anthropic import ChatAnthropic

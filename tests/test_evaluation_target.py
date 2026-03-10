@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from langchain_core.documents import Document
 
-import oracle_rag.evaluation.target as target_module
-from oracle_rag.rag import RAGResult
+import pinrag.evaluation.target as target_module
+from pinrag.rag import RAGResult
 
 
 def test_target_uses_documents_from_run_rag(monkeypatch) -> None:
-    """oracle_rag_target passes retriever=None so run_rag builds retriever (and applies rerank).
+    """pinrag_target passes retriever=None so run_rag builds retriever (and applies rerank).
 
     It must use the documents returned by run_rag.
     """
@@ -28,7 +28,7 @@ def test_target_uses_documents_from_run_rag(monkeypatch) -> None:
         ),
     )
 
-    out = target_module.oracle_rag_target({"question": "Q?"})
+    out = target_module.pinrag_target({"question": "Q?"})
     assert out["answer"] == "answer: Q?"
     assert out["sources"] == [{"document_id": "a.pdf", "page": 1}]
     assert out["documents"] == expected_docs

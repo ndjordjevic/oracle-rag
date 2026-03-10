@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from oracle_rag.rag.query_preprocess import preprocess_query
+from pinrag.rag.query_preprocess import preprocess_query
 
 
 def test_normalize_whitespace() -> None:

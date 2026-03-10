@@ -12,7 +12,7 @@ from langchain_core.retrievers import BaseRetriever
 logger = logging.getLogger(__name__)
 
 DEFAULT_RERANK_MODEL = "rerank-english-v3.0"
-COHERE_INSTALL_HINT = "pip install oracle-rag[cohere]"
+COHERE_INSTALL_HINT = "pip install pinrag[cohere]"
 
 
 def _cohere_dependencies_available() -> tuple[bool, Optional[str]]:
@@ -31,7 +31,7 @@ def wrap_retriever_with_cohere_rerank(
 ) -> BaseRetriever:
     """Wrap a base retriever with Cohere Re-Rank via ContextualCompressionRetriever.
 
-    Requires langchain-cohere (pip install oracle-rag[cohere]) and COHERE_API_KEY.
+    Requires langchain-cohere (pip install pinrag[cohere]) and COHERE_API_KEY.
 
     Args:
         base_retriever: Retriever that fetches more chunks (e.g. k=10).

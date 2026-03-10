@@ -1,6 +1,6 @@
 # How to create a release
 
-Short checklist for cutting a new **oracle-rag** version (GitHub Release + PyPI).
+Short checklist for cutting a new **pinrag** version (GitHub Release + PyPI).
 
 ## 1. Bump version and push
 
@@ -35,7 +35,7 @@ Short checklist for cutting a new **oracle-rag** version (GitHub Release + PyPI)
 
 ### Release notes format
 
-Match existing releases (see [Releases](https://github.com/ndjordjevic/oracle-rag/releases)):
+Match existing releases (see [Releases](https://github.com/ndjordjevic/pinrag/releases)):
 
 1. **Title:** `# vX.Y.Z — Short subtitle`
 2. **Summary:** One line describing the release (e.g. “Evaluation framework, Cohere reranking, and config defaults since v3.0.1.”).

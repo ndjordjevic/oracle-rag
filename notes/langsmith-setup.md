@@ -20,7 +20,7 @@ Add these to your `.env` file:
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com
 LANGSMITH_API_KEY=your-api-key-here
-LANGSMITH_PROJECT=oracle-rag
+LANGSMITH_PROJECT=pinrag
 ```
 
 > **Important**: The `LANGSMITH_ENDPOINT` must match your LangSmith data region.
@@ -68,7 +68,7 @@ When you run `rag_cli.py`, LangSmith will automatically capture:
 
 1. Go to your LangSmith dashboard (US: https://smith.langchain.com, EU: https://eu.smith.langchain.com)
 2. Navigate to "Tracing" in the left sidebar
-3. Select your project (`oracle-rag`)
+3. Select your project (`pinrag`)
 4. Click on any trace to see the full execution flow
 
 ## Advanced Configuration
@@ -79,13 +79,13 @@ You can organize traces by environment:
 
 ```bash
 # Development
-LANGSMITH_PROJECT=oracle-rag-dev
+LANGSMITH_PROJECT=pinrag-dev
 
 # Production
-LANGSMITH_PROJECT=oracle-rag-prod
+LANGSMITH_PROJECT=pinrag-prod
 
 # Testing
-LANGSMITH_PROJECT=oracle-rag-test
+LANGSMITH_PROJECT=pinrag-test
 ```
 
 ### Disable Tracing Temporarily
@@ -150,7 +150,7 @@ Trace: RAG Chain Execution
 **Traces work from CLI but not when calling MCP tools (e.g. add_pdf_tool)?**
 - MCP tools run in the **MCP server process**. That process must have LangSmith env vars set.
 - **Option A (implemented)**: The MCP entrypoint (`scripts/mcp_server.py`) loads `.env` from the **project root** (directory containing `pyproject.toml`), so it does not depend on process cwd. Add the LangSmith vars to your project's `.env` (see step 2 above); then restart the MCP server (or Cursor). Traces from tool calls should then appear in LangSmith.
-- **Alternative**: To avoid using project `.env`, set `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, and `LANGSMITH_PROJECT` in Cursor's MCP server env for Oracle-RAG.
+- **Alternative**: To avoid using project `.env`, set `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, and `LANGSMITH_PROJECT` in Cursor's MCP server env for PinRAG.
 - Tool calls are wrapped with LangSmith's `@traceable` (`add_pdf`, `query_pdf`), so you'll see a top-level run per tool call when tracing is on.
 
 **Wrong project name?**

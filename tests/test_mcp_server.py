@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from oracle_rag.mcp.tools import add_file, add_files, list_documents, query, remove_document
-from oracle_rag.mcp import server as mcp_server
+from pinrag.mcp.tools import add_file, add_files, list_documents, query, remove_document
+from pinrag.mcp import server as mcp_server
 
 
 # --- list_documents ---
@@ -35,7 +35,7 @@ def test_list_documents_returns_documents_from_store(tmp_path: Path) -> None:
         ]
     }
 
-    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
         result = list_documents(persist_dir=str(tmp_path), collection="test_coll")
 
     assert result["documents"] == ["a.pdf", "b.pdf"]
@@ -51,7 +51,7 @@ def test_list_documents_handles_empty_metadatas(tmp_path: Path) -> None:
     mock_store = MagicMock()
     mock_store.get.return_value = {"metadatas": []}
 
-    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
         result = list_documents(persist_dir=str(tmp_path), collection="test_coll")
 
     assert result["documents"] == []
@@ -71,7 +71,7 @@ def test_list_documents_tag_filter(tmp_path: Path) -> None:
         ]
     }
 
-    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
         result = list_documents(persist_dir=str(tmp_path), collection="c", tag="amiga")
 
     assert result["documents"] == ["a.pdf"]
@@ -90,7 +90,7 @@ def test_list_documents_includes_document_details_when_present(tmp_path: Path) -
         ]
     }
 
-    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
         result = list_documents(persist_dir=str(tmp_path), collection="test_coll")
 
     assert result["documents"] == ["doc.pdf"]
@@ -114,7 +114,7 @@ def test_list_documents_includes_segments_for_youtube(tmp_path: Path) -> None:
         ]
     }
 
-    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
         result = list_documents(persist_dir=str(tmp_path), collection="test_coll")
 
     assert result["documents"] == ["dQw4w9WgXcQ"]
@@ -139,7 +139,7 @@ def test_add_file_empty_collection_uses_default(tmp_path: Path) -> None:
     """add_file uses default collection when collection is empty."""
     pdf_file = tmp_path / "dummy.pdf"
     pdf_file.touch()
-    with patch("oracle_rag.mcp.tools.index_pdf") as mock_index:
+    with patch("pinrag.mcp.tools.index_pdf") as mock_index:
         mock_index.return_value = MagicMock(
             source_path=pdf_file,
             total_pages=1,
@@ -147,7 +147,7 @@ def test_add_file_empty_collection_uses_default(tmp_path: Path) -> None:
             persist_directory=tmp_path,
             collection_name="test",
         )
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("pinrag.mcp.tools.get_embedding_model"):
             add_file(path=str(pdf_file), persist_dir=str(tmp_path), collection="")
     mock_index.assert_called_once()
 
@@ -175,8 +175,8 @@ def test_add_file_pdf_success(tmp_path: Path) -> None:
     fake_result.total_pages = 5
     fake_result.total_chunks = 12
 
-    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+    with patch("pinrag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
+        with patch("pinrag.mcp.tools.get_embedding_model"):
             result = add_file(
                 path=str(pdf_file),
                 persist_dir=str(tmp_path),
@@ -200,8 +200,8 @@ def test_add_file_with_tag_passes_tag(tmp_path: Path) -> None:
     fake_result.total_pages = 5
     fake_result.total_chunks = 12
 
-    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+    with patch("pinrag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
+        with patch("pinrag.mcp.tools.get_embedding_model"):
             add_file(
                 path=str(pdf_file),
                 persist_dir=str(tmp_path),
@@ -224,8 +224,8 @@ def test_add_file_youtube_detection_and_success(tmp_path: Path) -> None:
     fake_result.total_segments = 42
     fake_result.total_chunks = 15
 
-    with patch("oracle_rag.mcp.tools.index_youtube", return_value=fake_result) as mock_index:
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+    with patch("pinrag.mcp.tools.index_youtube", return_value=fake_result) as mock_index:
+        with patch("pinrag.mcp.tools.get_embedding_model"):
             result = add_file(
                 path="https://youtu.be/dQw4w9WgXcQ",
                 persist_dir=str(tmp_path),
@@ -255,8 +255,8 @@ def test_add_file_local_path_prioritized_over_youtube_id(tmp_path: Path) -> None
     fake_result.total_pages = 1
     fake_result.total_chunks = 1
 
-    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+    with patch("pinrag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
+        with patch("pinrag.mcp.tools.get_embedding_model"):
             result = add_file(
                 path=str(pdf_file),
                 persist_dir=str(tmp_path),
@@ -270,9 +270,9 @@ def test_add_file_local_path_prioritized_over_youtube_id(tmp_path: Path) -> None
 
 def test_add_file_youtube_transcript_error_returns_failed(tmp_path: Path) -> None:
     """add_file catches transcript errors and returns them in failed."""
-    with patch("oracle_rag.mcp.tools.index_youtube") as mock_index:
+    with patch("pinrag.mcp.tools.index_youtube") as mock_index:
         mock_index.side_effect = RuntimeError("No transcript found for YouTube video xyz")
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+        with patch("pinrag.mcp.tools.get_embedding_model"):
             result = add_file(
                 path="https://youtu.be/xyz12345678",
                 persist_dir=str(tmp_path),
@@ -309,8 +309,8 @@ def test_add_files_partial_success(tmp_path: Path) -> None:
     fake_result.total_pages = 3
     fake_result.total_chunks = 7
 
-    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result):
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+    with patch("pinrag.mcp.tools.index_pdf", return_value=fake_result):
+        with patch("pinrag.mcp.tools.get_embedding_model"):
             result = add_files(
                 paths=[str(good_pdf), str(bad_ext), str(tmp_path / "missing.pdf")],
                 persist_dir=str(tmp_path),
@@ -336,14 +336,14 @@ def test_query_empty_query_raises() -> None:
 
 def test_query_uses_config_for_persist_and_collection(tmp_path: Path) -> None:
     """query uses get_persist_dir and get_collection_name from config."""
-    from oracle_rag.rag import RAGResult
+    from pinrag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="oracle_rag"):
-            with patch("oracle_rag.mcp.tools.get_embedding_model"):
-                with patch("oracle_rag.mcp.tools.get_chat_model"):
-                    with patch("oracle_rag.mcp.tools.run_rag") as mock_run:
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_collection_name", return_value="pinrag"):
+            with patch("pinrag.mcp.tools.get_embedding_model"):
+                with patch("pinrag.mcp.tools.get_chat_model"):
+                    with patch("pinrag.mcp.tools.run_rag") as mock_run:
                         mock_run.return_value = RAGResult(answer="ok", sources=[])
                         query(query="test")
     mock_run.assert_called_once()
@@ -351,7 +351,7 @@ def test_query_uses_config_for_persist_and_collection(tmp_path: Path) -> None:
 
 def test_query_missing_persist_dir_raises() -> None:
     """query raises FileNotFoundError when persist dir does not exist."""
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value="/nonexistent/chroma_db"):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value="/nonexistent/chroma_db"):
         with pytest.raises(FileNotFoundError, match="Persistence directory does not exist"):
             query(query="test")
 
@@ -360,11 +360,11 @@ def test_query_chain_error_propagates(tmp_path: Path) -> None:
     """query propagates retrieval/LLM errors from run_rag."""
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
 
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_embedding_model"):
-            with patch("oracle_rag.mcp.tools.get_chat_model"):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_embedding_model"):
+            with patch("pinrag.mcp.tools.get_chat_model"):
                 with patch(
-                    "oracle_rag.mcp.tools.run_rag",
+                    "pinrag.mcp.tools.run_rag",
                     side_effect=RuntimeError("OpenAI API rate limit"),
                 ):
                     with pytest.raises(RuntimeError, match="OpenAI API rate limit"):
@@ -373,7 +373,7 @@ def test_query_chain_error_propagates(tmp_path: Path) -> None:
 
 def test_query_success(tmp_path: Path) -> None:
     """query returns answer and sources when run_rag succeeds."""
-    from oracle_rag.rag import RAGResult
+    from pinrag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
     mock_run_rag = MagicMock(
@@ -386,11 +386,11 @@ def test_query_success(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
-            with patch("oracle_rag.mcp.tools.get_embedding_model"):
-                with patch("oracle_rag.mcp.tools.get_chat_model"):
-                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("pinrag.mcp.tools.get_embedding_model"):
+                with patch("pinrag.mcp.tools.get_chat_model"):
+                    with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         result = query(query="What is the answer?")
 
     assert result["answer"] == "The answer is 42."
@@ -402,7 +402,7 @@ def test_query_success(tmp_path: Path) -> None:
 
 def test_query_sources_include_start_for_youtube(tmp_path: Path) -> None:
     """query returns start (timestamp) in sources when present (YouTube)."""
-    from oracle_rag.rag import RAGResult
+    from pinrag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
     mock_run_rag = MagicMock(
@@ -415,11 +415,11 @@ def test_query_sources_include_start_for_youtube(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
-            with patch("oracle_rag.mcp.tools.get_embedding_model"):
-                with patch("oracle_rag.mcp.tools.get_chat_model"):
-                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("pinrag.mcp.tools.get_embedding_model"):
+                with patch("pinrag.mcp.tools.get_chat_model"):
+                    with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         result = query(query="What does the video say?")
 
     assert result["sources"][0] == {"document_id": "dQw4w9WgXcQ", "page": 0, "start": 83}
@@ -439,7 +439,7 @@ def test_query_page_range_validation() -> None:
 
 def test_query_with_page_range(tmp_path: Path) -> None:
     """query passes page_min and page_max to run_rag when provided."""
-    from oracle_rag.rag import RAGResult
+    from pinrag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
     mock_run_rag = MagicMock(
@@ -449,11 +449,11 @@ def test_query_with_page_range(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
-            with patch("oracle_rag.mcp.tools.get_embedding_model"):
-                with patch("oracle_rag.mcp.tools.get_chat_model"):
-                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("pinrag.mcp.tools.get_embedding_model"):
+                with patch("pinrag.mcp.tools.get_chat_model"):
+                    with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         query(
                             query="OpenOCD?",
                             document_id="pico.pdf",
@@ -468,7 +468,7 @@ def test_query_with_page_range(tmp_path: Path) -> None:
 
 def test_query_with_document_type_filter(tmp_path: Path) -> None:
     """query passes document_type to run_rag when provided."""
-    from oracle_rag.rag import RAGResult
+    from pinrag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
     mock_run_rag = MagicMock(
@@ -478,11 +478,11 @@ def test_query_with_document_type_filter(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
-            with patch("oracle_rag.mcp.tools.get_embedding_model"):
-                with patch("oracle_rag.mcp.tools.get_chat_model"):
-                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("pinrag.mcp.tools.get_embedding_model"):
+                with patch("pinrag.mcp.tools.get_chat_model"):
+                    with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         query(query="OTG?", document_type="youtube")
 
     mock_run_rag.assert_called_once()
@@ -491,7 +491,7 @@ def test_query_with_document_type_filter(tmp_path: Path) -> None:
 
 def test_query_with_tag_filter(tmp_path: Path) -> None:
     """query passes tag to run_rag when provided."""
-    from oracle_rag.rag import RAGResult
+    from pinrag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
     mock_run_rag = MagicMock(
@@ -501,11 +501,11 @@ def test_query_with_tag_filter(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
-            with patch("oracle_rag.mcp.tools.get_embedding_model"):
-                with patch("oracle_rag.mcp.tools.get_chat_model"):
-                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("pinrag.mcp.tools.get_embedding_model"):
+                with patch("pinrag.mcp.tools.get_chat_model"):
+                    with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         query(query="GPIO?", tag="PI_PICO")
 
     mock_run_rag.assert_called_once()
@@ -514,7 +514,7 @@ def test_query_with_tag_filter(tmp_path: Path) -> None:
 
 def test_query_with_document_id_filter(tmp_path: Path) -> None:
     """query passes document_id to run_rag when provided."""
-    from oracle_rag.rag import RAGResult
+    from pinrag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
     mock_run_rag = MagicMock(
@@ -524,11 +524,11 @@ def test_query_with_document_id_filter(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
-        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
-            with patch("oracle_rag.mcp.tools.get_embedding_model"):
-                with patch("oracle_rag.mcp.tools.get_chat_model"):
-                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+    with patch("pinrag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("pinrag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("pinrag.mcp.tools.get_embedding_model"):
+                with patch("pinrag.mcp.tools.get_chat_model"):
+                    with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         query(
                             query="GPIO?",
                             document_id="RP-008276-DS-1-getting-started-with-pico.pdf",
@@ -553,11 +553,11 @@ def test_server_config_resource_includes_api_key_status() -> None:
 
 def test_server_config_resource_includes_effective_config() -> None:
     """server_config_resource includes effective config from get_* functions."""
-    with patch("oracle_rag.mcp.server.get_persist_dir", return_value="/my/chroma"):
-        with patch("oracle_rag.mcp.server.get_collection_name", return_value="my_coll"):
+    with patch("pinrag.mcp.server.get_persist_dir", return_value="/my/chroma"):
+        with patch("pinrag.mcp.server.get_collection_name", return_value="my_coll"):
             out = mcp_server.server_config_resource()
-    assert "ORACLE_RAG_PERSIST_DIR: /my/chroma" in out
-    assert "ORACLE_RAG_COLLECTION_NAME: my_coll" in out
+    assert "PINRAG_PERSIST_DIR: /my/chroma" in out
+    assert "PINRAG_COLLECTION_NAME: my_coll" in out
     assert "--- Set (from env) ---" in out
     assert "--- Defaults (not set) ---" in out
     assert "--- API keys (sensitive; only status) ---" in out
@@ -567,18 +567,18 @@ def test_server_config_resource_shows_set_vs_default() -> None:
     """server_config_resource marks set vars vs (default) for unset."""
     with patch.dict(
         "os.environ",
-        {"ORACLE_RAG_PERSIST_DIR": "/custom/db"},
+        {"PINRAG_PERSIST_DIR": "/custom/db"},
         clear=False,
     ):
         out = mcp_server.server_config_resource()
-    assert "ORACLE_RAG_PERSIST_DIR: /custom/db" in out
+    assert "PINRAG_PERSIST_DIR: /custom/db" in out
     assert " (default)" in out  # at least one unset var shows (default)
 
 
 def test_server_config_resource_unset_var_shows_default() -> None:
     """server_config_resource shows (default) for vars not in env."""
-    env_no_oracle = {k: v for k, v in __import__("os").environ.items() if not k.startswith("ORACLE_RAG_")}
-    with patch.dict("os.environ", env_no_oracle, clear=True):
+    env_no_pinrag = {k: v for k, v in __import__("os").environ.items() if not k.startswith("PINRAG_")}
+    with patch.dict("os.environ", env_no_pinrag, clear=True):
         out = mcp_server.server_config_resource()
     assert "(default)" in out
 
@@ -596,9 +596,9 @@ def test_remove_document_deletes_parent_chunks_when_parent_child_enabled(tmp_pat
     }
     mock_docstore = MagicMock()
 
-    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
-        with patch("oracle_rag.mcp.tools.get_use_parent_child", return_value=True):
-            with patch("oracle_rag.mcp.tools.get_parent_docstore", return_value=mock_docstore):
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
+        with patch("pinrag.mcp.tools.get_use_parent_child", return_value=True):
+            with patch("pinrag.mcp.tools.get_parent_docstore", return_value=mock_docstore):
                 result = remove_document(
                     document_id="doc.pdf",
                     persist_dir=str(tmp_path),
@@ -618,9 +618,9 @@ def test_remove_document_skips_docstore_when_parent_child_disabled(tmp_path: Pat
     mock_store = MagicMock()
     mock_store._collection.get.return_value = {"ids": ["c1"], "metadatas": [{}]}
 
-    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
-        with patch("oracle_rag.mcp.tools.get_use_parent_child", return_value=False):
-            with patch("oracle_rag.mcp.tools.get_parent_docstore") as mock_get_docstore:
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
+        with patch("pinrag.mcp.tools.get_use_parent_child", return_value=False):
+            with patch("pinrag.mcp.tools.get_parent_docstore") as mock_get_docstore:
                 remove_document(document_id="doc.pdf", persist_dir=str(tmp_path), collection="c")
     mock_get_docstore.assert_not_called()
 

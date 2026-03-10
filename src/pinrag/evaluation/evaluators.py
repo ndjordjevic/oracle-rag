@@ -1,6 +1,6 @@
 """Oracle-RAG evaluators for LangSmith experiments.
 
-LLM-as-judge (correctness, groundedness): ORACLE_RAG_EVALUATOR_PROVIDER (openai | anthropic).
+LLM-as-judge (correctness, groundedness): PINRAG_EVALUATOR_PROVIDER (openai | anthropic).
 OpenAI: gpt-4o for correctness, gpt-4o-mini for groundedness.
 Anthropic: claude-3-5-sonnet for correctness, claude-3-5-haiku for groundedness.
 Code evaluators have no LLM cost.
@@ -13,7 +13,7 @@ from typing import Annotated, TypedDict
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 
-from oracle_rag.config import get_evaluator_model, get_evaluator_provider
+from pinrag.config import get_evaluator_model, get_evaluator_provider
 
 # ---------------------------------------------------------------------------
 # LLM-as-judge graders (OPENAI_API_KEY or ANTHROPIC_API_KEY)
