@@ -1,2 +1,2 @@
-"""PDF ingestion utilities for Oracle-RAG."""
+"""PDF ingestion utilities for PinRAG."""
 

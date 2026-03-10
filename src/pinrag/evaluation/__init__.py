@@ -1,4 +1,4 @@
-"""Oracle-RAG evaluation package for LangSmith experiments.
+"""PinRAG evaluation package for LangSmith experiments.
 
 Requires LANGSMITH_API_KEY and OPENAI_API_KEY (for LLM-as-judge grader).
 Use the same embedding provider/model as when indexing (see run_evaluation docstring).

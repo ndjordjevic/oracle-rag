@@ -214,7 +214,7 @@ uv run python scripts/rag_cli.py "Summarize the main points." --k 8
 
 ## mcp_server.py
 
-Run the Oracle-RAG MCP (Model Context Protocol) server, exposing RAG tools (`query_pdf`, `add_pdf`) to MCP-compatible clients like Claude Desktop, Cursor, or the MCP Inspector.
+Run the PinRAG MCP (Model Context Protocol) server, exposing RAG tools (`query_pdf`, `add_pdf`) to MCP-compatible clients like Claude Desktop, Cursor, or the MCP Inspector.
 
 **Requirements**
 
@@ -233,7 +233,7 @@ The server uses `stdio` transport (standard for MCP), reading from stdin and wri
 - `add_pdf`: Index a new PDF into the vector store
 - `list_pdfs`: List all indexed PDFs (document names and total chunk count)
 - `remove_pdf`: Remove a PDF and all its chunks and embeddings from the index (by document_id, e.g. file name from list_pdfs)
-- `list_pdfs`: List all indexed PDFs (books) in the Oracle-RAG index
+- `list_pdfs`: List all indexed PDFs (books) in the PinRAG index
 
 **Examples**
 

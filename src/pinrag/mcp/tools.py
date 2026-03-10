@@ -1,4 +1,4 @@
-"""MCP tool implementations that wrap Oracle-RAG functionality."""
+"""MCP tool implementations that wrap PinRAG functionality."""
 
 from __future__ import annotations
 
@@ -383,7 +383,7 @@ def list_documents(
     collection: str | None = None,
     tag: str | None = None,
 ) -> dict[str, Any]:
-    """List all indexed documents (PDF, Discord, etc.) in the Oracle-RAG index.
+    """List all indexed documents (PDF, Discord, etc.) in the PinRAG index.
 
     Args:
         persist_dir: Chroma persistence directory (default: from PINRAG_PERSIST_DIR or chroma_db).

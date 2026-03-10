@@ -1,4 +1,4 @@
-"""Entry point script to run the Oracle-RAG MCP server."""
+"""Entry point script to run the PinRAG MCP server."""
 
 from __future__ import annotations
 

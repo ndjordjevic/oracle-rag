@@ -1,4 +1,4 @@
-"""Oracle-RAG evaluators for LangSmith experiments.
+"""PinRAG evaluators for LangSmith experiments.
 
 LLM-as-judge (correctness, groundedness): PINRAG_EVALUATOR_PROVIDER (openai | anthropic).
 OpenAI: gpt-4o for correctness, gpt-4o-mini for groundedness.

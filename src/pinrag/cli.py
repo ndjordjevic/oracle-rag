@@ -1,4 +1,4 @@
-"""CLI entry point for Oracle-RAG MCP server."""
+"""CLI entry point for PinRAG MCP server."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from dotenv import load_dotenv
 def _load_env() -> None:
     """Load .env from well-known paths before any other imports touch env vars."""
     paths = [
-        Path.home() / ".config" / "oracle-rag" / ".env",
-        Path.home() / ".oracle-rag" / ".env",
+        Path.home() / ".config" / "pinrag" / ".env",
+        Path.home() / ".pinrag" / ".env",
         Path.cwd() / ".env",
     ]
     for p in paths:
@@ -28,7 +28,7 @@ def main() -> None:
 
     if not os.environ.get("OPENAI_API_KEY"):
         print(
-            "ERROR: OPENAI_API_KEY not set. Set it in .env (cwd or ~/.config/oracle-rag/) "
+            "ERROR: OPENAI_API_KEY not set. Set it in .env (cwd or ~/.config/pinrag/) "
             "or in the environment.",
             file=sys.stderr,
         )

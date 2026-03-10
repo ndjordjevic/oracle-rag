@@ -24,7 +24,7 @@ def main() -> None:
     parser.add_argument(
         "prompt",
         nargs="?",
-        default="Say 'Hello from Oracle RAG' and nothing else.",
+        default="Say 'Hello from PinRAG' and nothing else.",
         help="Prompt to send (default: simple greeting prompt)",
     )
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-"""Indexing utilities for Oracle-RAG."""
+"""Indexing utilities for PinRAG."""
 
 from pinrag.indexing.discord_indexer import DiscordIndexResult, index_discord
 from pinrag.indexing.discord_loader import (

@@ -1,1 +1,1 @@
-"""Tests for Oracle-RAG."""
+"""Tests for PinRAG."""
