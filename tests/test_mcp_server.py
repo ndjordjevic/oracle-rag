@@ -103,6 +103,26 @@ def test_list_documents_includes_document_details_when_present(tmp_path: Path) -
     }
 
 
+def test_list_documents_aggregates_bytes_across_files(tmp_path: Path) -> None:
+    """list_documents sums doc_bytes across unique files (GitHub: many files per doc_id)."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    mock_store = MagicMock()
+    mock_store.get.return_value = {
+        "metadatas": [
+            {"document_id": "owner/repo", "document_type": "github", "file_path": "a.py", "doc_bytes": 100},
+            {"document_id": "owner/repo", "document_type": "github", "file_path": "a.py", "doc_bytes": 100},
+            {"document_id": "owner/repo", "document_type": "github", "file_path": "b.py", "doc_bytes": 96},
+        ]
+    }
+
+    with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
+        result = list_documents(persist_dir=str(tmp_path), collection="test_coll")
+
+    assert result["documents"] == ["owner/repo"]
+    assert result["document_details"]["owner/repo"]["bytes"] == 196
+    assert result["document_details"]["owner/repo"]["file_count"] == 2
+
+
 def test_list_documents_includes_segments_for_youtube(tmp_path: Path) -> None:
     """list_documents returns segments in document_details for YouTube chunks."""
     tmp_path.mkdir(parents=True, exist_ok=True)
@@ -590,10 +610,17 @@ def test_remove_document_deletes_parent_chunks_when_parent_child_enabled(tmp_pat
     """remove_document deletes both Chroma children and docstore parents when parent-child is on."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     mock_store = MagicMock()
-    mock_store._collection.get.return_value = {
-        "ids": ["child1", "child2"],
-        "metadatas": [{"doc_id": "parent-uuid-1", "document_id": "doc.pdf"}, {"doc_id": "parent-uuid-1", "document_id": "doc.pdf"}],
-    }
+    # First call: get chunks by document_id; second: check if parent is referenced elsewhere
+    mock_store.get.side_effect = [
+        {
+            "ids": ["child1", "child2"],
+            "metadatas": [
+                {"doc_id": "parent-uuid-1", "document_id": "doc.pdf"},
+                {"doc_id": "parent-uuid-1", "document_id": "doc.pdf"},
+            ],
+        },
+        {"metadatas": [{"document_id": "doc.pdf"}]},  # parent only ref'd by doc.pdf
+    ]
     mock_docstore = MagicMock()
 
     with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
@@ -609,14 +636,14 @@ def test_remove_document_deletes_parent_chunks_when_parent_child_enabled(tmp_pat
     assert result["document_id"] == "doc.pdf"
     mock_docstore.mdelete.assert_called_once()
     assert set(mock_docstore.mdelete.call_args[0][0]) == {"parent-uuid-1"}
-    mock_store._collection.delete.assert_called_once_with(where={"document_id": "doc.pdf"})
+    mock_store.delete.assert_called_once_with(where={"document_id": "doc.pdf"})
 
 
 def test_remove_document_skips_docstore_when_parent_child_disabled(tmp_path: Path) -> None:
     """remove_document does not touch docstore when parent-child is off."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     mock_store = MagicMock()
-    mock_store._collection.get.return_value = {"ids": ["c1"], "metadatas": [{}]}
+    mock_store.get.return_value = {"ids": ["c1"], "metadatas": [{}]}
 
     with patch("pinrag.mcp.tools.get_chroma_store", return_value=mock_store):
         with patch("pinrag.mcp.tools.get_use_parent_child", return_value=False):

@@ -6,7 +6,7 @@ from typing import Literal
 
 from langchain_core.prompts import ChatPromptTemplate
 
-RAG_SYSTEM_THOROUGH = """You are a technical expert that answers questions based only on the provided context from PDF documents.
+RAG_SYSTEM_THOROUGH = """You are a technical expert that answers questions based only on the provided context.
 
 Instructions:
 - Synthesize information from ALL relevant context blocks, not just the first match.
@@ -17,7 +17,7 @@ Instructions:
 - Think step-by-step internally before finalizing your answer, but do not reveal hidden reasoning.
 - Cite sources using the labels [1], [2], etc. that appear next to each context block."""
 
-RAG_SYSTEM_CONCISE = """You are a technical expert that answers questions based only on the provided context from PDF documents.
+RAG_SYSTEM_CONCISE = """You are a technical expert that answers questions based only on the provided context.
 
 Instructions:
 - Focus on the direct answer first, then add only critical supporting details.

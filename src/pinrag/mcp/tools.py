@@ -10,10 +10,12 @@ from langsmith import traceable
 from pinrag.embeddings import get_embedding_model
 from pinrag.indexing import (
     DiscordIndexResult,
+    GitHubIndexResult,
     IndexResult,
     YouTubeIndexResult,
     extract_video_id,
     index_discord,
+    index_github,
     index_pdf,
     index_youtube,
 )
@@ -24,23 +26,33 @@ from pinrag.vectorstore import get_chroma_store
 from pinrag.vectorstore.docstore import get_parent_docstore
 
 
-def _detect_source_format(path_or_url: str) -> Literal["youtube", "pdf", "discord"] | None:
-    """Detect supported format: YouTube URL/ID, PDF, or DiscordChatExporter TXT.
+def _is_github_url(s: str) -> bool:
+    """Return True if string is a GitHub repo URL (github.com/owner/repo)."""
+    if not s or not str(s).strip():
+        return False
+    t = str(s).strip().lower()
+    return "github.com/" in t and "/" in t.split("github.com/", 1)[-1]
 
-    Returns "youtube", "pdf", "discord", or None if unsupported.
-    Prioritizes existing local paths over YouTube ID patterns (e.g. file/dir named "dQw4w9WgXcQ").
+
+def _detect_source_format(path_or_url: str) -> Literal["youtube", "pdf", "discord", "github"] | None:
+    """Detect supported format: GitHub URL, YouTube URL/ID, PDF, or DiscordChatExporter TXT.
+
+    Returns "github", "youtube", "pdf", "discord", or None if unsupported.
+    Prioritizes existing local paths over URL patterns.
     """
     s = (path_or_url or "").strip()
     if not s:
         return None
+    if _is_github_url(s):
+        return "github"
+    if extract_video_id(s):
+        return "youtube"
     base = Path(s).expanduser().resolve()
     if base.exists():
         file_fmt = _detect_file_format(base)
         if file_fmt:
             return file_fmt
         return None
-    if extract_video_id(s):
-        return "youtube"
     return None
 
 
@@ -71,12 +83,14 @@ def _detect_file_format(path: Path) -> Literal["pdf", "discord"] | None:
 
 @traceable(name="query", run_type="tool")
 def query(
-    query: str,
+    user_query: str = "",
+    query: str = "",
     document_id: str | None = None,
     page_min: int | None = None,
     page_max: int | None = None,
     tag: str | None = None,
     document_type: str | None = None,
+    file_path: str | None = None,
     response_style: Literal["thorough", "concise"] = "thorough",
 ) -> dict[str, Any]:
     """Query indexed documents (PDF, Discord) and return an answer with citations.
@@ -85,12 +99,13 @@ def query(
     Persist dir and collection come from PINRAG_PERSIST_DIR and PINRAG_COLLECTION_NAME.
 
     Args:
-        query: Natural language question to ask.
+    user_query: Natural language question to ask.
         document_id: Optional document ID to filter retrieval (e.g. from list_documents).
         page_min: Optional start of page range (inclusive). Use with page_max. PDF only.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64. PDF only.
         tag: Optional tag to filter retrieval (e.g. from list_documents document_details).
         document_type: Optional type to filter: "pdf", "youtube", or "discord".
+        file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style for generation ("thorough" or "concise").
 
     Returns:
@@ -100,7 +115,8 @@ def query(
         ValueError: If query is empty or invalid.
         FileNotFoundError: If persist dir doesn't exist.
     """
-    if not query or not query.strip():
+    effective_query = user_query or query
+    if not effective_query or not effective_query.strip():
         raise ValueError("Query cannot be empty")
     if (page_min is not None) != (page_max is not None):
         raise ValueError("page_min and page_max must be provided together for page range filter")
@@ -123,8 +139,9 @@ def query(
     doc_id_filter = document_id.strip() if document_id and str(document_id).strip() else None
     tag_filter = tag.strip() if tag and str(tag).strip() else None
     doc_type_filter = document_type.strip() if document_type and str(document_type).strip() else None
+    file_path_filter = file_path.strip() if file_path and str(file_path).strip() else None
     rag_result = run_rag(
-        query,
+        effective_query,
         llm,
         k=None,
         persist_directory=str(persist_path),
@@ -135,6 +152,7 @@ def query(
         page_max=page_max,
         tag=tag_filter,
         document_type=doc_type_filter,
+        file_path=file_path_filter,
         response_style=response_style,
     )
 
@@ -146,6 +164,8 @@ def query(
         }
         if "start" in s:
             item["start"] = int(s["start"])
+        if "file_path" in s:
+            item["file_path"] = str(s["file_path"])
         sources_out.append(item)
     return {"answer": rag_result.answer, "sources": sources_out}
 
@@ -156,18 +176,24 @@ def add_file(
     persist_dir: str = "",
     collection: str | None = None,
     tag: str | None = None,
+    branch: str | None = None,
+    include_patterns: list[str] | None = None,
+    exclude_patterns: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Add a file, directory, or YouTube video to the index.
+    """Add a file, directory, YouTube video, or GitHub repo to the index.
 
-    Automatically detects format: YouTube URL/video ID, PDF (.pdf), or Discord
-    export (.txt with DiscordChatExporter header). Indexes the item or all
-    supported files in the directory.
+    Automatically detects format: GitHub URL, YouTube URL/video ID, PDF (.pdf), or
+    Discord export (.txt with DiscordChatExporter header). Indexes the item or
+    all supported files in the directory.
 
     Args:
-        path: Path to a file/directory, or YouTube URL (e.g. https://youtu.be/ID).
+        path: Path to a file/directory, YouTube URL, or GitHub URL (e.g. https://github.com/owner/repo).
         persist_dir: Chroma persistence directory (default: "chroma_db").
         collection: Chroma collection name (default: "pinrag").
         tag: Optional tag for indexed documents; stored on all chunks for filtering.
+        branch: For GitHub: override branch (default: main). Ignored for other formats.
+        include_patterns: For GitHub: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]).
+        exclude_patterns: For GitHub: glob patterns to exclude. Ignored for other formats.
 
     Returns:
         Dictionary with "indexed" (list of results), "failed" (errors),
@@ -183,8 +209,44 @@ def add_file(
     _persist = (persist_dir or "").strip() or get_persist_dir()
     tag_clean = tag.strip() if tag and str(tag).strip() else None
 
-    # YouTube: path is URL or video ID
     fmt = _detect_source_format(path)
+    if fmt == "github":
+        try:
+            embedding = get_embedding_model()
+            result_gh: GitHubIndexResult = index_github(
+                path,
+                persist_directory=_persist,
+                collection_name=collection,
+                embedding=embedding,
+                tag=tag_clean,
+                branch=branch.strip() if branch and str(branch).strip() else None,
+                include_patterns=include_patterns if include_patterns else None,
+                exclude_patterns=exclude_patterns if exclude_patterns else None,
+            )
+            return {
+                "indexed": [{
+                    "path": path,
+                    "format": "github",
+                    "repo": f"{result_gh.owner}/{result_gh.repo}",
+                    "branch": result_gh.branch,
+                    "files_indexed": result_gh.files_indexed,
+                    "total_chunks": result_gh.total_chunks,
+                }],
+                "failed": [],
+                "total_indexed": 1,
+                "total_failed": 0,
+                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "collection_name": collection,
+            }
+        except Exception as e:
+            return {
+                "indexed": [],
+                "failed": [{"path": path, "error": str(e)}],
+                "total_indexed": 0,
+                "total_failed": 1,
+                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "collection_name": collection,
+            }
     if fmt == "youtube":
         try:
             embedding = get_embedding_model()
@@ -228,7 +290,7 @@ def add_file(
             raise FileNotFoundError(f"Path not found: {path}")
         raise ValueError(
             f"Unsupported format: {path}. "
-            "Supported: YouTube URL/video ID, .pdf, .txt (DiscordChatExporter with Guild:/Channel: header)."
+            "Supported: GitHub URL, YouTube URL/video ID, .pdf, .txt (DiscordChatExporter with Guild:/Channel: header)."
         )
 
     base = Path(path).expanduser().resolve()
@@ -321,9 +383,9 @@ def add_files(
     collection: str | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Add multiple files or directories to the index in one call.
+    """Add multiple files, directories, or URLs to the index in one call.
 
-    Automatically detects format per file (PDF, Discord export). Continues
+    Automatically detects format per path (PDF, Discord export, YouTube, GitHub). Continues
     indexing even if some paths fail.
 
     Args:
@@ -421,6 +483,8 @@ def list_documents(
 
     doc_ids: set[str] = set()
     document_details: dict[str, dict[str, Any]] = {}
+    doc_file_paths: dict[str, set[str]] = {}
+    doc_bytes_by_file: dict[str, dict[str, int]] = {}  # doc_id -> {file_path: bytes}
     chunk_count = 0
     for meta in metadatas:
         if not isinstance(meta, dict):
@@ -437,6 +501,13 @@ def list_documents(
             or "unknown"
         )
         doc_ids.add(doc_id)
+        if meta.get("file_path"):
+            doc_file_paths.setdefault(doc_id, set()).add(str(meta["file_path"]))
+        # Aggregate doc_bytes per unique file (GitHub: many files; PDF/YouTube: single)
+        doc_bytes = meta.get("doc_bytes")
+        if doc_bytes is not None:
+            fp = meta.get("file_path") or "_"
+            doc_bytes_by_file.setdefault(doc_id, {})[fp] = doc_bytes
         if doc_id not in document_details:
             details: dict[str, Any] = {}
             if meta.get("document_type") is not None:
@@ -451,14 +522,22 @@ def list_documents(
                 details["segments"] = meta["doc_segments"]
             if meta.get("doc_title") is not None:
                 details["title"] = meta["doc_title"]
-            if meta.get("doc_bytes") is not None:
-                details["bytes"] = meta["doc_bytes"]
             if meta.get("doc_total_chunks") is not None:
                 details["chunks"] = meta["doc_total_chunks"]
             if meta.get("tag") is not None and str(meta.get("tag", "")).strip():
                 details["tag"] = str(meta["tag"]).strip()
             if details:
                 document_details[doc_id] = details
+
+    # Set bytes from aggregated sum (total across all files for multi-file docs)
+    for doc_id, by_file in doc_bytes_by_file.items():
+        if doc_id in document_details:
+            document_details[doc_id]["bytes"] = sum(by_file.values())
+
+    for doc_id, paths in doc_file_paths.items():
+        if doc_id in document_details:
+            document_details[doc_id]["file_count"] = len(paths)
+            document_details[doc_id]["files"] = sorted(paths)
 
     return {
         "documents": sorted(doc_ids),
@@ -514,7 +593,7 @@ def remove_document(
     )
 
     # Get chunks matching this document_id (need metadatas for parent doc_ids when parent-child)
-    data = store._collection.get(
+    data = store.get(
         where={"document_id": document_id.strip()},
         include=["metadatas"] if get_use_parent_child() else [],
     )
@@ -529,11 +608,24 @@ def remove_document(
             if isinstance(meta, dict) and meta.get("doc_id"):
                 parent_ids.add(str(meta["doc_id"]))
         if parent_ids:
+            # Defensive check: keep parent docs still referenced by other documents.
+            safe_to_delete: list[str] = []
+            target_doc = document_id.strip()
+            for pid in parent_ids:
+                refs = store.get(where={"doc_id": pid}, include=["metadatas"])
+                ref_metas = refs.get("metadatas") or []
+                referenced_elsewhere = any(
+                    isinstance(m, dict) and str(m.get("document_id", "")) != target_doc
+                    for m in ref_metas
+                )
+                if not referenced_elsewhere:
+                    safe_to_delete.append(pid)
             docstore = get_parent_docstore(_persist, collection)
-            docstore.mdelete(list(parent_ids))
+            if safe_to_delete:
+                docstore.mdelete(safe_to_delete)
 
     if ids:
-        store._collection.delete(where={"document_id": document_id.strip()})
+        store.delete(where={"document_id": document_id.strip()})
 
     return {
         "deleted_chunks": deleted_count,

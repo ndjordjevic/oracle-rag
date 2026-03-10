@@ -34,8 +34,6 @@ from pinrag.vectorstore.retriever import create_retriever
 PathLike = Union[str, Path]
 logger = logging.getLogger(__name__)
 
-_rerank_fallback_logged = False
-
 
 @dataclass
 class RAGResult:
@@ -80,6 +78,7 @@ def run_rag(
     page_max: Optional[int] = None,
     tag: Optional[str] = None,
     document_type: Optional[str] = None,
+    file_path: Optional[str] = None,
     response_style: Literal["thorough", "concise"] = "thorough",
 ) -> RAGResult:
     """Run a 2-step RAG pipeline: retrieve chunks, format context, prompt LLM, return answer with citations.
@@ -104,6 +103,7 @@ def run_rag(
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
         tag: Optional tag to filter retrieval (e.g. "PI_PICO").
         document_type: Optional type to filter: "pdf", "youtube", or "discord".
+        file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style for prompt instructions ("thorough" or "concise").
 
     Returns:
@@ -135,6 +135,7 @@ def run_rag(
                     page_max=page_max,
                     tag=tag,
                     document_type=document_type,
+                    file_path=file_path,
                 )
                 if use_multi_query:
                     base_retriever = wrap_retriever_with_multiquery(
@@ -146,12 +147,9 @@ def run_rag(
                     base_retriever, top_n=top_n
                 )
             else:
-                global _rerank_fallback_logged
-                if not _rerank_fallback_logged:
-                    logger.warning(
-                        "Re-ranking disabled: %s. Using standard retrieval.", err
-                    )
-                    _rerank_fallback_logged = True
+                logger.warning(
+                    "Re-ranking disabled: %s. Using standard retrieval.", err
+                )
                 effective_k = k if k is not None else get_retrieve_k()
                 base_retriever = create_retriever(
                     k=effective_k,
@@ -163,6 +161,7 @@ def run_rag(
                     page_max=page_max,
                     tag=tag,
                     document_type=document_type,
+                    file_path=file_path,
                 )
                 if use_multi_query:
                     retriever = wrap_retriever_with_multiquery(
@@ -186,6 +185,7 @@ def run_rag(
                 page_max=page_max,
                 tag=tag,
                 document_type=document_type,
+                file_path=file_path,
             )
             if use_multi_query:
                 retriever = wrap_retriever_with_multiquery(
@@ -215,9 +215,11 @@ def run_rag(
     ).messages
     try:
         response = llm.invoke(messages)
-        answer = response.content if hasattr(response, "content") else str(response)
+        content = response.content if hasattr(response, "content") else str(response)
+        answer = content if isinstance(content, str) else str(content)
         return RAGResult(answer=answer, sources=format_sources(docs), documents=docs)
     except Exception as e:
+        logger.exception("LLM invocation failed in run_rag")
         err = str(e).lower()
         if "rate" in err or "limit" in err:
             msg = "Answer generation failed: rate limit exceeded. Please try again later."

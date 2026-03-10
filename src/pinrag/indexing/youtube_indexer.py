@@ -118,11 +118,13 @@ def index_youtube(
         upload_ts = datetime.now(timezone.utc).isoformat()
         doc_total_chunks = len(chunk_docs)
         doc_segments = load_result.total_segments
+        doc_bytes = sum(len(d.page_content.encode("utf-8")) for d in load_result.documents)
         for doc in chunk_docs:
             doc.metadata["document_type"] = "youtube"
             doc.metadata["upload_timestamp"] = upload_ts
             doc.metadata["doc_total_chunks"] = doc_total_chunks
             doc.metadata["doc_segments"] = doc_segments
+            doc.metadata["doc_bytes"] = doc_bytes
             if load_result.title:
                 doc.metadata["doc_title"] = load_result.title
             if tag is not None and str(tag).strip():
@@ -186,6 +188,7 @@ def _index_youtube_parent_child(
     upload_ts = datetime.now(timezone.utc).isoformat()
     document_id = load_result.video_id
     source_url = load_result.source_url
+    doc_bytes = sum(len(d.page_content.encode("utf-8")) for d in load_result.documents)
 
     all_children: list[Document] = []
     parent_docstore_entries: list[tuple[str, Document]] = []
@@ -197,6 +200,7 @@ def _index_youtube_parent_child(
         parent.metadata["document_type"] = "youtube"
         parent.metadata["upload_timestamp"] = upload_ts
         parent.metadata["doc_segments"] = load_result.total_segments
+        parent.metadata["doc_bytes"] = doc_bytes
         parent.metadata["source"] = source_url
         if load_result.title:
             parent.metadata["doc_title"] = load_result.title
@@ -216,7 +220,7 @@ def _index_youtube_parent_child(
             c.metadata["document_type"] = "youtube"
             c.metadata["upload_timestamp"] = upload_ts
             c.metadata["doc_segments"] = load_result.total_segments
-            c.metadata["doc_total_chunks"] = len(child_chunks)
+            c.metadata["doc_bytes"] = doc_bytes
             c.metadata["source"] = source_url
             if load_result.title:
                 c.metadata["doc_title"] = load_result.title
@@ -224,8 +228,13 @@ def _index_youtube_parent_child(
                 c.metadata["tag"] = str(tag).strip()
             all_children.append(c)
 
-        parent.metadata["doc_total_chunks"] = len(child_chunks)
         parent_docstore_entries.append((parent_id, parent))
+
+    total_chunks = len(all_children)
+    for c in all_children:
+        c.metadata["doc_total_chunks"] = total_chunks
+    for _, parent_doc in parent_docstore_entries:
+        parent_doc.metadata["doc_total_chunks"] = total_chunks
 
     store._collection.delete(where={"document_id": document_id})
 
@@ -237,4 +246,4 @@ def _index_youtube_parent_child(
         batch = all_children[i : i + batch_size]
         store.add_documents(batch)
 
-    return len(all_children)
+    return total_chunks

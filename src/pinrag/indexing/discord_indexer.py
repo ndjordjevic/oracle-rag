@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -15,12 +16,12 @@ from pinrag.chunking import chunk_documents
 from pinrag.config import (
     get_child_chunk_size,
     get_collection_name,
+    get_parent_chunk_size,
     get_structure_aware_chunking,
     get_use_parent_child,
 )
 from pinrag.indexing.discord_loader import (
     DiscordLoadResult,
-    _document_id_from_channel_and_path,
     load_discord_export_as_documents,
 )
 from pinrag.vectorstore.chroma_client import (
@@ -31,6 +32,21 @@ from pinrag.vectorstore.docstore import get_parent_docstore
 
 
 PathLike = Union[str, Path]
+
+
+def _derive_document_id_from_channel_and_path(channel: str, path: Path) -> str:
+    """Derive document id compatible with discord loader defaults."""
+    if not channel:
+        base = "discord-unknown"
+    else:
+        parts = [p.strip() for p in channel.split("/")]
+        last = parts[-1] if parts else channel
+        slug = re.sub(r"[^\w\-]", "-", last).strip("-").lower() or "discord"
+        base = f"discord-{slug}"
+    stem = path.stem
+    sanitized = re.sub(r"[^\w\-]", "-", stem).strip("-").lower()
+    sanitized = re.sub(r"-+", "-", sanitized)
+    return base if not sanitized else f"{base}--{sanitized}"
 
 
 @dataclass(frozen=True)
@@ -83,7 +99,7 @@ def index_discord(
     )
 
     if not load_result.documents:
-        doc_id = _document_id_from_channel_and_path(
+        doc_id = _derive_document_id_from_channel_and_path(
             load_result.channel, load_result.source_path
         )
         store = get_chroma_store(
@@ -165,6 +181,8 @@ def _index_discord_parent_child(
     respect_structure: bool,
 ) -> int:
     """Index Discord using parent-child retrieval: embed small chunks, store large parents in docstore."""
+    parent_size = get_parent_chunk_size()
+    parent_overlap = min(200, parent_size // 10)
     child_size = get_child_chunk_size()
     child_overlap = min(50, child_size // 10)
 
@@ -183,7 +201,15 @@ def _index_discord_parent_child(
     all_children: list[Document] = []
     parent_docstore_entries: list[tuple[str, Document]] = []
 
-    for parent in load_result.documents:
+    parent_chunks = chunk_documents(
+        load_result.documents,
+        chunk_size=parent_size,
+        chunk_overlap=parent_overlap,
+        document_id_key="document_id",
+        respect_structure=respect_structure,
+    )
+
+    for parent in parent_chunks:
         parent_id = str(uuid.uuid4())
         parent.metadata["doc_id"] = parent_id
         parent.metadata["document_id"] = document_id
@@ -209,14 +235,18 @@ def _index_discord_parent_child(
             c.metadata["upload_timestamp"] = upload_ts
             c.metadata["doc_bytes"] = doc_bytes
             c.metadata["doc_messages"] = load_result.total_messages
-            c.metadata["doc_total_chunks"] = len(child_chunks)
             c.metadata["source"] = source_path_str
             if tag is not None and str(tag).strip():
                 c.metadata["tag"] = str(tag).strip()
             all_children.append(c)
 
-        parent.metadata["doc_total_chunks"] = len(child_chunks)
         parent_docstore_entries.append((parent_id, parent))
+
+    total_chunks = len(all_children)
+    for c in all_children:
+        c.metadata["doc_total_chunks"] = total_chunks
+    for _, parent_doc in parent_docstore_entries:
+        parent_doc.metadata["doc_total_chunks"] = total_chunks
 
     store._collection.delete(where={"document_id": document_id})
 
@@ -228,6 +258,6 @@ def _index_discord_parent_child(
         batch = all_children[i : i + batch_size]
         store.add_documents(batch)
 
-    return len(all_children)
+    return total_chunks
 
 

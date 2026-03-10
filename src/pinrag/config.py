@@ -148,6 +148,9 @@ def get_chunk_overlap() -> int:
         n = int(val)
         if n < 0:
             return DEFAULT_CHUNK_OVERLAP
+        # Keep overlap valid for text splitters (must be less than chunk size).
+        if n >= get_chunk_size():
+            return min(DEFAULT_CHUNK_OVERLAP, max(0, get_chunk_size() - 1))
         return n
     except ValueError:
         return DEFAULT_CHUNK_OVERLAP
@@ -324,3 +327,38 @@ def get_structure_aware_chunking() -> bool:
     if v in ("0", "false", "no", "off"):
         return False
     return DEFAULT_STRUCTURE_AWARE_CHUNKING
+
+
+# GitHub repo indexing
+DEFAULT_GITHUB_MAX_FILE_BYTES = 524288  # 512 KB
+DEFAULT_GITHUB_DEFAULT_BRANCH = "main"
+
+
+def get_github_token() -> str | None:
+    """Return GitHub personal access token from GITHUB_TOKEN env (optional)."""
+    val = os.environ.get("GITHUB_TOKEN")
+    if val and str(val).strip():
+        return str(val).strip()
+    return None
+
+
+def get_github_max_file_bytes() -> int:
+    """Return max file size in bytes for GitHub indexing (default 512 KB)."""
+    val = os.environ.get("PINRAG_GITHUB_MAX_FILE_BYTES")
+    if val is None:
+        return DEFAULT_GITHUB_MAX_FILE_BYTES
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_GITHUB_MAX_FILE_BYTES
+        return n
+    except ValueError:
+        return DEFAULT_GITHUB_MAX_FILE_BYTES
+
+
+def get_github_default_branch() -> str:
+    """Return default branch for GitHub URLs when not specified (default main)."""
+    val = os.environ.get("PINRAG_GITHUB_DEFAULT_BRANCH")
+    if val and str(val).strip():
+        return str(val).strip()
+    return DEFAULT_GITHUB_DEFAULT_BRANCH

@@ -134,18 +134,8 @@ def load_youtube_transcript_as_documents(
     if transcript is None:
         try:
             transcript_list = api.list(video_id)
-            # Prefer manually created, then generated, then any
-            try:
-                transcript = transcript_list.find_manually_created_transcript(
-                    list(transcript_list._manually_created_transcripts.keys())
-                ).fetch()
-            except Exception:
-                try:
-                    transcript = transcript_list.find_generated_transcript(
-                        list(transcript_list._generated_transcripts.keys())
-                    ).fetch()
-                except Exception:
-                    transcript = next(iter(transcript_list)).fetch()
+            # Avoid private attributes from youtube-transcript-api internals.
+            transcript = next(iter(transcript_list)).fetch()
         except Exception as e:
             last_error = e
 

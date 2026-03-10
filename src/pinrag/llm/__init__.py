@@ -1,4 +1,4 @@
-"""LLM client for RAG (OpenAI chat)."""
+"""LLM client for RAG (OpenAI / Anthropic)."""
 
 from pinrag.llm.openai_client import get_chat_model
 

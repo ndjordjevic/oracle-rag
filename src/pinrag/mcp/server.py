@@ -7,6 +7,7 @@ import inspect
 import logging
 import os
 import sys
+import warnings
 from typing import Annotated
 
 from dotenv import load_dotenv
@@ -62,7 +63,6 @@ for _name in ("mcp", "chromadb", "posthog", "openai", "httpx", "httpcore"):
 # pypdf logs "Rotated text discovered" at WARNING level — suppress entirely
 logging.getLogger("pypdf").setLevel(logging.ERROR)
 # pypdf also uses warnings module for "Rotated text discovered"
-import warnings
 warnings.filterwarnings("ignore", message=".*Rotated text.*")
 
 # Verify required environment variables
@@ -73,7 +73,7 @@ if not os.environ.get("OPENAI_API_KEY"):
 mcp = FastMCP("PinRAG", json_response=True)
 
 
-def _user_friendly_api_error(exc: BaseException) -> str | None:
+def _user_friendly_api_error(exc: Exception) -> str | None:
     """Return a short, user-friendly message for API key / auth errors, or None."""
     msg = str(exc).lower()
     if "api key" in msg or "api_key" in msg or "authentication" in msg or "invalid key" in msg or "no api key" in msg:
@@ -92,16 +92,28 @@ def _log_tool_errors(fn):
     Preserves the wrapped function's signature so MCP/FastMCP schema introspection sees all parameters.
     """
 
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        try:
-            return fn(*args, **kwargs)
-        except Exception as e:
-            _log.exception("Tool %s failed", fn.__name__)
-            friendly = _user_friendly_api_error(e)
-            if friendly:
-                raise RuntimeError(friendly) from e
-            raise
+    if inspect.iscoroutinefunction(fn):
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):
+            try:
+                return await fn(*args, **kwargs)
+            except Exception as e:
+                _log.exception("Tool %s failed", fn.__name__)
+                friendly = _user_friendly_api_error(e)
+                if friendly:
+                    raise RuntimeError(friendly) from e
+                raise
+    else:
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except Exception as e:
+                _log.exception("Tool %s failed", fn.__name__)
+                friendly = _user_friendly_api_error(e)
+                if friendly:
+                    raise RuntimeError(friendly) from e
+                raise
 
     wrapper.__signature__ = inspect.signature(fn)
     wrapper.__annotations__ = fn.__annotations__
@@ -116,8 +128,9 @@ def query_tool(
     page_min: Annotated[int | None, Field(description="Optional start of page range (inclusive). PDF only.")] = None,
     page_max: Annotated[int | None, Field(description="Optional end of page range (inclusive). PDF only.")] = None,
     tag: Annotated[str, Field(description="Optional tag to filter retrieval (from list_documents).")] = "",
-    document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', or 'discord'.")] = "",
-    response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "thorough",
+    document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', 'discord', or 'github'.")] = "",
+    file_path: Annotated[str, Field(description="Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.")] = "",
+    response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "",
 ) -> dict:
     """Query indexed documents and return an answer with citations.
 
@@ -130,20 +143,26 @@ def query_tool(
         page_min: Optional start of page range (inclusive). PDF only.
         page_max: Optional end of page range (inclusive). PDF only.
         tag: Optional tag to filter retrieval (from list_documents).
-        document_type: Optional type to filter: "pdf", "youtube", or "discord".
+        document_type: Optional type to filter: "pdf", "youtube", "discord", or "github".
+        file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
 
     Returns:
         Dictionary containing answer and sources (document_id, page).
     """
-    style = "concise" if (response_style or "").strip().lower() == "concise" else "thorough"
+    style_input = (response_style or "").strip().lower()
+    if style_input in ("thorough", "concise"):
+        style = style_input
+    else:
+        style = get_response_style()
     return query_index(
-        query=query,
+        user_query=query,
         document_id=document_id or None,
         page_min=page_min,
         page_max=page_max,
         tag=tag or None,
         document_type=document_type or None,
+        file_path=file_path or None,
         response_style=style,
     )
 
@@ -151,12 +170,13 @@ def query_tool(
 @mcp.tool()
 @_log_tool_errors
 def add_document_tool(
-    paths: Annotated[list[str], Field(description="Paths to index: file, directory, or YouTube URL (e.g. https://youtu.be/ID). Single path: [\"/path/to/file.pdf\"].")],
+    paths: Annotated[list[str], Field(description="Paths to index: file, directory, YouTube URL, or GitHub URL (e.g. https://github.com/owner/repo). Single path: [\"/path/to/file.pdf\"] or [\"https://github.com/owner/repo\"].")],
     tags: Annotated[list[str] | None, Field(description="Optional list of tags, one per path (same order as paths).")] = None,
 ) -> dict:
-    """Add files, directories, or YouTube videos to the index.
+    """Add files, directories, YouTube videos, or GitHub repos to the index.
 
     Automatically detects format per path and indexes:
+    - GitHub (URL, e.g. https://github.com/owner/repo or github.com/owner/repo/tree/branch)
     - YouTube (URL or video ID, e.g. https://youtu.be/xyz)
     - PDF (.pdf)
     - Discord export (.txt with DiscordChatExporter Guild:/Channel: header)
@@ -166,7 +186,7 @@ def add_document_tool(
     successful and failed entries so one bad path does not fail the batch.
 
     Args:
-        paths: List of file paths, directory paths, or YouTube URLs to index.
+        paths: List of file paths, directory paths, YouTube URLs, or GitHub URLs to index.
         tags: Optional list of tags, one per path (same order as paths).
 
     Returns:
@@ -187,7 +207,7 @@ def list_documents_tool(
 ) -> dict:
     """List all indexed documents in the PinRAG index.
 
-    Returns unique document IDs (PDF file names, video IDs, discord-alicia-1200-pcb, etc.)
+    Returns unique document IDs (PDF file names, video IDs, discord-alicia-1200-pcb, owner/repo/path for GitHub, etc.)
     currently in the vector store, plus total chunk count. Uses server config
     for vector store location and collection.
 
@@ -213,7 +233,7 @@ def remove_document_tool(
     """Remove a document and all its chunks from the PinRAG index.
 
     Deletes all chunks and embeddings for the given document. Use
-    list_documents_tool to see document_ids (e.g. "mybook.pdf", "bwgLXEQdq20", "discord-alicia-1200-pcb").
+    list_documents_tool to see document_ids (e.g. "mybook.pdf", "bwgLXEQdq20", "discord-alicia-1200-pcb", "owner/repo/path" for GitHub).
     Uses server config for vector store location and collection.
 
     Args:
@@ -249,6 +269,8 @@ def documents_resource() -> str:
         docs = result.get("documents", [])
         total = result.get("total_chunks", 0)
         details = result.get("document_details") or {}
+        if not docs:
+            return "No documents indexed."
         lines = [f"Indexed documents ({total} chunks total):", ""]
         for d in docs:
             info = details.get(d, {})
@@ -263,6 +285,8 @@ def documents_resource() -> str:
                 b = info["bytes"]
                 size = f"{b / 1024:.1f} KB" if b >= 1024 else f"{b} B"
                 extra.append(size)
+            if info.get("file_count") is not None:
+                extra.append(f"{info['file_count']} files")
             if info.get("tag"):
                 extra.append(f"tag: {info['tag']}")
             suffix = f" ({', '.join(extra)})" if extra else ""
@@ -272,7 +296,7 @@ def documents_resource() -> str:
             else:
                 display_name = d
             lines.append(f"  - {display_name}{suffix}")
-        return "\n".join(lines) if lines else "No documents indexed."
+        return "\n".join(lines)
     except Exception as e:
         return f"Error listing documents: {e}"
 
@@ -349,7 +373,8 @@ def ask_about_documents(question: str) -> str:
         f"Answer this question using the PinRAG indexed documents: {question}\n\n"
         f"You MUST call the query_tool first to retrieve relevant context. "
         "Required: query (the question). Optional params: document_id (filter to one doc), "
-        "page_min/page_max (PDF page range only), tag (filter by tag), document_type ('pdf', 'youtube', 'discord'), response_style ('thorough' or 'concise'). "
+        "page_min/page_max (PDF page range only), tag (filter by tag), document_type ('pdf', 'youtube', 'discord', 'github'), "
+        "file_path (filter to specific file within a doc, e.g. src/ria/api/atr.c for GitHub), response_style ('thorough' or 'concise'). "
         "Sources may show 'page' (PDF) or 'start' (YouTube timestamp in seconds). "
         "Use list_documents_tool to see available docs and tags. "
         "Then use the returned answer and sources in your response. Do not answer from memory alone."

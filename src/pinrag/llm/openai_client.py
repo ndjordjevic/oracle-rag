@@ -1,4 +1,4 @@
-"""OpenAI chat client for RAG. Reads OPENAI_API_KEY from env (or .env)."""
+"""Chat model client for RAG (OpenAI / Anthropic)."""
 
 from __future__ import annotations
 
@@ -6,12 +6,13 @@ import os
 from importlib.util import find_spec
 from typing import Optional
 
-from dotenv import load_dotenv
+from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 
-from pinrag.config import get_llm_model, get_llm_provider
+from pinrag.config import DEFAULT_LLM_MODEL_OPENAI, get_llm_model, get_llm_provider
 
-DEFAULT_MODEL = "gpt-4o-mini"
+# For tests and backward compatibility.
+DEFAULT_MODEL = DEFAULT_LLM_MODEL_OPENAI
 
 
 def get_openai_chat_model(
@@ -33,8 +34,9 @@ def get_openai_chat_model(
     Returns:
         LangChain ChatOpenAI instance (invoke, stream, etc.).
     """
-    load_dotenv()
     key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise ValueError("OPENAI_API_KEY is required for OpenAI chat models.")
     model_name = model if model is not None else get_llm_model()
     return ChatOpenAI(model=model_name, api_key=key, temperature=temperature)
 
@@ -44,13 +46,12 @@ def get_chat_model(
     model: Optional[str] = None,
     api_key: Optional[str] = None,
     temperature: float = 0,
-):
+) -> BaseChatModel:
     """Return a chat model based on PINRAG_LLM_PROVIDER (openai | anthropic).
 
     For anthropic, requires ANTHROPIC_API_KEY and langchain-anthropic.
     For openai, requires OPENAI_API_KEY (default).
     """
-    load_dotenv()
     provider = get_llm_provider()
     model_name = model if model is not None else get_llm_model()
 
@@ -62,6 +63,8 @@ def get_chat_model(
             )
         from langchain_anthropic import ChatAnthropic
         key = api_key if api_key is not None else os.environ.get("ANTHROPIC_API_KEY")
+        if not key:
+            raise ValueError("ANTHROPIC_API_KEY is required for Anthropic chat models.")
         return ChatAnthropic(model=model_name, api_key=key, temperature=temperature)
 
     return get_openai_chat_model(model=model_name, api_key=api_key, temperature=temperature)

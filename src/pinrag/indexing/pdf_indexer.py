@@ -21,7 +21,7 @@ from pinrag.config import (
     get_structure_aware_chunking,
     get_use_parent_child,
 )
-from pinrag.pdf.pypdf_loader import PathLike, load_pdf_as_documents
+from pinrag.pdf.pypdf_loader import PdfLoadResult, load_pdf_as_documents
 from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
@@ -146,7 +146,7 @@ def index_pdf(
 
 def _index_pdf_parent_child(
     *,
-    pdf_result: "PdfLoadResult",
+    pdf_result: PdfLoadResult,
     pdf_path: Path,
     persist_directory: PathLike,
     collection_name: str,
@@ -207,13 +207,17 @@ def _index_pdf_parent_child(
             c.metadata["upload_timestamp"] = upload_ts
             c.metadata["doc_pages"] = doc_pages
             c.metadata["doc_bytes"] = doc_bytes
-            c.metadata["doc_total_chunks"] = len(child_chunks)
             if tag is not None and str(tag).strip():
                 c.metadata["tag"] = str(tag).strip()
             all_children.append(c)
 
-        parent.metadata["doc_total_chunks"] = len(child_chunks)
         parent_docstore_entries.append((parent_id, parent))
+
+    total_chunks = len(all_children)
+    for c in all_children:
+        c.metadata["doc_total_chunks"] = total_chunks
+    for _, parent_doc in parent_docstore_entries:
+        parent_doc.metadata["doc_total_chunks"] = total_chunks
 
     store._collection.delete(where={"document_id": document_id})
 
@@ -225,7 +229,7 @@ def _index_pdf_parent_child(
         batch = all_children[i : i + batch_size]
         store.add_documents(batch)
 
-    return all_children, len(all_children)
+    return all_children, total_chunks
 
 
 def query_index(

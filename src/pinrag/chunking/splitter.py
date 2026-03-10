@@ -75,7 +75,7 @@ def _ensure_heading_paragraph_breaks(text: str) -> str:
             out.append(line)
             continue
         # Short line, no trailing . ! ? → likely a heading
-        if len(stripped) <= HEADING_LINE_MAX_LEN and not re.search(r"[.!?]\s*$", stripped):
+        if _is_heading_line(stripped):
             # Ensure paragraph break before this line (so splitter sees it as start of new segment)
             if out and out[-1].strip() != "":
                 out.append("")
@@ -228,6 +228,10 @@ def chunk_documents(
     """
     if not documents:
         return []
+    if chunk_overlap >= chunk_size:
+        raise ValueError(
+            f"chunk_overlap ({chunk_overlap}) must be smaller than chunk_size ({chunk_size})."
+        )
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,

@@ -33,9 +33,12 @@ def preprocess_query(query: str) -> str:
         query: Raw user query string.
 
     Returns:
-        Cleaned query string. Never empty: if stripping would yield empty, returns normalized original.
+        Cleaned query string. For empty input, returns an empty string. For non-empty input,
+        if stripping boilerplate yields empty, returns the normalized original query.
     """
-    if not query or not isinstance(query, str):
+    if not isinstance(query, str):
+        return ""
+    if not query:
         return ""
     normalized = " ".join(query.split())
     stripped = _BOILERPLATE_RE.sub("", normalized).strip()
