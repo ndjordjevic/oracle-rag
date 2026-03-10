@@ -11,8 +11,11 @@ from oracle_rag.embeddings import get_embedding_model
 from oracle_rag.indexing import (
     DiscordIndexResult,
     IndexResult,
+    YouTubeIndexResult,
+    extract_video_id,
     index_discord,
     index_pdf,
+    index_youtube,
 )
 from oracle_rag.llm import get_chat_model
 from oracle_rag.rag import run_rag
@@ -21,8 +24,28 @@ from oracle_rag.vectorstore import get_chroma_store
 from oracle_rag.vectorstore.docstore import get_parent_docstore
 
 
+def _detect_source_format(path_or_url: str) -> Literal["youtube", "pdf", "discord"] | None:
+    """Detect supported format: YouTube URL/ID, PDF, or DiscordChatExporter TXT.
+
+    Returns "youtube", "pdf", "discord", or None if unsupported.
+    Prioritizes existing local paths over YouTube ID patterns (e.g. file/dir named "dQw4w9WgXcQ").
+    """
+    s = (path_or_url or "").strip()
+    if not s:
+        return None
+    base = Path(s).expanduser().resolve()
+    if base.exists():
+        file_fmt = _detect_file_format(base)
+        if file_fmt:
+            return file_fmt
+        return None
+    if extract_video_id(s):
+        return "youtube"
+    return None
+
+
 def _detect_file_format(path: Path) -> Literal["pdf", "discord"] | None:
-    """Detect supported format: PDF or DiscordChatExporter TXT.
+    """Detect supported file format: PDF or DiscordChatExporter TXT.
 
     Returns "pdf", "discord", or None if unsupported.
     """
@@ -53,6 +76,7 @@ def query(
     page_min: int | None = None,
     page_max: int | None = None,
     tag: str | None = None,
+    document_type: str | None = None,
     response_style: Literal["thorough", "concise"] = "thorough",
 ) -> dict[str, Any]:
     """Query indexed documents (PDF, Discord) and return an answer with citations.
@@ -66,6 +90,7 @@ def query(
         page_min: Optional start of page range (inclusive). Use with page_max. PDF only.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64. PDF only.
         tag: Optional tag to filter retrieval (e.g. from list_documents document_details).
+        document_type: Optional type to filter: "pdf", "youtube", or "discord".
         response_style: Answer style for generation ("thorough" or "concise").
 
     Returns:
@@ -89,7 +114,7 @@ def query(
     if not persist_path.exists():
         raise FileNotFoundError(
             f"Persistence directory does not exist: {_persist}. "
-            "Index some documents first using add_file."
+            "Index some documents first using add_document_tool."
         )
 
     embedding = get_embedding_model()
@@ -97,6 +122,7 @@ def query(
 
     doc_id_filter = document_id.strip() if document_id and str(document_id).strip() else None
     tag_filter = tag.strip() if tag and str(tag).strip() else None
+    doc_type_filter = document_type.strip() if document_type and str(document_type).strip() else None
     rag_result = run_rag(
         query,
         llm,
@@ -108,19 +134,20 @@ def query(
         page_min=page_min,
         page_max=page_max,
         tag=tag_filter,
+        document_type=doc_type_filter,
         response_style=response_style,
     )
 
-    return {
-        "answer": rag_result.answer,
-        "sources": [
-            {
-                "document_id": str(s.get("document_id", "unknown")),
-                "page": int(s.get("page", 0)),
-            }
-            for s in rag_result.sources
-        ],
-    }
+    sources_out: list[dict[str, Any]] = []
+    for s in rag_result.sources:
+        item: dict[str, Any] = {
+            "document_id": str(s.get("document_id", "unknown")),
+            "page": int(s.get("page", 0)),
+        }
+        if "start" in s:
+            item["start"] = int(s["start"])
+        sources_out.append(item)
+    return {"answer": rag_result.answer, "sources": sources_out}
 
 
 @traceable(name="add_file", run_type="tool")
@@ -130,21 +157,21 @@ def add_file(
     collection: str | None = None,
     tag: str | None = None,
 ) -> dict[str, Any]:
-    """Add a file or directory of files to the index.
+    """Add a file, directory, or YouTube video to the index.
 
-    Automatically detects format: PDF (.pdf) or Discord export (.txt with
-    DiscordChatExporter header). Indexes the file or all supported files
-    in the directory.
+    Automatically detects format: YouTube URL/video ID, PDF (.pdf), or Discord
+    export (.txt with DiscordChatExporter header). Indexes the item or all
+    supported files in the directory.
 
     Args:
-        path: Path to a single file or directory containing .pdf / .txt files.
+        path: Path to a file/directory, or YouTube URL (e.g. https://youtu.be/ID).
         persist_dir: Chroma persistence directory (default: "chroma_db").
         collection: Chroma collection name (default: "oracle_rag").
         tag: Optional tag for indexed documents; stored on all chunks for filtering.
 
     Returns:
-        Dictionary with "indexed" (list of per-file results), "failed" (list of
-        errors), "total_indexed", "total_failed", "persist_directory", "collection_name".
+        Dictionary with "indexed" (list of results), "failed" (errors),
+        "total_indexed", "total_failed", "persist_directory", "collection_name".
     """
     if not path or not str(path).strip():
         raise ValueError("path cannot be empty")
@@ -154,14 +181,63 @@ def add_file(
         collection = str(collection).strip()
 
     _persist = (persist_dir or "").strip() or get_persist_dir()
+    tag_clean = tag.strip() if tag and str(tag).strip() else None
+
+    # YouTube: path is URL or video ID
+    fmt = _detect_source_format(path)
+    if fmt == "youtube":
+        try:
+            embedding = get_embedding_model()
+            result_yt: YouTubeIndexResult = index_youtube(
+                path,
+                persist_directory=_persist,
+                collection_name=collection,
+                embedding=embedding,
+                tag=tag_clean,
+            )
+            indexed_item: dict[str, Any] = {
+                "path": path,
+                "format": "youtube",
+                "video_id": result_yt.video_id,
+                "source_url": result_yt.source_url,
+                "total_segments": result_yt.total_segments,
+                "total_chunks": result_yt.total_chunks,
+            }
+            if result_yt.title:
+                indexed_item["title"] = result_yt.title
+            return {
+                "indexed": [indexed_item],
+                "failed": [],
+                "total_indexed": 1,
+                "total_failed": 0,
+                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "collection_name": collection,
+            }
+        except Exception as e:
+            return {
+                "indexed": [],
+                "failed": [{"path": path, "error": str(e)}],
+                "total_indexed": 0,
+                "total_failed": 1,
+                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "collection_name": collection,
+            }
+    if fmt is None:
+        base = Path(path).expanduser().resolve()
+        if not base.exists():
+            raise FileNotFoundError(f"Path not found: {path}")
+        raise ValueError(
+            f"Unsupported format: {path}. "
+            "Supported: YouTube URL/video ID, .pdf, .txt (DiscordChatExporter with Guild:/Channel: header)."
+        )
+
     base = Path(path).expanduser().resolve()
     if not base.exists():
         raise FileNotFoundError(f"Path not found: {path}")
 
     files_to_index: list[Path] = []
     if base.is_file():
-        fmt = _detect_file_format(base)
-        if fmt:
+        if _detect_file_format(base):
             files_to_index.append(base)
         else:
             raise ValueError(
@@ -184,14 +260,13 @@ def add_file(
         }
 
     embedding = get_embedding_model()
-    tag_clean = tag.strip() if tag and str(tag).strip() else None
     indexed: list[dict[str, Any]] = []
     failed: list[dict[str, str]] = []
 
     for f in files_to_index:
         try:
-            fmt = _detect_file_format(f)
-            if fmt == "pdf":
+            file_fmt = _detect_file_format(f)
+            if file_fmt == "pdf":
                 result: IndexResult = index_pdf(
                     f,
                     persist_directory=_persist,
@@ -206,7 +281,7 @@ def add_file(
                     "total_pages": result.total_pages,
                     "total_chunks": result.total_chunks,
                 })
-            elif fmt == "discord":
+            elif file_fmt == "discord":
                 result_d: DiscordIndexResult = index_discord(
                     f,
                     persist_directory=_persist,
@@ -364,12 +439,18 @@ def list_documents(
         doc_ids.add(doc_id)
         if doc_id not in document_details:
             details: dict[str, Any] = {}
+            if meta.get("document_type") is not None:
+                details["document_type"] = meta["document_type"]
             if meta.get("upload_timestamp") is not None:
                 details["upload_timestamp"] = meta["upload_timestamp"]
             if meta.get("doc_pages") is not None:
                 details["pages"] = meta["doc_pages"]
             if meta.get("doc_messages") is not None:
                 details["messages"] = meta["doc_messages"]
+            if meta.get("doc_segments") is not None:
+                details["segments"] = meta["doc_segments"]
+            if meta.get("doc_title") is not None:
+                details["title"] = meta["doc_title"]
             if meta.get("doc_bytes") is not None:
                 details["bytes"] = meta["doc_bytes"]
             if meta.get("doc_total_chunks") is not None:

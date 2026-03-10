@@ -35,7 +35,6 @@ from oracle_rag.config import (
     get_use_rerank,
 )
 from oracle_rag.mcp.tools import (
-    add_file,
     add_files,
     list_documents,
     query as query_index,
@@ -117,6 +116,7 @@ def query_tool(
     page_min: Annotated[int | None, Field(description="Optional start of page range (inclusive). PDF only.")] = None,
     page_max: Annotated[int | None, Field(description="Optional end of page range (inclusive). PDF only.")] = None,
     tag: Annotated[str, Field(description="Optional tag to filter retrieval (from list_documents).")] = "",
+    document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', or 'discord'.")] = "",
     response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "thorough",
 ) -> dict:
     """Query indexed documents and return an answer with citations.
@@ -130,6 +130,7 @@ def query_tool(
         page_min: Optional start of page range (inclusive). PDF only.
         page_max: Optional end of page range (inclusive). PDF only.
         tag: Optional tag to filter retrieval (from list_documents).
+        document_type: Optional type to filter: "pdf", "youtube", or "discord".
         response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
 
     Returns:
@@ -142,58 +143,30 @@ def query_tool(
         page_min=page_min,
         page_max=page_max,
         tag=tag or None,
+        document_type=document_type or None,
         response_style=style,
     )
 
 
 @mcp.tool()
 @_log_tool_errors
-def add_file_tool(
-    path: Annotated[str, Field(description="Path to a file or directory to index.")],
-    tag: Annotated[str, Field(description="Optional tag for indexed documents; stored on all chunks for filtering.")] = "",
+def add_document_tool(
+    paths: Annotated[list[str], Field(description="Paths to index: file, directory, or YouTube URL (e.g. https://youtu.be/ID). Single path: [\"/path/to/file.pdf\"].")],
+    tags: Annotated[list[str] | None, Field(description="Optional list of tags, one per path (same order as paths).")] = None,
 ) -> dict:
-    """Add a file or directory of files to the index.
+    """Add files, directories, or YouTube videos to the index.
 
-    Automatically detects format and indexes:
+    Automatically detects format per path and indexes:
+    - YouTube (URL or video ID, e.g. https://youtu.be/xyz)
     - PDF (.pdf)
     - Discord export (.txt with DiscordChatExporter Guild:/Channel: header)
 
-    Pass a file path to index one file, or a directory path to index all
-    supported files in that directory (recursive). Uses server config for
-    vector store location and collection.
+    Pass one or more paths. Single path: paths=[\"/path/to/file.pdf\"]. Uses
+    server config for vector store location and collection. Returns both
+    successful and failed entries so one bad path does not fail the batch.
 
     Args:
-        path: Path to a file or directory.
-        tag: Optional tag for indexed documents; stored on all chunks for filtering.
-
-    Returns:
-        Dictionary containing:
-        - indexed: List of successfully indexed files with format-specific stats
-        - failed: List of files that failed with error messages
-        - total_indexed, total_failed, persist_directory, collection_name
-    """
-    return add_file(
-        path=path,
-        persist_dir=get_persist_dir(),
-        collection=get_collection_name(),
-        tag=tag or None,
-    )
-
-
-@mcp.tool()
-@_log_tool_errors
-def add_files_tool(
-    paths: Annotated[list[str], Field(description="List of file or directory paths to index.")],
-    tags: Annotated[list[str] | None, Field(description="Optional list of tags, one per path (same order as paths).")] = None,
-) -> dict:
-    """Add multiple files or directories to the index in one call.
-
-    Auto-detects format per file (PDF, Discord export). Returns both
-    successful and failed entries so one bad file does not fail the batch.
-    Uses server config for vector store location and collection.
-
-    Args:
-        paths: List of file or directory paths to index.
+        paths: List of file paths, directory paths, or YouTube URLs to index.
         tags: Optional list of tags, one per path (same order as paths).
 
     Returns:
@@ -214,7 +187,7 @@ def list_documents_tool(
 ) -> dict:
     """List all indexed documents in the Oracle-RAG index.
 
-    Returns unique document IDs (PDF file names, discord-alicia-1200-pcb, etc.)
+    Returns unique document IDs (PDF file names, video IDs, discord-alicia-1200-pcb, etc.)
     currently in the vector store, plus total chunk count. Uses server config
     for vector store location and collection.
 
@@ -240,7 +213,7 @@ def remove_document_tool(
     """Remove a document and all its chunks from the Oracle-RAG index.
 
     Deletes all chunks and embeddings for the given document. Use
-    list_documents_tool to see document_ids (e.g. "mybook.pdf", "discord-alicia-1200-pcb").
+    list_documents_tool to see document_ids (e.g. "mybook.pdf", "bwgLXEQdq20", "discord-alicia-1200-pcb").
     Uses server config for vector store location and collection.
 
     Args:
@@ -265,6 +238,7 @@ def documents_resource() -> str:
     """Return a plain-text list of indexed documents for the default collection.
 
     For PDFs: shows page count. For Discord: shows size (messages or bytes).
+    For YouTube: shows video title when available, with video ID in parentheses.
     Shows tag when attached to a document.
     """
     try:
@@ -283,6 +257,8 @@ def documents_resource() -> str:
                 extra.append(f"{info['pages']} pages")
             if info.get("messages") is not None:
                 extra.append(f"{info['messages']} messages")
+            if info.get("segments") is not None:
+                extra.append(f"{info['segments']} segments")
             if info.get("bytes") is not None and "messages" not in info:
                 b = info["bytes"]
                 size = f"{b / 1024:.1f} KB" if b >= 1024 else f"{b} B"
@@ -290,7 +266,12 @@ def documents_resource() -> str:
             if info.get("tag"):
                 extra.append(f"tag: {info['tag']}")
             suffix = f" ({', '.join(extra)})" if extra else ""
-            lines.append(f"  - {d}{suffix}")
+            # For YouTube with title, show title prominently with video ID
+            if info.get("document_type") == "youtube" and info.get("title"):
+                display_name = f"{info['title']} ({d})"
+            else:
+                display_name = d
+            lines.append(f"  - {display_name}{suffix}")
         return "\n".join(lines) if lines else "No documents indexed."
     except Exception as e:
         return f"Error listing documents: {e}"
@@ -367,9 +348,10 @@ def ask_about_documents(question: str) -> str:
     return (
         f"Answer this question using the Oracle-RAG indexed documents: {question}\n\n"
         f"You MUST call the query_tool first to retrieve relevant context. "
-        "Required: query (the question). Optional params you may pass when the user specifies: "
-        "document_id (filter to one doc), page_min/page_max (PDF page range), tag (filter by tag), "
-        "response_style ('thorough' or 'concise'). Use list_documents_tool to see available docs and tags. "
+        "Required: query (the question). Optional params: document_id (filter to one doc), "
+        "page_min/page_max (PDF page range only), tag (filter by tag), document_type ('pdf', 'youtube', 'discord'), response_style ('thorough' or 'concise'). "
+        "Sources may show 'page' (PDF) or 'start' (YouTube timestamp in seconds). "
+        "Use list_documents_tool to see available docs and tags. "
         "Then use the returned answer and sources in your response. Do not answer from memory alone."
     )
 

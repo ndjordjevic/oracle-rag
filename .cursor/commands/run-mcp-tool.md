@@ -8,8 +8,7 @@ Run an Oracle-RAG MCP tool via `call_mcp_tool` with server `user-oracle-rag`.
 |------|---------|
 | `query_tool` | Query indexed documents; returns answer with citations. Requires `query` (str). Optional: `document_id`, `page_min`, `page_max`, `tag`, `response_style`. |
 | `list_documents_tool` | List indexed documents and chunk counts. Optional: `tag` (filter by tag). |
-| `add_file_tool` | Index a file or directory (PDF, Discord export). Requires `path`. Optional: `tag`. |
-| `add_files_tool` | Index multiple paths. Requires `paths` (list). Optional: `tags`. |
+| `add_document_tool` | Index files, directories, or YouTube URLs. Requires `paths` (list). Optional: `tags`. |
 | `remove_document_tool` | Remove a document from the index. Requires `document_id`. |
 
 ## Steps

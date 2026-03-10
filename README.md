@@ -4,15 +4,15 @@ A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain,
 
 ## Overview
 
-Oracle-RAG provides intelligent document querying and retrieval capabilities for PDF documents. Index PDFs, ask questions, and get answers with source citations—all via MCP tools in your editor.
+Oracle-RAG provides intelligent document querying and retrieval capabilities for PDFs, YouTube transcripts, and Discord exports. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor.
 
 ## Features
 
-- **PDF processing** — Index single or multiple PDFs; batch add via `add_pdfs`
-- **RAG with citations** — Ask questions, get answers with source (document + page)
+- **Multi-format indexing** — PDF (.pdf), YouTube (URL or video ID), Discord export (.txt)
+- **RAG with citations** — Ask questions, get answers with source (document + page for PDFs, timestamp for YouTube)
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
-- **Metadata filtering** — Query by document, page range, or tag
-- **MCP tools** — `query_pdf`, `add_pdf`, `add_pdfs`, `list_pdfs`, `remove_pdf`
+- **Metadata filtering** — Query by document, page range (PDF only), or tag
+- **MCP tools** — `add_document_tool`, `query_tool`, `list_documents_tool`, `remove_document_tool`
 - **MCP resource** — Read-only list of indexed documents (`oracle-rag://documents`); click in Cursor’s MCP panel to view
 - **MCP prompt** — `ask_about_documents` (parameter: question) for guided RAG queries
 - **Configurable LLM** — Anthropic (default) or OpenAI; set via `ORACLE_RAG_LLM_PROVIDER` and model in `.env`
@@ -87,14 +87,13 @@ Or create `.vscode/mcp.json` in your workspace for project-specific setup. Resta
 
 | Action | Tool |
 |--------|------|
-| Add a PDF | `add_pdf_tool` — optionally with `tag` (e.g. `AMIGA`) |
-| Add multiple PDFs | `add_pdfs_tool` — optionally with `tags` (one per PDF) |
-| List indexed PDFs | `list_pdfs_tool` — shows documents, chunk counts, tags, upload times |
-| Query with filters | `query_pdf_tool` — filter by `document_id`, `page_min`/`page_max`, or `tag` |
-| Remove a PDF | `remove_pdf_tool` |
+| Add files or YouTube videos | `add_document_tool` — path(s) as list (e.g. `paths=["/path/to/file.pdf"]` or `paths=["https://youtu.be/xyz"]`); optionally `tags` (one per path) |
+| List indexed documents | `list_documents_tool` — shows documents, chunk counts, tags, upload times |
+| Query with filters | `query_tool` — filter by `document_id`, `page_min`/`page_max` (PDF only), or `tag` |
+| Remove a document | `remove_document_tool` |
 | View indexed documents (read-only) | Click **Resources** → `_documents_resource` in the MCP panel |
 
-Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"* or *"What are AGA chips? Search only AMIGA-tagged docs"*. The AI will invoke the tools for you.
+Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"* or *"Index https://youtu.be/xyz and ask what it says"*. The AI will invoke the tools for you. Citations show page numbers for PDFs and timestamps (e.g. `t. 1:23`) for YouTube.
 
 ## Configuration
 
@@ -152,21 +151,22 @@ Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid
 
 - **Default:** Collection name is `oracle_rag`. Use one embedding provider; if you switch provider, re-index or you will get dimension errors.
 - **Per-provider collections:** Set `ORACLE_RAG_COLLECTION_NAME` to a provider-specific name (e.g. `oracle_rag_openai`, `oracle_rag_cohere`) when indexing, and use the same name when querying with that provider. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `ORACLE_RAG_EMBEDDING_PROVIDER` and `ORACLE_RAG_COLLECTION_NAME` in `.env`.
-- **MCP tools:** When you call `query_pdf_tool` without a `collection` argument, the server uses `ORACLE_RAG_COLLECTION_NAME` (default `oracle_rag`). Pass `collection` explicitly to target a different collection.
+- **MCP tools:** The server uses `ORACLE_RAG_COLLECTION_NAME` (default `oracle_rag`) for all tools. Collection is not configurable per call; change it via `.env` to target a different collection.
 
 ## Query Filtering
 
-`query_pdf_tool` supports optional filters to narrow retrieval:
+`query_tool` supports optional filters to narrow retrieval:
 
 | Parameter | Description |
 |-----------|-------------|
-| `document_id` | Search only in this PDF (e.g. `mybook.pdf` from `list_pdfs`) |
-| `page_min`, `page_max` | Restrict to page range (single page: `page_min=16`, `page_max=16`) |
+| `document_id` | Search only in this document (e.g. `mybook.pdf` or video ID from `list_documents_tool`) |
+| `page_min`, `page_max` | Restrict to page range (PDF only; single page: `page_min=16`, `page_max=16`) |
 | `tag` | Search only documents with this tag (e.g. `AMIGA`, `PI_PICO`) |
+| `document_type` | Search only by type: `pdf`, `youtube`, or `discord` |
 | `response_style` | Answer style: `thorough` (default) or `concise` |
 
-Filters can be combined. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  
-`query_pdf_tool(query="...", document_id="RP-008276-DS-1-getting-started-with-pico.pdf", page_min=16, page_max=17)`.
+Filters can be combined. Sources include `page` for PDFs and `start` (timestamp in seconds) for YouTube. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  
+`query_tool(query="...", document_id="RP-008276-DS-1-getting-started-with-pico.pdf", page_min=16, page_max=17)`.
 
 ## Development
 

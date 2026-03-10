@@ -116,6 +116,7 @@ def index_pdf(
         doc_pages = pdf_result.total_pages
         doc_total_chunks = len(chunk_docs)
         for doc in chunk_docs:
+            doc.metadata["document_type"] = "pdf"
             doc.metadata["upload_timestamp"] = upload_ts
             doc.metadata["doc_pages"] = doc_pages
             doc.metadata["doc_bytes"] = doc_bytes
@@ -186,6 +187,7 @@ def _index_pdf_parent_child(
         parent_id = str(uuid.uuid4())
         parent.metadata["doc_id"] = parent_id
         parent.metadata["document_id"] = document_id
+        parent.metadata["document_type"] = "pdf"
         parent.metadata["upload_timestamp"] = upload_ts
         parent.metadata["doc_pages"] = doc_pages
         parent.metadata["doc_bytes"] = doc_bytes
@@ -201,6 +203,7 @@ def _index_pdf_parent_child(
         for c in child_chunks:
             c.metadata["doc_id"] = parent_id
             c.metadata["document_id"] = document_id
+            c.metadata["document_type"] = "pdf"
             c.metadata["upload_timestamp"] = upload_ts
             c.metadata["doc_pages"] = doc_pages
             c.metadata["doc_bytes"] = doc_bytes

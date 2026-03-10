@@ -1,4 +1,4 @@
-"""Index Discord export TXT files into the Chroma vector store."""
+"""Index YouTube video transcripts into the Chroma vector store."""
 
 from __future__ import annotations
 
@@ -14,15 +14,14 @@ from langchain_core.embeddings import Embeddings
 from oracle_rag.chunking import chunk_documents
 from oracle_rag.config import (
     get_child_chunk_size,
+    get_chunk_overlap,
+    get_chunk_size,
     get_collection_name,
+    get_parent_chunk_size,
     get_structure_aware_chunking,
     get_use_parent_child,
 )
-from oracle_rag.indexing.discord_loader import (
-    DiscordLoadResult,
-    _document_id_from_channel_and_path,
-    load_discord_export_as_documents,
-)
+from oracle_rag.indexing.youtube_loader import YouTubeLoadResult, load_youtube_transcript_as_documents
 from oracle_rag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
@@ -34,81 +33,71 @@ PathLike = Union[str, Path]
 
 
 @dataclass(frozen=True)
-class DiscordIndexResult:
-    """Summary of indexing a Discord export into Chroma."""
+class YouTubeIndexResult:
+    """Summary of indexing a YouTube video into Chroma."""
 
-    source_path: Path
-    total_messages: int
+    video_id: str
+    source_url: str
+    total_segments: int
     total_chunks: int
     persist_directory: Path
     collection_name: str
-    document_id: str
-    channel: str
-    guild: str
+    title: Optional[str] = None
 
 
-def index_discord(
-    path: PathLike,
+def index_youtube(
+    url_or_id: str,
     *,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: Optional[str] = None,
     embedding: Optional[Embeddings] = None,
+    chunk_size: Optional[int] = None,
+    chunk_overlap: Optional[int] = None,
     tag: Optional[str] = None,
-    document_id: Optional[str] = None,
-) -> DiscordIndexResult:
-    """Load and index a DiscordChatExporter .txt file into Chroma.
+) -> YouTubeIndexResult:
+    """Load, chunk, and index a YouTube video transcript into Chroma.
 
-    Uses the Discord loader to parse messages into windowed chunks, then adds
-    them to the vector store. Replaces any existing chunks for this document_id.
+    Fetches transcript via youtube-transcript-api, chunks segments, and adds
+    to the vector store. Replaces any existing chunks for this video_id.
 
     Args:
-        path: Path to the .txt export file.
+        url_or_id: YouTube URL or 11-char video ID.
         persist_directory: Chroma persistence directory.
-        collection_name: Chroma collection name. If None, uses provider-based name.
+        collection_name: Chroma collection name. If None, uses config default.
         embedding: Optional embedding model; if None, uses default.
-        tag: Optional tag override; if None, derived from channel.
-        document_id: Optional document_id override; if None, derived from channel.
+        chunk_size: Chunk size in chars; if None, uses ORACLE_RAG_CHUNK_SIZE.
+        chunk_overlap: Chunk overlap in chars; if None, uses ORACLE_RAG_CHUNK_OVERLAP.
+        tag: Optional tag for this document; stored on all chunks for filtering.
 
     Returns:
-        DiscordIndexResult with indexing stats.
+        YouTubeIndexResult with video_id, total_segments, total_chunks, etc.
     """
     if collection_name is None:
         collection_name = get_collection_name()
     respect_structure = get_structure_aware_chunking()
-    txt_path = Path(path).expanduser().resolve()
-    load_result = load_discord_export_as_documents(
-        txt_path,
-        tag=tag,
-        document_id=document_id,
-    )
+    load_result = load_youtube_transcript_as_documents(url_or_id)
+    document_id = load_result.video_id
 
     if not load_result.documents:
-        doc_id = _document_id_from_channel_and_path(
-            load_result.channel, load_result.source_path
-        )
         store = get_chroma_store(
             persist_directory=persist_directory,
             collection_name=collection_name,
             embedding=embedding,
         )
-        store._collection.delete(where={"document_id": doc_id})
-        return DiscordIndexResult(
-            source_path=load_result.source_path,
-            total_messages=0,
+        store._collection.delete(where={"document_id": document_id})
+        return YouTubeIndexResult(
+            video_id=load_result.video_id,
+            source_url=load_result.source_url,
+            total_segments=0,
             total_chunks=0,
             persist_directory=Path(persist_directory).expanduser().resolve(),
             collection_name=collection_name,
-            document_id=doc_id,
-            channel=load_result.channel,
-            guild=load_result.guild,
+            title=load_result.title,
         )
 
-    doc_id = load_result.documents[0].metadata["document_id"]
-
     if get_use_parent_child():
-        total_chunks = _index_discord_parent_child(
+        total_chunks = _index_youtube_parent_child(
             load_result=load_result,
-            txt_path=txt_path,
             persist_directory=persist_directory,
             collection_name=collection_name,
             embedding=embedding,
@@ -116,16 +105,26 @@ def index_discord(
             respect_structure=respect_structure,
         )
     else:
-        upload_ts = datetime.now(timezone.utc).isoformat()
-        doc_bytes = txt_path.stat().st_size
-        doc_total_chunks = len(load_result.documents)
+        size = chunk_size if chunk_size is not None else get_chunk_size()
+        overlap = chunk_overlap if chunk_overlap is not None else get_chunk_overlap()
+        chunk_docs = chunk_documents(
+            load_result.documents,
+            chunk_size=size,
+            chunk_overlap=overlap,
+            document_id_key="document_id",
+            respect_structure=respect_structure,
+        )
 
-        for doc in load_result.documents:
-            doc.metadata["document_type"] = "discord"
+        upload_ts = datetime.now(timezone.utc).isoformat()
+        doc_total_chunks = len(chunk_docs)
+        doc_segments = load_result.total_segments
+        for doc in chunk_docs:
+            doc.metadata["document_type"] = "youtube"
             doc.metadata["upload_timestamp"] = upload_ts
-            doc.metadata["doc_bytes"] = doc_bytes
             doc.metadata["doc_total_chunks"] = doc_total_chunks
-            doc.metadata["doc_messages"] = load_result.total_messages
+            doc.metadata["doc_segments"] = doc_segments
+            if load_result.title:
+                doc.metadata["doc_title"] = load_result.title
             if tag is not None and str(tag).strip():
                 doc.metadata["tag"] = str(tag).strip()
 
@@ -134,39 +133,48 @@ def index_discord(
             collection_name=collection_name,
             embedding=embedding,
         )
-        store._collection.delete(where={"document_id": doc_id})
+        store._collection.delete(where={"document_id": document_id})
 
         batch_size = 100
-        for i in range(0, len(load_result.documents), batch_size):
-            batch = load_result.documents[i : i + batch_size]
+        for i in range(0, len(chunk_docs), batch_size):
+            batch = chunk_docs[i : i + batch_size]
             store.add_documents(batch)
-        total_chunks = len(load_result.documents)
+        total_chunks = len(chunk_docs)
 
-    return DiscordIndexResult(
-        source_path=load_result.source_path,
-        total_messages=load_result.total_messages,
+    return YouTubeIndexResult(
+        video_id=load_result.video_id,
+        source_url=load_result.source_url,
+        total_segments=load_result.total_segments,
         total_chunks=total_chunks,
         persist_directory=Path(persist_directory).expanduser().resolve(),
         collection_name=collection_name,
-        document_id=doc_id,
-        channel=load_result.channel,
-        guild=load_result.guild,
+        title=load_result.title,
     )
 
 
-def _index_discord_parent_child(
+def _index_youtube_parent_child(
     *,
-    load_result: "DiscordLoadResult",
-    txt_path: Path,
+    load_result: YouTubeLoadResult,
     persist_directory: PathLike,
     collection_name: str,
     embedding: Optional[Embeddings],
     tag: Optional[str],
     respect_structure: bool,
 ) -> int:
-    """Index Discord using parent-child retrieval: embed small chunks, store large parents in docstore."""
+    """Index YouTube using parent-child retrieval: embed small chunks, store large parents in docstore."""
+    parent_size = get_parent_chunk_size()
+    parent_overlap = min(200, parent_size // 10)
     child_size = get_child_chunk_size()
     child_overlap = min(50, child_size // 10)
+
+    # Group segments into parent-sized chunks
+    parent_chunks = chunk_documents(
+        load_result.documents,
+        chunk_size=parent_size,
+        chunk_overlap=parent_overlap,
+        document_id_key="document_id",
+        respect_structure=respect_structure,
+    )
 
     store = get_chroma_store(
         persist_directory=persist_directory,
@@ -176,22 +184,22 @@ def _index_discord_parent_child(
     docstore = get_parent_docstore(persist_directory, collection_name)
 
     upload_ts = datetime.now(timezone.utc).isoformat()
-    doc_bytes = txt_path.stat().st_size
-    document_id = load_result.documents[0].metadata["document_id"]
-    source_path_str = str(txt_path)
+    document_id = load_result.video_id
+    source_url = load_result.source_url
 
     all_children: list[Document] = []
     parent_docstore_entries: list[tuple[str, Document]] = []
 
-    for parent in load_result.documents:
+    for parent in parent_chunks:
         parent_id = str(uuid.uuid4())
         parent.metadata["doc_id"] = parent_id
         parent.metadata["document_id"] = document_id
-        parent.metadata["document_type"] = "discord"
+        parent.metadata["document_type"] = "youtube"
         parent.metadata["upload_timestamp"] = upload_ts
-        parent.metadata["doc_bytes"] = doc_bytes
-        parent.metadata["doc_messages"] = load_result.total_messages
-        parent.metadata["source"] = source_path_str
+        parent.metadata["doc_segments"] = load_result.total_segments
+        parent.metadata["source"] = source_url
+        if load_result.title:
+            parent.metadata["doc_title"] = load_result.title
         if tag is not None and str(tag).strip():
             parent.metadata["tag"] = str(tag).strip()
 
@@ -205,12 +213,13 @@ def _index_discord_parent_child(
         for c in child_chunks:
             c.metadata["doc_id"] = parent_id
             c.metadata["document_id"] = document_id
-            c.metadata["document_type"] = "discord"
+            c.metadata["document_type"] = "youtube"
             c.metadata["upload_timestamp"] = upload_ts
-            c.metadata["doc_bytes"] = doc_bytes
-            c.metadata["doc_messages"] = load_result.total_messages
+            c.metadata["doc_segments"] = load_result.total_segments
             c.metadata["doc_total_chunks"] = len(child_chunks)
-            c.metadata["source"] = source_path_str
+            c.metadata["source"] = source_url
+            if load_result.title:
+                c.metadata["doc_title"] = load_result.title
             if tag is not None and str(tag).strip():
                 c.metadata["tag"] = str(tag).strip()
             all_children.append(c)
@@ -229,5 +238,3 @@ def _index_discord_parent_child(
         store.add_documents(batch)
 
     return len(all_children)
-
-

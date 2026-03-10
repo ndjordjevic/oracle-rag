@@ -34,6 +34,8 @@ from oracle_rag.vectorstore.retriever import create_retriever
 PathLike = Union[str, Path]
 logger = logging.getLogger(__name__)
 
+_rerank_fallback_logged = False
+
 
 @dataclass
 class RAGResult:
@@ -77,6 +79,7 @@ def run_rag(
     page_min: Optional[int] = None,
     page_max: Optional[int] = None,
     tag: Optional[str] = None,
+    document_type: Optional[str] = None,
     response_style: Literal["thorough", "concise"] = "thorough",
 ) -> RAGResult:
     """Run a 2-step RAG pipeline: retrieve chunks, format context, prompt LLM, return answer with citations.
@@ -100,6 +103,7 @@ def run_rag(
         page_min: Optional start of page range (inclusive). Use with page_max.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
         tag: Optional tag to filter retrieval (e.g. "PI_PICO").
+        document_type: Optional type to filter: "pdf", "youtube", or "discord".
         response_style: Answer style for prompt instructions ("thorough" or "concise").
 
     Returns:
@@ -130,6 +134,7 @@ def run_rag(
                     page_min=page_min,
                     page_max=page_max,
                     tag=tag,
+                    document_type=document_type,
                 )
                 if use_multi_query:
                     base_retriever = wrap_retriever_with_multiquery(
@@ -141,9 +146,12 @@ def run_rag(
                     base_retriever, top_n=top_n
                 )
             else:
-                logger.warning(
-                    "Re-ranking disabled: %s. Using standard retrieval.", err
-                )
+                global _rerank_fallback_logged
+                if not _rerank_fallback_logged:
+                    logger.warning(
+                        "Re-ranking disabled: %s. Using standard retrieval.", err
+                    )
+                    _rerank_fallback_logged = True
                 effective_k = k if k is not None else get_retrieve_k()
                 base_retriever = create_retriever(
                     k=effective_k,
@@ -154,6 +162,7 @@ def run_rag(
                     page_min=page_min,
                     page_max=page_max,
                     tag=tag,
+                    document_type=document_type,
                 )
                 if use_multi_query:
                     retriever = wrap_retriever_with_multiquery(
@@ -176,6 +185,7 @@ def run_rag(
                 page_min=page_min,
                 page_max=page_max,
                 tag=tag,
+                document_type=document_type,
             )
             if use_multi_query:
                 retriever = wrap_retriever_with_multiquery(

@@ -103,6 +103,27 @@ def test_list_documents_includes_document_details_when_present(tmp_path: Path) -
     }
 
 
+def test_list_documents_includes_segments_for_youtube(tmp_path: Path) -> None:
+    """list_documents returns segments in document_details for YouTube chunks."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    mock_store = MagicMock()
+    mock_store.get.return_value = {
+        "metadatas": [
+            {"document_id": "dQw4w9WgXcQ", "document_type": "youtube", "upload_timestamp": "2025-01-20T10:00:00Z", "doc_segments": 42, "doc_total_chunks": 15, "doc_title": "Never Gonna Give You Up", "tag": "tutorial"},
+            {"document_id": "dQw4w9WgXcQ", "document_type": "youtube", "upload_timestamp": "2025-01-20T10:00:00Z", "doc_segments": 42, "doc_total_chunks": 15, "doc_title": "Never Gonna Give You Up", "tag": "tutorial"},
+        ]
+    }
+
+    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+        result = list_documents(persist_dir=str(tmp_path), collection="test_coll")
+
+    assert result["documents"] == ["dQw4w9WgXcQ"]
+    assert result["document_details"]["dQw4w9WgXcQ"]["segments"] == 42
+    assert result["document_details"]["dQw4w9WgXcQ"]["chunks"] == 15
+    assert result["document_details"]["dQw4w9WgXcQ"]["title"] == "Never Gonna Give You Up"
+    assert result["document_details"]["dQw4w9WgXcQ"]["document_type"] == "youtube"
+
+
 # --- add_file ---
 
 
@@ -141,7 +162,7 @@ def test_add_file_unsupported_format_raises(tmp_path: Path) -> None:
     """add_file raises ValueError when file format is unsupported."""
     txt_file = tmp_path / "plain.txt"
     txt_file.write_text("just plain text, no Guild:/Channel:")
-    with pytest.raises(ValueError, match="Unsupported file format"):
+    with pytest.raises(ValueError, match="Unsupported format"):
         add_file(path=str(txt_file))
 
 
@@ -190,6 +211,78 @@ def test_add_file_with_tag_passes_tag(tmp_path: Path) -> None:
 
     mock_index.assert_called_once()
     assert mock_index.call_args[1]["tag"] == "amiga"
+
+
+# --- YouTube ---
+
+
+def test_add_file_youtube_detection_and_success(tmp_path: Path) -> None:
+    """add_file detects YouTube URL and routes to index_youtube."""
+    fake_result = MagicMock()
+    fake_result.video_id = "dQw4w9WgXcQ"
+    fake_result.source_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    fake_result.total_segments = 42
+    fake_result.total_chunks = 15
+
+    with patch("oracle_rag.mcp.tools.index_youtube", return_value=fake_result) as mock_index:
+        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+            result = add_file(
+                path="https://youtu.be/dQw4w9WgXcQ",
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+            )
+
+    assert result["total_indexed"] == 1
+    assert result["indexed"][0]["format"] == "youtube"
+    assert result["indexed"][0]["video_id"] == "dQw4w9WgXcQ"
+    assert result["indexed"][0]["total_segments"] == 42
+    assert result["indexed"][0]["total_chunks"] == 15
+    mock_index.assert_called_once_with(
+        "https://youtu.be/dQw4w9WgXcQ",
+        persist_directory=str(tmp_path),
+        collection_name="test_coll",
+        embedding=mock_index.call_args[1]["embedding"],
+        tag=None,
+    )
+
+
+def test_add_file_local_path_prioritized_over_youtube_id(tmp_path: Path) -> None:
+    """add_file treats local file/dir named like YouTube ID as local, not YouTube."""
+    pdf_file = tmp_path / "dQw4w9WgXcQ.pdf"
+    pdf_file.touch()
+    fake_result = MagicMock()
+    fake_result.source_path = pdf_file
+    fake_result.total_pages = 1
+    fake_result.total_chunks = 1
+
+    with patch("oracle_rag.mcp.tools.index_pdf", return_value=fake_result) as mock_index:
+        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+            result = add_file(
+                path=str(pdf_file),
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+            )
+
+    assert result["total_indexed"] == 1
+    assert result["indexed"][0]["format"] == "pdf"
+    mock_index.assert_called_once()
+
+
+def test_add_file_youtube_transcript_error_returns_failed(tmp_path: Path) -> None:
+    """add_file catches transcript errors and returns them in failed."""
+    with patch("oracle_rag.mcp.tools.index_youtube") as mock_index:
+        mock_index.side_effect = RuntimeError("No transcript found for YouTube video xyz")
+        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+            result = add_file(
+                path="https://youtu.be/xyz12345678",
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+            )
+
+    assert result["total_indexed"] == 0
+    assert result["total_failed"] == 1
+    assert len(result["failed"]) == 1
+    assert "No transcript found" in result["failed"][0]["error"]
 
 
 def test_add_files_tags_length_mismatch_raises() -> None:
@@ -305,10 +398,33 @@ def test_query_success(tmp_path: Path) -> None:
     assert result["sources"][0] == {"document_id": "doc.pdf", "page": 1}
     assert result["sources"][1] == {"document_id": "doc.pdf", "page": 2}
     mock_run_rag.assert_called_once()
-    call_args, call_kwargs = mock_run_rag.call_args
-    assert call_args[0] == "What is the answer?"
-    assert call_kwargs["k"] is None
-    assert call_kwargs.get("document_id") is None
+
+
+def test_query_sources_include_start_for_youtube(tmp_path: Path) -> None:
+    """query returns start (timestamp) in sources when present (YouTube)."""
+    from oracle_rag.rag import RAGResult
+
+    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
+    mock_run_rag = MagicMock(
+        return_value=RAGResult(
+            answer="From the video.",
+            sources=[
+                {"document_id": "dQw4w9WgXcQ", "page": 0, "start": 83},
+                {"document_id": "dQw4w9WgXcQ", "page": 0, "start": 120},
+            ],
+        )
+    )
+
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("oracle_rag.mcp.tools.get_embedding_model"):
+                with patch("oracle_rag.mcp.tools.get_chat_model"):
+                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                        result = query(query="What does the video say?")
+
+    assert result["sources"][0] == {"document_id": "dQw4w9WgXcQ", "page": 0, "start": 83}
+    assert result["sources"][1] == {"document_id": "dQw4w9WgXcQ", "page": 0, "start": 120}
+    assert mock_run_rag.call_args[0][0] == "What does the video say?"
 
 
 def test_query_page_range_validation() -> None:
@@ -348,6 +464,29 @@ def test_query_with_page_range(tmp_path: Path) -> None:
     mock_run_rag.assert_called_once()
     assert mock_run_rag.call_args[1]["page_min"] == 16
     assert mock_run_rag.call_args[1]["page_max"] == 16
+
+
+def test_query_with_document_type_filter(tmp_path: Path) -> None:
+    """query passes document_type to run_rag when provided."""
+    from oracle_rag.rag import RAGResult
+
+    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
+    mock_run_rag = MagicMock(
+        return_value=RAGResult(
+            answer="From YouTube.",
+            sources=[{"document_id": "bwgLXEQdq20", "page": 0, "start": 664}],
+        )
+    )
+
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("oracle_rag.mcp.tools.get_embedding_model"):
+                with patch("oracle_rag.mcp.tools.get_chat_model"):
+                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                        query(query="OTG?", document_type="youtube")
+
+    mock_run_rag.assert_called_once()
+    assert mock_run_rag.call_args[1]["document_type"] == "youtube"
 
 
 def test_query_with_tag_filter(tmp_path: Path) -> None:

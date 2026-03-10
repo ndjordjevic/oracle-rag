@@ -239,7 +239,7 @@
 - [x] **MCP tool `add_file`** — Single tool for adding files: accepts path (file or directory), auto-detects format (PDF vs DiscordChatExporter .txt via Guild:/Channel: header), routes to index_pdf or index_discord, indexes into vector store. Replaces separate add_pdf/add_discord_export.
 - [x] **Incremental ingestion** — Per-file `document_id`: each Discord TXT gets `discord-{channel}--{sanitized-filename-stem}` (e.g. `discord-alicia-1200-pcb--retro-tinkering-...-1404852770154217664` for full, `...--...-after-2026-03-06` for incremental). Additive: new files add chunks without replacing others. Query by `tag` for whole channel.
 - [x] **CLI / script helper** — `scripts/index_discord_channels.py` scans `data/discord-channels/` (root + subfolders) and indexes all Discord `.txt` files via `add_file`. Run manually or cron. Options: `--base-dir`, `--persist-dir`, `--collection`, `--tag`.
-- [x] **Test: index Discord export and query via MCP** — Index the full export from `data/discord-channels/` (e.g. alicia-1200-pcb channel) using `add_file_tool`, then run questions about Alicia 1200 (ROM programmer, PSU, etc.) via `query_tool` in Cursor. Confirm answers and sources use the correct `document_id`, `channel`, and `tag` metadata.
+- [x] **Test: index Discord export and query via MCP** — Index the full export from `data/discord-channels/` (e.g. alicia-1200-pcb channel) using `add_document_tool`, then run questions about Alicia 1200 (ROM programmer, PSU, etc.) via `query_tool` in Cursor. Confirm answers and sources use the correct `document_id`, `channel`, and `tag` metadata.
 
 ### Retrieval Improvement
 - [x] **Advanced Retrieval Strategies** (ordered by expected impact; items deferred to later phases noted below)
@@ -257,12 +257,16 @@
 
 ## Phase 5: Polish & Production Ready
 
-**Goal:** Production-grade reliability, observability, deployment packaging, and documentation.
+**Goal:** Add YouTube and GitHub indexing, then production-grade reliability, deployment packaging, and documentation.
 
 ### MCP & Configuration Polish
 - [x] **Revise and polish MCP tools params** — Review tool parameter names, descriptions, defaults, and validation across all MCP tools.
 - [x] **Revise and polish MCP resources and prompts** — Review resource URIs, prompt templates, and argument descriptions for clarity and consistency.
-- [ ] **Revise and polish MCP server params** — Consider introducing a config file since we have many env vars; consolidate or document server-level settings.
+- [x] **Revise and polish MCP server params** — Keep .env (MCP env blocks, 12-factor, no YAML needed). Documented in .env.example, README config table, and server config resource (set vs defaults).
+
+### New Document Types (Indexing)
+- [x] **YouTube indexing** — Index video transcripts via `youtube-transcript-api`. Load transcript → chunk → Chroma; metadata: `document_id` (video ID), `document_type`, `video_id`, `start` (seconds), `duration`, `title` (via oEmbed), `source` (canonical URL). MCP `add_file`/`add_files` detect YouTube URLs/IDs; citations show timestamp (e.g. `t. 1:23`). Handle `TranscriptsDisabled`, `NoTranscriptFound` with clear errors. `list_documents` and `documents_resource` show title and segments.
+- [ ] **GitHub repo indexing** — Index repo contents (README, code, docs). Load via git clone or GitHub API; chunk markdown and code; metadata: `document_id` (repo/path), `source` (url), `file_path`. MCP `add_file` detects GitHub URLs; optional: `branch`, include/exclude patterns (e.g. `*.md`, `docs/`). Consider depth limit and file-size caps.
 
 ### Deployment & Operations
 - [ ] **Deployment packaging** — Package as Docker image, installable CLI (`pip install oracle-rag`), or hosted MCP server.

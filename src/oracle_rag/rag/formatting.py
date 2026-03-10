@@ -5,16 +5,37 @@ from __future__ import annotations
 from langchain_core.documents import Document
 
 
+def _format_timestamp(seconds: int | float) -> str:
+    """Format seconds as M:SS (e.g. 83 -> '1:23')."""
+    s = int(round(float(seconds)))
+    m, s = divmod(s, 60)
+    if m > 0:
+        return f"{m}:{s:02d}"
+    return f"0:{s:02d}"
+
+
+def _citation_label(meta: dict) -> str:
+    """Return citation label: 'p. N' for PDF, 't. M:SS' for YouTube/start, else '?'."""
+    start = meta.get("start")
+    if start is not None:
+        try:
+            return f"t. {_format_timestamp(start)}"
+        except (TypeError, ValueError):
+            pass
+    page = meta.get("page", "?")
+    return f"p. {page}"
+
+
 def format_docs(docs: list[Document], *, number_chunks: bool = True) -> str:
     """Turn a list of chunk documents into a single context string for the prompt.
 
     Each chunk is separated by newlines. If number_chunks is True, each block
-    is prefixed with [N] (doc: <document_id>, p. <page>) so the model and
-    users can refer to sources.
+    is prefixed with [N] (doc: <document_id>, <label>) so the model and users
+    can refer to sources. Label is "p. <page>" for PDFs, "t. M:SS" for YouTube.
 
     Args:
-        docs: Retrieved chunk documents (with metadata such as page, document_id).
-        number_chunks: Whether to add [1], [2], ... and doc/page labels.
+        docs: Retrieved chunk documents (with metadata such as page, start, document_id).
+        number_chunks: Whether to add [1], [2], ... and doc/label.
 
     Returns:
         A single string suitable for the {context} placeholder in the RAG prompt.
@@ -26,9 +47,9 @@ def format_docs(docs: list[Document], *, number_chunks: bool = True) -> str:
     for i, doc in enumerate(docs, start=1):
         meta = doc.metadata
         doc_id = meta.get("document_id") or meta.get("file_name") or meta.get("source") or "?"
-        page = meta.get("page", "?")
+        label = _citation_label(meta)
         if number_chunks:
-            parts.append(f"[{i}] (doc: {doc_id}, p. {page})\n{doc.page_content}")
+            parts.append(f"[{i}] (doc: {doc_id}, {label})\n{doc.page_content}")
         else:
             parts.append(doc.page_content)
 
@@ -38,25 +59,40 @@ def format_docs(docs: list[Document], *, number_chunks: bool = True) -> str:
 def format_sources(docs: list[Document]) -> list[dict[str, str | int]]:
     """Build a list of unique source references from retrieved documents for citations.
 
-    Deduplicates by (document_id, page). Each item has "document_id" and "page".
+    Deduplicates by (document_id, page_or_start). Each item has "document_id", "page"
+    (for PDFs), and "start" when present (YouTube timestamp in seconds).
 
     Args:
         docs: Retrieved chunk documents.
 
     Returns:
-        List of dicts with keys document_id and page (e.g. for display as "Sources").
+        List of dicts with document_id, page (0 for YouTube), and start when present.
     """
-    seen: set[tuple[str, int]] = set()
+    seen: set[tuple[str, int | str]] = set()
     out: list[dict[str, str | int]] = []
     for doc in docs:
         meta = doc.metadata
         doc_id = str(meta.get("document_id") or meta.get("file_name") or meta.get("source") or "?")
-        try:
-            page = int(meta.get("page", 0))
-        except (TypeError, ValueError):
-            page = 0
-        key = (doc_id, page)
-        if key not in seen:
-            seen.add(key)
-            out.append({"document_id": doc_id, "page": page})
+        start = meta.get("start")
+        if start is not None:
+            try:
+                start_int = int(round(float(start)))
+                key = (doc_id, start_int)
+                if key not in seen:
+                    seen.add(key)
+                    out.append({"document_id": doc_id, "page": 0, "start": start_int})
+            except (TypeError, ValueError):
+                key = (doc_id, 0)
+                if key not in seen:
+                    seen.add(key)
+                    out.append({"document_id": doc_id, "page": 0})
+        else:
+            try:
+                page = int(meta.get("page", 0))
+            except (TypeError, ValueError):
+                page = 0
+            key = (doc_id, page)
+            if key not in seen:
+                seen.add(key)
+                out.append({"document_id": doc_id, "page": page})
     return out

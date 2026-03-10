@@ -258,6 +258,7 @@ def load_discord_export_as_documents(
         last = window[-1]
         meta = {
             "source": "discord",
+            "document_type": "discord",
             "file_name": txt_path.name,
             "channel": channel,
             "guild": guild,
