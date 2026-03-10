@@ -70,13 +70,10 @@ def test_get_collection_name_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert get_collection_name() == "my_custom_collection"
 
 
-def test_get_collection_name_from_provider(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Without ORACLE_RAG_COLLECTION_NAME, returns oracle_rag_<provider>."""
+def test_get_collection_name_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without ORACLE_RAG_COLLECTION_NAME, returns oracle_rag."""
     monkeypatch.delenv("ORACLE_RAG_COLLECTION_NAME", raising=False)
-    monkeypatch.setenv("ORACLE_RAG_EMBEDDING_PROVIDER", "openai")
-    assert get_collection_name() == "oracle_rag_openai"
-    monkeypatch.setenv("ORACLE_RAG_EMBEDDING_PROVIDER", "cohere")
-    assert get_collection_name() == "oracle_rag_cohere"
+    assert get_collection_name() == "oracle_rag"
 
 
 # Re-ranking config
@@ -101,9 +98,10 @@ def test_get_use_rerank_false_values(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_get_rerank_retrieve_k_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Without env var, returns 10."""
+    """Without env var, falls back to get_retrieve_k() (default 20)."""
+    monkeypatch.delenv("ORACLE_RAG_RETRIEVE_K", raising=False)
     monkeypatch.delenv("ORACLE_RAG_RERANK_RETRIEVE_K", raising=False)
-    assert get_rerank_retrieve_k() == 10
+    assert get_rerank_retrieve_k() == 20
 
 
 def test_get_rerank_retrieve_k_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -113,15 +111,16 @@ def test_get_rerank_retrieve_k_from_env(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_get_rerank_retrieve_k_invalid_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
-    """With invalid env var, returns default 10."""
+    """With invalid env var, falls back to get_retrieve_k() (default 20)."""
+    monkeypatch.delenv("ORACLE_RAG_RETRIEVE_K", raising=False)
     monkeypatch.setenv("ORACLE_RAG_RERANK_RETRIEVE_K", "x")
-    assert get_rerank_retrieve_k() == 10
+    assert get_rerank_retrieve_k() == 20
 
 
 def test_get_rerank_top_n_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Without env var, returns 5."""
+    """Without env var, returns 10."""
     monkeypatch.delenv("ORACLE_RAG_RERANK_TOP_N", raising=False)
-    assert get_rerank_top_n() == 5
+    assert get_rerank_top_n() == 10
 
 
 def test_get_rerank_top_n_from_env(monkeypatch: pytest.MonkeyPatch) -> None:

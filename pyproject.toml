@@ -29,6 +29,11 @@ dev = [
 [project.scripts]
 oracle-rag-mcp = "oracle_rag.cli:main"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20",
+]
+
 [tool.ruff]
 lint.select = [
     "E",    # pycodestyle

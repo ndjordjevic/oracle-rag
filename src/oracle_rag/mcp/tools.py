@@ -16,8 +16,9 @@ from oracle_rag.indexing import (
 )
 from oracle_rag.llm import get_chat_model
 from oracle_rag.rag import run_rag
-from oracle_rag.config import get_collection_name, get_persist_dir
+from oracle_rag.config import get_collection_name, get_persist_dir, get_use_parent_child
 from oracle_rag.vectorstore import get_chroma_store
+from oracle_rag.vectorstore.docstore import get_parent_docstore
 
 
 def _detect_file_format(path: Path) -> Literal["pdf", "discord"] | None:
@@ -48,9 +49,6 @@ def _detect_file_format(path: Path) -> Literal["pdf", "discord"] | None:
 @traceable(name="query", run_type="tool")
 def query(
     query: str,
-    k: int = 5,
-    persist_dir: str = "",
-    collection: str | None = None,
     document_id: str | None = None,
     page_min: int | None = None,
     page_max: int | None = None,
@@ -59,11 +57,11 @@ def query(
 ) -> dict[str, Any]:
     """Query indexed documents (PDF, Discord) and return an answer with citations.
 
+    Retrieval is driven by .env: ORACLE_RAG_RETRIEVE_K, rerank, multi-query, etc.
+    Persist dir and collection come from ORACLE_RAG_PERSIST_DIR and ORACLE_RAG_COLLECTION_NAME.
+
     Args:
         query: Natural language question to ask.
-        k: Number of chunks to retrieve (default: 5).
-        persist_dir: Chroma persistence directory (default: "chroma_db").
-        collection: Chroma collection name (default: "oracle_rag").
         document_id: Optional document ID to filter retrieval (e.g. from list_documents).
         page_min: Optional start of page range (inclusive). Use with page_max. PDF only.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64. PDF only.
@@ -75,16 +73,10 @@ def query(
 
     Raises:
         ValueError: If query is empty or invalid.
-        FileNotFoundError: If persist_dir doesn't exist.
+        FileNotFoundError: If persist dir doesn't exist.
     """
     if not query or not query.strip():
         raise ValueError("Query cannot be empty")
-    if not isinstance(k, int) or k < 1 or k > 100:
-        raise ValueError("k must be an integer between 1 and 100")
-    if collection is None or not str(collection).strip():
-        collection = get_collection_name()
-    else:
-        collection = str(collection).strip()
     if (page_min is not None) != (page_max is not None):
         raise ValueError("page_min and page_max must be provided together for page range filter")
     if page_min is not None and page_max is not None and page_min > page_max:
@@ -92,7 +84,7 @@ def query(
     if response_style not in ("thorough", "concise"):
         raise ValueError("response_style must be 'thorough' or 'concise'")
 
-    _persist = (persist_dir or "").strip() or get_persist_dir()
+    _persist = get_persist_dir()
     persist_path = Path(_persist).expanduser().resolve()
     if not persist_path.exists():
         raise FileNotFoundError(
@@ -108,9 +100,9 @@ def query(
     rag_result = run_rag(
         query,
         llm,
-        k=k,
+        k=None,
         persist_directory=str(persist_path),
-        collection_name=collection,
+        collection_name=get_collection_name(),
         embedding=embedding,
         document_id=doc_id_filter,
         page_min=page_min,
@@ -277,6 +269,7 @@ def add_files(
     if tags is not None and len(tags) != len(paths):
         raise ValueError("tags must have same length as paths when provided")
 
+    _persist = (persist_dir or "").strip() or get_persist_dir()
     all_indexed: list[dict[str, Any]] = []
     all_failed: list[dict[str, str]] = []
 
@@ -313,12 +306,14 @@ def add_files(
 def list_documents(
     persist_dir: str | None = None,
     collection: str | None = None,
+    tag: str | None = None,
 ) -> dict[str, Any]:
     """List all indexed documents (PDF, Discord, etc.) in the Oracle-RAG index.
 
     Args:
         persist_dir: Chroma persistence directory (default: from ORACLE_RAG_PERSIST_DIR or chroma_db).
         collection: Chroma collection name (default: "oracle_rag").
+        tag: Optional tag to filter: only list documents that have this tag.
 
     Returns:
         Dictionary with "documents" (list of unique document IDs)
@@ -347,11 +342,19 @@ def list_documents(
     data = store.get(include=["metadatas"])
     metadatas = data.get("metadatas") or []
 
+    tag_filter = tag.strip() if tag and str(tag).strip() else None
+
     doc_ids: set[str] = set()
     document_details: dict[str, dict[str, Any]] = {}
+    chunk_count = 0
     for meta in metadatas:
         if not isinstance(meta, dict):
             continue
+        if tag_filter is not None:
+            meta_tag = meta.get("tag")
+            if meta_tag is None or str(meta_tag).strip() != tag_filter:
+                continue
+        chunk_count += 1
         doc_id = str(
             meta.get("document_id")
             or meta.get("file_name")
@@ -378,7 +381,7 @@ def list_documents(
 
     return {
         "documents": sorted(doc_ids),
-        "total_chunks": len(metadatas),
+        "total_chunks": chunk_count,
         "persist_directory": str(persist_path),
         "collection_name": collection,
         "document_details": {k: document_details[k] for k in sorted(document_details)},
@@ -394,8 +397,8 @@ def remove_document(
     """Remove a document and all its chunks and embeddings from the Chroma index.
 
     The document_id must match exactly the name shown in list_documents (e.g.
-    "mybook.pdf" or "discord-alicia-1200-pcb"). All chunks and their embeddings
-    for that document are deleted from the vector store.
+    "mybook.pdf" or "discord-alicia-1200-pcb"). Deletes child chunks from Chroma
+    and, when parent-child retrieval is enabled, parent chunks from the docstore.
 
     Args:
         document_id: Document identifier to remove (same as in list_documents).
@@ -429,13 +432,24 @@ def remove_document(
         collection_name=collection,
     )
 
-    # Count chunks matching this document_id before delete
+    # Get chunks matching this document_id (need metadatas for parent doc_ids when parent-child)
     data = store._collection.get(
         where={"document_id": document_id.strip()},
-        include=[],
+        include=["metadatas"] if get_use_parent_child() else [],
     )
     ids = data.get("ids") or []
     deleted_count = len(ids)
+
+    # When parent-child is enabled, also delete parent chunks from docstore
+    if get_use_parent_child() and ids:
+        metadatas = data.get("metadatas") or []
+        parent_ids = set()
+        for meta in metadatas:
+            if isinstance(meta, dict) and meta.get("doc_id"):
+                parent_ids.add(str(meta["doc_id"]))
+        if parent_ids:
+            docstore = get_parent_docstore(_persist, collection)
+            docstore.mdelete(list(parent_ids))
 
     if ids:
         store._collection.delete(where={"document_id": document_id.strip()})

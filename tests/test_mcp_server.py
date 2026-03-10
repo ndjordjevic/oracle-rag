@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from oracle_rag.mcp.tools import add_file, add_files, list_documents, query
+from oracle_rag.mcp.tools import add_file, add_files, list_documents, query, remove_document
 from oracle_rag.mcp import server as mcp_server
 
 
@@ -57,6 +57,26 @@ def test_list_documents_handles_empty_metadatas(tmp_path: Path) -> None:
     assert result["documents"] == []
     assert result["total_chunks"] == 0
     assert result["document_details"] == {}
+
+
+def test_list_documents_tag_filter(tmp_path: Path) -> None:
+    """list_documents with tag returns only docs with that tag."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    mock_store = MagicMock()
+    mock_store.get.return_value = {
+        "metadatas": [
+            {"document_id": "a.pdf", "tag": "amiga"},
+            {"document_id": "a.pdf", "tag": "amiga"},
+            {"document_id": "b.pdf", "tag": "pico"},
+        ]
+    }
+
+    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+        result = list_documents(persist_dir=str(tmp_path), collection="c", tag="amiga")
+
+    assert result["documents"] == ["a.pdf"]
+    assert result["total_chunks"] == 2
+    assert result["document_details"]["a.pdf"]["tag"] == "amiga"
 
 
 def test_list_documents_includes_document_details_when_present(tmp_path: Path) -> None:
@@ -221,49 +241,41 @@ def test_query_empty_query_raises() -> None:
         query(query="   ")
 
 
-def test_query_invalid_k_raises() -> None:
-    """query raises ValueError when k is out of range or not an int."""
-    with pytest.raises(ValueError, match="k must be an integer"):
-        query(query="test", k=0)
-    with pytest.raises(ValueError, match="k must be an integer"):
-        query(query="test", k=101)
-
-
-def test_query_empty_collection_uses_default(tmp_path: Path) -> None:
-    """query uses default collection when collection is empty."""
+def test_query_uses_config_for_persist_and_collection(tmp_path: Path) -> None:
+    """query uses get_persist_dir and get_collection_name from config."""
     from oracle_rag.rag import RAGResult
 
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
-    with patch("oracle_rag.mcp.tools.get_embedding_model"):
-        with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch("oracle_rag.mcp.tools.run_rag") as mock_run:
-                mock_run.return_value = RAGResult(answer="ok", sources=[])
-                query(query="test", persist_dir=str(tmp_path), collection="")
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="oracle_rag"):
+            with patch("oracle_rag.mcp.tools.get_embedding_model"):
+                with patch("oracle_rag.mcp.tools.get_chat_model"):
+                    with patch("oracle_rag.mcp.tools.run_rag") as mock_run:
+                        mock_run.return_value = RAGResult(answer="ok", sources=[])
+                        query(query="test")
     mock_run.assert_called_once()
 
 
 def test_query_missing_persist_dir_raises() -> None:
     """query raises FileNotFoundError when persist dir does not exist."""
-    with pytest.raises(FileNotFoundError, match="Persistence directory does not exist"):
-        query(query="test", persist_dir="/nonexistent/chroma_db")
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value="/nonexistent/chroma_db"):
+        with pytest.raises(FileNotFoundError, match="Persistence directory does not exist"):
+            query(query="test")
 
 
 def test_query_chain_error_propagates(tmp_path: Path) -> None:
     """query propagates retrieval/LLM errors from run_rag."""
     (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
 
-    with patch("oracle_rag.mcp.tools.get_embedding_model"):
-        with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch(
-                "oracle_rag.mcp.tools.run_rag",
-                side_effect=RuntimeError("OpenAI API rate limit"),
-            ):
-                with pytest.raises(RuntimeError, match="OpenAI API rate limit"):
-                    query(
-                        query="test",
-                        persist_dir=str(tmp_path),
-                        collection="test_coll",
-                    )
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_embedding_model"):
+            with patch("oracle_rag.mcp.tools.get_chat_model"):
+                with patch(
+                    "oracle_rag.mcp.tools.run_rag",
+                    side_effect=RuntimeError("OpenAI API rate limit"),
+                ):
+                    with pytest.raises(RuntimeError, match="OpenAI API rate limit"):
+                        query(query="test")
 
 
 def test_query_success(tmp_path: Path) -> None:
@@ -281,15 +293,12 @@ def test_query_success(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_embedding_model"):
-        with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
-                result = query(
-                    query="What is the answer?",
-                    k=3,
-                    persist_dir=str(tmp_path),
-                    collection="test_coll",
-                )
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("oracle_rag.mcp.tools.get_embedding_model"):
+                with patch("oracle_rag.mcp.tools.get_chat_model"):
+                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                        result = query(query="What is the answer?")
 
     assert result["answer"] == "The answer is 42."
     assert len(result["sources"]) == 2
@@ -298,34 +307,18 @@ def test_query_success(tmp_path: Path) -> None:
     mock_run_rag.assert_called_once()
     call_args, call_kwargs = mock_run_rag.call_args
     assert call_args[0] == "What is the answer?"
-    assert call_kwargs["k"] == 3
+    assert call_kwargs["k"] is None
     assert call_kwargs.get("document_id") is None
 
 
-def test_query_page_range_validation(tmp_path: Path) -> None:
+def test_query_page_range_validation() -> None:
     """query raises when page_min or page_max is provided without the other."""
-    (tmp_path / "chroma_db").mkdir(parents=True, exist_ok=True)
-    with patch("oracle_rag.mcp.tools.get_embedding_model"):
-        with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
-                query(
-                    query="test",
-                    persist_dir=str(tmp_path),
-                    page_min=1,
-                )
-            with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
-                query(
-                    query="test",
-                    persist_dir=str(tmp_path),
-                    page_max=10,
-                )
-            with pytest.raises(ValueError, match="page_min must be <= page_max"):
-                query(
-                    query="test",
-                    persist_dir=str(tmp_path),
-                    page_min=10,
-                    page_max=1,
-                )
+    with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
+        query(query="test", page_min=1)
+    with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
+        query(query="test", page_max=10)
+    with pytest.raises(ValueError, match="page_min must be <= page_max"):
+        query(query="test", page_min=10, page_max=1)
 
 
 def test_query_with_page_range(tmp_path: Path) -> None:
@@ -340,18 +333,17 @@ def test_query_with_page_range(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_embedding_model"):
-        with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
-                query(
-                    query="OpenOCD?",
-                    k=3,
-                    persist_dir=str(tmp_path),
-                    collection="test_coll",
-                    document_id="pico.pdf",
-                    page_min=16,
-                    page_max=16,
-                )
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("oracle_rag.mcp.tools.get_embedding_model"):
+                with patch("oracle_rag.mcp.tools.get_chat_model"):
+                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                        query(
+                            query="OpenOCD?",
+                            document_id="pico.pdf",
+                            page_min=16,
+                            page_max=16,
+                        )
 
     mock_run_rag.assert_called_once()
     assert mock_run_rag.call_args[1]["page_min"] == 16
@@ -370,16 +362,12 @@ def test_query_with_tag_filter(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_embedding_model"):
-        with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
-                query(
-                    query="GPIO?",
-                    k=3,
-                    persist_dir=str(tmp_path),
-                    collection="test_coll",
-                    tag="PI_PICO",
-                )
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("oracle_rag.mcp.tools.get_embedding_model"):
+                with patch("oracle_rag.mcp.tools.get_chat_model"):
+                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                        query(query="GPIO?", tag="PI_PICO")
 
     mock_run_rag.assert_called_once()
     assert mock_run_rag.call_args[1]["tag"] == "PI_PICO"
@@ -397,19 +385,104 @@ def test_query_with_document_id_filter(tmp_path: Path) -> None:
         )
     )
 
-    with patch("oracle_rag.mcp.tools.get_embedding_model"):
-        with patch("oracle_rag.mcp.tools.get_chat_model"):
-            with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
-                query(
-                    query="GPIO?",
-                    k=3,
-                    persist_dir=str(tmp_path),
-                    collection="test_coll",
-                    document_id="RP-008276-DS-1-getting-started-with-pico.pdf",
-                )
+    with patch("oracle_rag.mcp.tools.get_persist_dir", return_value=str(tmp_path)):
+        with patch("oracle_rag.mcp.tools.get_collection_name", return_value="test_coll"):
+            with patch("oracle_rag.mcp.tools.get_embedding_model"):
+                with patch("oracle_rag.mcp.tools.get_chat_model"):
+                    with patch("oracle_rag.mcp.tools.run_rag", mock_run_rag):
+                        query(
+                            query="GPIO?",
+                            document_id="RP-008276-DS-1-getting-started-with-pico.pdf",
+                        )
 
     mock_run_rag.assert_called_once()
     assert mock_run_rag.call_args[1]["document_id"] == "RP-008276-DS-1-getting-started-with-pico.pdf"
+
+
+# --- server_config_resource ---
+
+
+def test_server_config_resource_includes_api_key_status() -> None:
+    """server_config_resource shows API key set/not set, never the values."""
+    with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-secret"}, clear=False):
+        out = mcp_server.server_config_resource()
+    assert "OPENAI_API_KEY: set" in out
+    assert "sk-secret" not in out
+    assert "ANTHROPIC_API_KEY:" in out
+    assert "COHERE_API_KEY:" in out
+
+
+def test_server_config_resource_includes_effective_config() -> None:
+    """server_config_resource includes effective config from get_* functions."""
+    with patch("oracle_rag.mcp.server.get_persist_dir", return_value="/my/chroma"):
+        with patch("oracle_rag.mcp.server.get_collection_name", return_value="my_coll"):
+            out = mcp_server.server_config_resource()
+    assert "ORACLE_RAG_PERSIST_DIR: /my/chroma" in out
+    assert "ORACLE_RAG_COLLECTION_NAME: my_coll" in out
+    assert "--- Config (set = from env; default = not set) ---" in out
+    assert "--- API keys (sensitive; only status) ---" in out
+
+
+def test_server_config_resource_shows_set_vs_default() -> None:
+    """server_config_resource marks set vars vs (default) for unset."""
+    with patch.dict(
+        "os.environ",
+        {"ORACLE_RAG_PERSIST_DIR": "/custom/db"},
+        clear=False,
+    ):
+        out = mcp_server.server_config_resource()
+    assert "ORACLE_RAG_PERSIST_DIR: /custom/db" in out
+    assert " (default)" in out  # at least one unset var shows (default)
+
+
+def test_server_config_resource_unset_var_shows_default() -> None:
+    """server_config_resource shows (default) for vars not in env."""
+    env_no_oracle = {k: v for k, v in __import__("os").environ.items() if not k.startswith("ORACLE_RAG_")}
+    with patch.dict("os.environ", env_no_oracle, clear=True):
+        out = mcp_server.server_config_resource()
+    assert "(default)" in out
+
+
+# --- remove_document ---
+
+
+def test_remove_document_deletes_parent_chunks_when_parent_child_enabled(tmp_path: Path) -> None:
+    """remove_document deletes both Chroma children and docstore parents when parent-child is on."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    mock_store = MagicMock()
+    mock_store._collection.get.return_value = {
+        "ids": ["child1", "child2"],
+        "metadatas": [{"doc_id": "parent-uuid-1", "document_id": "doc.pdf"}, {"doc_id": "parent-uuid-1", "document_id": "doc.pdf"}],
+    }
+    mock_docstore = MagicMock()
+
+    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+        with patch("oracle_rag.mcp.tools.get_use_parent_child", return_value=True):
+            with patch("oracle_rag.mcp.tools.get_parent_docstore", return_value=mock_docstore):
+                result = remove_document(
+                    document_id="doc.pdf",
+                    persist_dir=str(tmp_path),
+                    collection="test_coll",
+                )
+
+    assert result["deleted_chunks"] == 2
+    assert result["document_id"] == "doc.pdf"
+    mock_docstore.mdelete.assert_called_once()
+    assert set(mock_docstore.mdelete.call_args[0][0]) == {"parent-uuid-1"}
+    mock_store._collection.delete.assert_called_once_with(where={"document_id": "doc.pdf"})
+
+
+def test_remove_document_skips_docstore_when_parent_child_disabled(tmp_path: Path) -> None:
+    """remove_document does not touch docstore when parent-child is off."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    mock_store = MagicMock()
+    mock_store._collection.get.return_value = {"ids": ["c1"], "metadatas": [{}]}
+
+    with patch("oracle_rag.mcp.tools.get_chroma_store", return_value=mock_store):
+        with patch("oracle_rag.mcp.tools.get_use_parent_child", return_value=False):
+            with patch("oracle_rag.mcp.tools.get_parent_docstore") as mock_get_docstore:
+                remove_document(document_id="doc.pdf", persist_dir=str(tmp_path), collection="c")
+    mock_get_docstore.assert_not_called()
 
 
 # --- Error handling: propagate + log ---

@@ -7,11 +7,33 @@ import inspect
 import logging
 import os
 import sys
+from typing import Annotated
 
 from dotenv import load_dotenv
+from pydantic import Field
 from mcp.server.fastmcp import FastMCP
 
-from oracle_rag.config import get_collection_name, get_persist_dir
+from oracle_rag.config import (
+    get_chunk_overlap,
+    get_chunk_size,
+    get_child_chunk_size,
+    get_collection_name,
+    get_embedding_model_name,
+    get_embedding_provider,
+    get_llm_model,
+    get_llm_provider,
+    get_multi_query_count,
+    get_parent_chunk_size,
+    get_persist_dir,
+    get_retrieve_k,
+    get_response_style,
+    get_rerank_retrieve_k,
+    get_rerank_top_n,
+    get_structure_aware_chunking,
+    get_use_multi_query,
+    get_use_parent_child,
+    get_use_rerank,
+)
 from oracle_rag.mcp.tools import (
     add_file,
     add_files,
@@ -83,21 +105,19 @@ def _log_tool_errors(fn):
             raise
 
     wrapper.__signature__ = inspect.signature(fn)
+    wrapper.__annotations__ = fn.__annotations__
     return wrapper
 
 
 @mcp.tool()
 @_log_tool_errors
 def query_tool(
-    query: str,
-    k: int = 5,
-    persist_dir: str = "",
-    collection: str = "oracle_rag",
-    document_id: str = "",
-    page_min: int | None = None,
-    page_max: int | None = None,
-    tag: str = "",
-    response_style: str = "thorough",
+    query: Annotated[str, Field(description="Natural language question to ask.")],
+    document_id: Annotated[str, Field(description="Optional document ID to filter retrieval (from list_documents).")] = "",
+    page_min: Annotated[int | None, Field(description="Optional start of page range (inclusive). PDF only.")] = None,
+    page_max: Annotated[int | None, Field(description="Optional end of page range (inclusive). PDF only.")] = None,
+    tag: Annotated[str, Field(description="Optional tag to filter retrieval (from list_documents).")] = "",
+    response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "thorough",
 ) -> dict:
     """Query indexed documents and return an answer with citations.
 
@@ -106,27 +126,18 @@ def query_tool(
 
     Args:
         query: Natural language question to ask.
-        k: Number of document chunks to retrieve (default: 5).
-        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
-        collection: Chroma collection name (default: "oracle_rag").
         document_id: Optional document ID to filter retrieval (from list_documents).
         page_min: Optional start of page range (inclusive). PDF only.
         page_max: Optional end of page range (inclusive). PDF only.
         tag: Optional tag to filter retrieval (from list_documents).
-        response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough"). Any other value is treated as "thorough".
+        response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
 
     Returns:
         Dictionary containing answer and sources (document_id, page).
     """
-    coll = (collection or "").strip()
-    if not coll or coll == "oracle_rag":
-        coll = get_collection_name()
     style = "concise" if (response_style or "").strip().lower() == "concise" else "thorough"
     return query_index(
         query=query,
-        k=k,
-        persist_dir=persist_dir or get_persist_dir(),
-        collection=coll,
         document_id=document_id or None,
         page_min=page_min,
         page_max=page_max,
@@ -138,10 +149,8 @@ def query_tool(
 @mcp.tool()
 @_log_tool_errors
 def add_file_tool(
-    path: str,
-    persist_dir: str = "",
-    collection: str = "oracle_rag",
-    tag: str = "",
+    path: Annotated[str, Field(description="Path to a file or directory to index.")],
+    tag: Annotated[str, Field(description="Optional tag for indexed documents; stored on all chunks for filtering.")] = "",
 ) -> dict:
     """Add a file or directory of files to the index.
 
@@ -150,12 +159,11 @@ def add_file_tool(
     - Discord export (.txt with DiscordChatExporter Guild:/Channel: header)
 
     Pass a file path to index one file, or a directory path to index all
-    supported files in that directory (recursive).
+    supported files in that directory (recursive). Uses server config for
+    vector store location and collection.
 
     Args:
         path: Path to a file or directory.
-        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
-        collection: Chroma collection name (default: "oracle_rag").
         tag: Optional tag for indexed documents; stored on all chunks for filtering.
 
     Returns:
@@ -164,11 +172,10 @@ def add_file_tool(
         - failed: List of files that failed with error messages
         - total_indexed, total_failed, persist_directory, collection_name
     """
-    coll = (collection or "").strip() or get_collection_name()
     return add_file(
         path=path,
-        persist_dir=persist_dir or get_persist_dir(),
-        collection=coll,
+        persist_dir=get_persist_dir(),
+        collection=get_collection_name(),
         tag=tag or None,
     )
 
@@ -176,30 +183,26 @@ def add_file_tool(
 @mcp.tool()
 @_log_tool_errors
 def add_files_tool(
-    paths: list[str],
-    persist_dir: str = "",
-    collection: str = "oracle_rag",
-    tags: list[str] | None = None,
+    paths: Annotated[list[str], Field(description="List of file or directory paths to index.")],
+    tags: Annotated[list[str] | None, Field(description="Optional list of tags, one per path (same order as paths).")] = None,
 ) -> dict:
     """Add multiple files or directories to the index in one call.
 
     Auto-detects format per file (PDF, Discord export). Returns both
     successful and failed entries so one bad file does not fail the batch.
+    Uses server config for vector store location and collection.
 
     Args:
         paths: List of file or directory paths to index.
-        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
-        collection: Chroma collection name (default: "oracle_rag").
         tags: Optional list of tags, one per path (same order as paths).
 
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
     """
-    coll = (collection or "").strip() or get_collection_name()
     return add_files(
         paths=paths,
-        persist_dir=persist_dir or get_persist_dir(),
-        collection=coll,
+        persist_dir=get_persist_dir(),
+        collection=get_collection_name(),
         tags=tags,
     )
 
@@ -207,51 +210,49 @@ def add_files_tool(
 @mcp.tool()
 @_log_tool_errors
 def list_documents_tool(
-    persist_dir: str = "",
-    collection: str = "oracle_rag",
+    tag: Annotated[str, Field(description="Optional tag to filter: only list documents that have this tag.")] = "",
 ) -> dict:
     """List all indexed documents in the Oracle-RAG index.
 
     Returns unique document IDs (PDF file names, discord-alicia-1200-pcb, etc.)
-    currently in the vector store, plus total chunk count.
+    currently in the vector store, plus total chunk count. Uses server config
+    for vector store location and collection.
 
     Args:
-        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
-        collection: Chroma collection name (default: "oracle_rag").
+        tag: Optional tag to filter: only list documents that have this tag.
 
     Returns:
         Dictionary containing documents, total_chunks, persist_directory,
         collection_name, document_details.
     """
-    coll = (collection or "").strip() or get_collection_name()
-    return list_documents(persist_dir=persist_dir or get_persist_dir(), collection=coll)
+    return list_documents(
+        persist_dir=get_persist_dir(),
+        collection=get_collection_name(),
+        tag=tag or None,
+    )
 
 
 @mcp.tool()
 @_log_tool_errors
 def remove_document_tool(
-    document_id: str,
-    persist_dir: str = "",
-    collection: str = "oracle_rag",
+    document_id: Annotated[str, Field(description="Document identifier to remove (from list_documents_tool).")],
 ) -> dict:
     """Remove a document and all its chunks from the Oracle-RAG index.
 
     Deletes all chunks and embeddings for the given document. Use
     list_documents_tool to see document_ids (e.g. "mybook.pdf", "discord-alicia-1200-pcb").
+    Uses server config for vector store location and collection.
 
     Args:
-        document_id: Document identifier to remove (from list_documents).
-        persist_dir: Chroma vector store persistence directory (default: ~/.oracle-rag/chroma_db).
-        collection: Chroma collection name (default: "oracle_rag").
+        document_id: Document identifier to remove (from list_documents_tool).
 
     Returns:
         Dictionary containing deleted_chunks, document_id, persist_directory, collection_name.
     """
-    coll = (collection or "").strip() or get_collection_name()
     return remove_document(
         document_id=document_id,
-        persist_dir=persist_dir or get_persist_dir(),
-        collection=coll,
+        persist_dir=get_persist_dir(),
+        collection=get_collection_name(),
     )
 
 
@@ -260,8 +261,12 @@ def remove_document_tool(
     title="Indexed documents list",
     description="Read-only list of documents currently indexed in Oracle-RAG (default collection).",
 )
-def _documents_resource() -> str:
-    """Return a plain-text list of indexed documents for the default collection."""
+def documents_resource() -> str:
+    """Return a plain-text list of indexed documents for the default collection.
+
+    For PDFs: shows page count. For Discord: shows size (messages or bytes).
+    Shows tag when attached to a document.
+    """
     try:
         result = list_documents(
             persist_dir=get_persist_dir(),
@@ -269,12 +274,81 @@ def _documents_resource() -> str:
         )
         docs = result.get("documents", [])
         total = result.get("total_chunks", 0)
+        details = result.get("document_details") or {}
         lines = [f"Indexed documents ({total} chunks total):", ""]
         for d in docs:
-            lines.append(f"  - {d}")
+            info = details.get(d, {})
+            extra: list[str] = []
+            if info.get("pages") is not None:
+                extra.append(f"{info['pages']} pages")
+            if info.get("messages") is not None:
+                extra.append(f"{info['messages']} messages")
+            if info.get("bytes") is not None and "messages" not in info:
+                b = info["bytes"]
+                size = f"{b / 1024:.1f} KB" if b >= 1024 else f"{b} B"
+                extra.append(size)
+            if info.get("tag"):
+                extra.append(f"tag: {info['tag']}")
+            suffix = f" ({', '.join(extra)})" if extra else ""
+            lines.append(f"  - {d}{suffix}")
         return "\n".join(lines) if lines else "No documents indexed."
     except Exception as e:
         return f"Error listing documents: {e}"
+
+
+def _env_set(name: str) -> bool:
+    v = os.environ.get(name)
+    return v is not None and str(v).strip() != ""
+
+
+@mcp.resource(
+    "oracle-rag://server-config",
+    title="Server configuration",
+    description="Environment variables and config params used by the Oracle-RAG MCP server.",
+)
+def server_config_resource() -> str:
+    """Return plain-text summary: env vars that are set (with values), others with defaults."""
+    # (env_var, getter) — effective value from getter; "set" if env has it, else "(default)"
+    config_items = [
+        ("ORACLE_RAG_PERSIST_DIR", get_persist_dir),
+        ("ORACLE_RAG_COLLECTION_NAME", get_collection_name),
+        ("ORACLE_RAG_LLM_PROVIDER", get_llm_provider),
+        ("ORACLE_RAG_LLM_MODEL", get_llm_model),
+        ("ORACLE_RAG_EMBEDDING_PROVIDER", get_embedding_provider),
+        ("ORACLE_RAG_EMBEDDING_MODEL", get_embedding_model_name),
+        ("ORACLE_RAG_CHUNK_SIZE", lambda: str(get_chunk_size())),
+        ("ORACLE_RAG_CHUNK_OVERLAP", lambda: str(get_chunk_overlap())),
+        ("ORACLE_RAG_STRUCTURE_AWARE_CHUNKING", lambda: str(get_structure_aware_chunking())),
+        ("ORACLE_RAG_RETRIEVE_K", lambda: str(get_retrieve_k())),
+        ("ORACLE_RAG_USE_RERANK", lambda: str(get_use_rerank()).lower()),
+        ("ORACLE_RAG_RERANK_RETRIEVE_K", lambda: str(get_rerank_retrieve_k())),
+        ("ORACLE_RAG_RERANK_TOP_N", lambda: str(get_rerank_top_n())),
+        ("ORACLE_RAG_USE_MULTI_QUERY", lambda: str(get_use_multi_query()).lower()),
+        ("ORACLE_RAG_MULTI_QUERY_COUNT", lambda: str(get_multi_query_count())),
+        ("ORACLE_RAG_USE_PARENT_CHILD", lambda: str(get_use_parent_child()).lower()),
+        ("ORACLE_RAG_PARENT_CHUNK_SIZE", lambda: str(get_parent_chunk_size())),
+        ("ORACLE_RAG_CHILD_CHUNK_SIZE", lambda: str(get_child_chunk_size())),
+        ("ORACLE_RAG_RESPONSE_STYLE", get_response_style),
+    ]
+    lines = [
+        "Oracle-RAG MCP Server Configuration",
+        "=" * 40,
+        "",
+        "--- Config (set = from env; default = not set) ---",
+    ]
+    for var, getter in config_items:
+        val = getter()
+        suffix = " (default)" if not _env_set(var) else ""
+        lines.append(f"  {var}: {val}{suffix}")
+
+    lines.extend([
+        "",
+        "--- API keys (sensitive; only status) ---",
+        f"  OPENAI_API_KEY: {'set' if os.environ.get('OPENAI_API_KEY') else 'not set'}",
+        f"  ANTHROPIC_API_KEY: {'set' if os.environ.get('ANTHROPIC_API_KEY') else 'not set'}",
+        f"  COHERE_API_KEY: {'set' if os.environ.get('COHERE_API_KEY') else 'not set'}",
+    ])
+    return "\n".join(lines)
 
 
 @mcp.prompt()
@@ -286,7 +360,10 @@ def ask_about_documents(question: str) -> str:
     """
     return (
         f"Answer this question using the Oracle-RAG indexed documents: {question}\n\n"
-        f"You MUST call the query_tool with query=\"{question}\" first to retrieve relevant context. "
+        f"You MUST call the query_tool first to retrieve relevant context. "
+        "Required: query (the question). Optional params you may pass when the user specifies: "
+        "document_id (filter to one doc), page_min/page_max (PDF page range), tag (filter by tag), "
+        "response_style ('thorough' or 'concise'). Use list_documents_tool to see available docs and tags. "
         "Then use the returned answer and sources in your response. Do not answer from memory alone."
     )
 

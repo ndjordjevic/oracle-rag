@@ -50,9 +50,9 @@ def test_get_parent_chunk_size_from_env(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_get_child_chunk_size_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Without env var, returns 400."""
+    """Without env var, returns 800."""
     monkeypatch.delenv("ORACLE_RAG_CHILD_CHUNK_SIZE", raising=False)
-    assert get_child_chunk_size() == 400
+    assert get_child_chunk_size() == 800
 
 
 def test_get_child_chunk_size_from_env(monkeypatch: pytest.MonkeyPatch) -> None:

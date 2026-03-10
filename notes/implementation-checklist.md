@@ -260,8 +260,8 @@
 **Goal:** Production-grade reliability, observability, deployment packaging, and documentation.
 
 ### MCP & Configuration Polish
-- [ ] **Revise and polish MCP tools params** — Review tool parameter names, descriptions, defaults, and validation across all MCP tools.
-- [ ] **Revise and polish MCP resources and prompts** — Review resource URIs, prompt templates, and argument descriptions for clarity and consistency.
+- [x] **Revise and polish MCP tools params** — Review tool parameter names, descriptions, defaults, and validation across all MCP tools.
+- [x] **Revise and polish MCP resources and prompts** — Review resource URIs, prompt templates, and argument descriptions for clarity and consistency.
 - [ ] **Revise and polish MCP server params** — Consider introducing a config file since we have many env vars; consolidate or document server-level settings.
 
 ### Deployment & Operations

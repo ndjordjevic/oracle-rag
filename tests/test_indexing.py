@@ -281,6 +281,7 @@ def test_index_pdf_uses_config_chunk_size_from_env(
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present; skipping indexing test")
 
+    monkeypatch.setenv("ORACLE_RAG_USE_PARENT_CHILD", "false")  # use flat mode for chunk_size test
     persist_dir = tmp_path / "chroma_idx"
     emb = _MockEmbeddings()
 
@@ -306,13 +307,14 @@ def test_index_pdf_uses_config_chunk_size_from_env(
     assert result_from_env.total_chunks > result_default.total_chunks
 
 
-def test_index_pdf_respects_chunk_size_override(tmp_path: Path) -> None:
+def test_index_pdf_respects_chunk_size_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """index_pdf uses explicit chunk_size/chunk_overlap when passed."""
     repo_root = Path(__file__).resolve().parents[1]
     sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present; skipping indexing test")
 
+    monkeypatch.setenv("ORACLE_RAG_USE_PARENT_CHILD", "false")  # use flat mode for chunk_size test
     persist_dir = tmp_path / "chroma_idx"
     result_default = index_pdf(
         sample_pdf,
