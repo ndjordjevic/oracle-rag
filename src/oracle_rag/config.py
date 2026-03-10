@@ -284,7 +284,7 @@ def get_parent_chunk_size() -> int:
 
 
 def get_child_chunk_size() -> int:
-    """Return child chunk size in chars for parent-child retrieval (default 400)."""
+    """Return child chunk size in chars for parent-child retrieval (default 800)."""
     val = os.environ.get("ORACLE_RAG_CHILD_CHUNK_SIZE")
     if val is None:
         return DEFAULT_CHILD_CHUNK_SIZE

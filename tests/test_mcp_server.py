@@ -419,7 +419,8 @@ def test_server_config_resource_includes_effective_config() -> None:
             out = mcp_server.server_config_resource()
     assert "ORACLE_RAG_PERSIST_DIR: /my/chroma" in out
     assert "ORACLE_RAG_COLLECTION_NAME: my_coll" in out
-    assert "--- Config (set = from env; default = not set) ---" in out
+    assert "--- Set (from env) ---" in out
+    assert "--- Defaults (not set) ---" in out
     assert "--- API keys (sensitive; only status) ---" in out
 
 

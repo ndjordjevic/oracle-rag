@@ -307,8 +307,7 @@ def _env_set(name: str) -> bool:
     description="Environment variables and config params used by the Oracle-RAG MCP server.",
 )
 def server_config_resource() -> str:
-    """Return plain-text summary: env vars that are set (with values), others with defaults."""
-    # (env_var, getter) — effective value from getter; "set" if env has it, else "(default)"
+    """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
     config_items = [
         ("ORACLE_RAG_PERSIST_DIR", get_persist_dir),
         ("ORACLE_RAG_COLLECTION_NAME", get_collection_name),
@@ -330,24 +329,31 @@ def server_config_resource() -> str:
         ("ORACLE_RAG_CHILD_CHUNK_SIZE", lambda: str(get_child_chunk_size())),
         ("ORACLE_RAG_RESPONSE_STYLE", get_response_style),
     ]
+    set_items: list[str] = []
+    default_items: list[str] = []
+    for var, getter in config_items:
+        val = getter()
+        line = f"  {var}: {val}"
+        if _env_set(var):
+            set_items.append(line)
+        else:
+            default_items.append(line + " (default)")
+
     lines = [
         "Oracle-RAG MCP Server Configuration",
         "=" * 40,
         "",
-        "--- Config (set = from env; default = not set) ---",
-    ]
-    for var, getter in config_items:
-        val = getter()
-        suffix = " (default)" if not _env_set(var) else ""
-        lines.append(f"  {var}: {val}{suffix}")
-
-    lines.extend([
+        "--- Set (from env) ---",
+        *set_items,
+        "",
+        "--- Defaults (not set) ---",
+        *default_items,
         "",
         "--- API keys (sensitive; only status) ---",
         f"  OPENAI_API_KEY: {'set' if os.environ.get('OPENAI_API_KEY') else 'not set'}",
         f"  ANTHROPIC_API_KEY: {'set' if os.environ.get('ANTHROPIC_API_KEY') else 'not set'}",
         f"  COHERE_API_KEY: {'set' if os.environ.get('COHERE_API_KEY') else 'not set'}",
-    ])
+    ]
     return "\n".join(lines)
 
 

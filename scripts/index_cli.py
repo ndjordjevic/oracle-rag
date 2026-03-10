@@ -14,6 +14,9 @@ Usage:
     # Wipe index and reindex all with parent-child (requires --from-chroma)
     python scripts/index_cli.py --wipe-and-reindex --from-chroma
 
+    # Wipe only: clear Chroma and parent docstore (removes orphaned parents)
+    python scripts/index_cli.py --wipe-only
+
     # Dry run (list what would be indexed)
     python scripts/index_cli.py --from-chroma --dry-run
 """
@@ -190,6 +193,11 @@ def main() -> int:
         action="store_true",
         help="Delete all documents from the index (and parent docstore), then reindex. Requires --from-chroma.",
     )
+    parser.add_argument(
+        "--wipe-only",
+        action="store_true",
+        help="Clear Chroma collection and parent docstore. Removes orphaned parent chunks when Chroma is empty.",
+    )
     args = parser.parse_args()
 
     if args.wipe_and_reindex and not args.from_chroma:
@@ -200,6 +208,15 @@ def main() -> int:
     collection = (args.collection or "").strip() or get_collection_name()
     persist_path = Path(persist_dir).expanduser().resolve()
     tag = (args.tag or "").strip() or None
+
+    if args.wipe_only:
+        if not persist_path.exists():
+            print(f"Persist directory does not exist: {persist_path}", file=sys.stderr)
+            return 1
+        print("Wiping Chroma and parent docstore...")
+        _wipe_index(persist_path, collection)
+        print("Done.")
+        return 0
 
     if args.from_chroma:
         if not persist_path.exists():

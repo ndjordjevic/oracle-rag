@@ -129,7 +129,7 @@ Environment variables:
 | **Parent-child retrieval** | | |
 | `ORACLE_RAG_USE_PARENT_CHILD` | `false` | Set to `true` to embed small chunks (precise matching) and return larger parent chunks (rich context). Requires re-indexing. |
 | `ORACLE_RAG_PARENT_CHUNK_SIZE` | `2000` | Parent chunk size (chars) when `ORACLE_RAG_USE_PARENT_CHILD=true`. |
-| `ORACLE_RAG_CHILD_CHUNK_SIZE` | `400` | Child chunk size (chars) when `ORACLE_RAG_USE_PARENT_CHILD=true`. |
+| `ORACLE_RAG_CHILD_CHUNK_SIZE` | `800` | Child chunk size (chars) when `ORACLE_RAG_USE_PARENT_CHILD=true`. |
 | **Retrieval** | | |
 | `ORACLE_RAG_RETRIEVE_K` | `20` | Number of chunks to retrieve. When rerank is on, this is the fallback for the pre-rerank fetch if `ORACLE_RAG_RERANK_RETRIEVE_K` is unset. |
 | **Re-ranking** | | |
