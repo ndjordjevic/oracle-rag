@@ -2003,7 +2003,7 @@ wheels = [
 
 [[package]]
 name = "pinrag"
-version = "0.7.0"
+version = "0.7.1"
 source = { editable = "." }
 dependencies = [
     { name = "chromadb" },
@@ -2017,6 +2017,7 @@ dependencies = [
     { name = "mcp" },
     { name = "pypdf" },
     { name = "python-dotenv" },
+    { name = "requests" },
     { name = "youtube-transcript-api" },
 ]
 
@@ -2025,6 +2026,7 @@ cohere = [
     { name = "langchain-cohere" },
 ]
 dev = [
+    { name = "langchain-cohere" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
@@ -2040,6 +2042,7 @@ requires-dist = [
     { name = "langchain-anthropic", specifier = ">=0.3.0" },
     { name = "langchain-chroma", specifier = ">=0.1.0" },
     { name = "langchain-cohere", marker = "extra == 'cohere'", specifier = ">=0.2.0" },
+    { name = "langchain-cohere", marker = "extra == 'dev'", specifier = ">=0.2.0" },
     { name = "langchain-community", specifier = ">=0.4.1" },
     { name = "langchain-core", specifier = ">=1.2.11" },
     { name = "langchain-openai", specifier = ">=1.1.9" },
@@ -2050,6 +2053,7 @@ requires-dist = [
     { name = "pypdf", specifier = ">=6.6.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "requests", specifier = ">=2.32.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.1" },
     { name = "youtube-transcript-api", specifier = ">=1.2.0" },
 ]

@@ -1,14 +1,16 @@
 # PinRAG
 
+[![PyPI version](https://img.shields.io/pypi/v/pinrag)](https://pypi.org/project/pinrag/) [![PyPI release date](https://img.shields.io/pypi/release-date/pinrag)](https://pypi.org/project/pinrag/)
+
 A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP (Model Context Protocol) server for Cursor, VS Code (GitHub Copilot), and other AI assistants.
 
 ## Overview
 
-PinRAG provides intelligent document querying and retrieval capabilities for PDFs, YouTube transcripts, and Discord exports. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor.
+PinRAG provides intelligent document querying and retrieval capabilities for PDFs, YouTube transcripts, Discord exports, and GitHub repositories. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor.
 
 ## Features
 
-- **Multi-format indexing** — PDF (.pdf), YouTube (URL or video ID), Discord export (.txt)
+- **Multi-format indexing** — PDF (.pdf), YouTube (URL or video ID), Discord export (.txt), GitHub repo (URL)
 - **RAG with citations** — Ask questions, get answers with source (document + page for PDFs, timestamp for YouTube)
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
 - **Metadata filtering** — Query by document, page range (PDF only), or tag
@@ -93,7 +95,17 @@ Or create `.vscode/mcp.json` in your workspace for project-specific setup. Resta
 | Remove a document | `remove_document_tool` |
 | View indexed documents (read-only) | Click **Resources** → `_documents_resource` in the MCP panel |
 
-Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"* or *"Index https://youtu.be/xyz and ask what it says"*. The AI will invoke the tools for you. Citations show page numbers for PDFs and timestamps (e.g. `t. 1:23`) for YouTube.
+Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"*, *"Index https://youtu.be/xyz and ask what it says"*, or *"Index https://github.com/owner/repo and ask about the codebase"*. The AI will invoke the tools for you. Citations show page numbers for PDFs, timestamps (e.g. `t. 1:23`) for YouTube, and file paths for GitHub.
+
+### GitHub indexing
+
+Index a GitHub repository to ask questions about its code and docs. Use `add_document_tool` with a GitHub URL:
+
+- `https://github.com/owner/repo`
+- `https://github.com/owner/repo/tree/branch`
+- `github.com/owner/repo` (no scheme)
+
+Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in `.env` for private repos or higher API rate limits. Large files (>512 KB by default) and binaries are skipped.
 
 ## Configuration
 
@@ -140,6 +152,10 @@ Environment variables:
 | `PINRAG_MULTI_QUERY_COUNT` | `4` | Number of alternative queries to generate when `PINRAG_USE_MULTI_QUERY=true`. |
 | **Response style** | | |
 | `PINRAG_RESPONSE_STYLE` | `thorough` | RAG answer style: `thorough` (detailed) or `concise`. Used by evaluation target and as default when MCP `query` omits `response_style`. |
+| **GitHub indexing** | | |
+| `GITHUB_TOKEN` | *(optional)* | Personal access token for GitHub API. Required for private repos; increases rate limits for public repos. |
+| `PINRAG_GITHUB_MAX_FILE_BYTES` | `524288` (512 KB) | Skip files larger than this when indexing GitHub repos. |
+| `PINRAG_GITHUB_DEFAULT_BRANCH` | `main` | Default branch when not specified in the GitHub URL. |
 
 > **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 >
