@@ -253,15 +253,16 @@
 - [x] **Parent-child retrieval** — Implemented via LangChain `ParentDocumentRetriever`. Embed small child chunks (400 chars default) for precise matching, return larger parent chunks (2000 chars default) for context. Config: `ORACLE_RAG_USE_PARENT_CHILD` (default false), `ORACLE_RAG_PARENT_CHUNK_SIZE`, `ORACLE_RAG_CHILD_CHUNK_SIZE`. Uses `LocalFileStore` docstore for persistence. Requires re-indexing when enabling.
 - [x] **Structure-aware chunking** — Implemented in `oracle_rag.chunking.splitter`: `_ensure_code_block_breaks()` (detect C and 68k assembly, insert `\n\n` at prose↔code transitions) and `_ensure_table_breaks()` (detect aligned/register tables, insert `\n\n` at prose↔table transitions). RecursiveCharacterTextSplitter then prefers breaking at those boundaries. Config: `ORACLE_RAG_STRUCTURE_AWARE_CHUNKING` (default true). Tests: `tests/test_structure_aware_chunking.py`, `tests/test_structure_config.py`. Helps digitally-born C/technical PDFs (e.g. Pi Pico book); Amiga OCR PDFs benefit less due to two-column extraction.
 
-### Response Generation
-- [ ] **Streaming** — Implement streaming response generation in `run_rag` and expose via MCP server.
-- [ ] **Context window management** — Handle context window limits (truncate, summarize, or select fewer chunks when total context exceeds model limit).
-
 ---
 
 ## Phase 5: Polish & Production Ready
 
 **Goal:** Production-grade reliability, observability, deployment packaging, and documentation.
+
+### MCP & Configuration Polish
+- [ ] **Revise and polish MCP tools params** — Review tool parameter names, descriptions, defaults, and validation across all MCP tools.
+- [ ] **Revise and polish MCP resources and prompts** — Review resource URIs, prompt templates, and argument descriptions for clarity and consistency.
+- [ ] **Revise and polish MCP server params** — Consider introducing a config file since we have many env vars; consolidate or document server-level settings.
 
 ### Deployment & Operations
 - [ ] **Deployment packaging** — Package as Docker image, installable CLI (`pip install oracle-rag`), or hosted MCP server.

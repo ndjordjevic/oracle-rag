@@ -285,8 +285,9 @@ def ask_about_documents(question: str) -> str:
     with citations. The question will be sent as the user message to guide the AI.
     """
     return (
-        f"Using the Oracle-RAG indexed documents, please answer this question: {question}\n\n"
-        "Use the query_tool to retrieve relevant context before answering."
+        f"Answer this question using the Oracle-RAG indexed documents: {question}\n\n"
+        f"You MUST call the query_tool with query=\"{question}\" first to retrieve relevant context. "
+        "Then use the returned answer and sources in your response. Do not answer from memory alone."
     )
 
 
