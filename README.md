@@ -1,6 +1,6 @@
 # PinRAG
 
-[![PyPI version](https://img.shields.io/pypi/v/pinrag)](https://pypi.org/project/pinrag/) [![PyPI release date](https://img.shields.io/pypi/release-date/pinrag)](https://pypi.org/project/pinrag/)
+[![PyPI version](https://img.shields.io/pypi/v/pinrag)](https://pypi.org/project/pinrag/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP (Model Context Protocol) server for Cursor, VS Code (GitHub Copilot), and other AI assistants.
 
