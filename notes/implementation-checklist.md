@@ -274,7 +274,7 @@
 - [x] **MCP tool/resource logging** — Log tool calls (entry + completion), resource reads, and indexing progress to stderr so they appear in Cursor's MCP Output panel. Uses `pinrag.mcp` logger with `StreamHandler(sys.stderr)`; `pinrag` parent logger also configured for indexing modules. Logs: tool name + args summary, format detection (GitHub/YouTube/playlist/PDF/Discord), per-path progress (e.g. "Processing path 2/5"), indexed counts, and errors.
 
 ### Multi-threading
-- [ ] **Multi-threading** — Is multi-threading supported or it's blocking so we can index from one aganet and query from another at the same time? Or run a tool from an agent and running a resource from at the same time?
+- [x] **Multi-threading** — MCP server tools/resources converted to async with `anyio.to_thread.run_sync`; heavy indexing (YouTube playlist, GitHub repo) no longer blocks the event loop. You can index from one agent and query or read the documents resource from another at the same time.
 
 ### Deployment & Operations
 - [ ] **Deployment packaging** — Package as Docker image, installable CLI (`pip install pinrag`), or hosted MCP server.

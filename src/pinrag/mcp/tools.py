@@ -41,6 +41,34 @@ def _is_github_url(s: str) -> bool:
     return "github.com/" in t and "/" in t.split("github.com/", 1)[-1]
 
 
+def _categorize_failures(failed: list[dict[str, str]]) -> dict[str, int]:
+    """Categorize failed items by error reason for a summary.
+
+    Returns a dict with keys: blocked, disabled, missing_transcript, other.
+    - blocked: YouTube IP blocking (too many requests, cloud provider IP).
+    - disabled: Transcripts disabled by video creator.
+    - missing_transcript: No transcript available (e.g. TranscriptsDisabled, NoTranscriptFound).
+    - other: All other failures.
+    """
+    summary: dict[str, int] = {
+        "blocked": 0,
+        "disabled": 0,
+        "missing_transcript": 0,
+        "other": 0,
+    }
+    for item in failed:
+        err = (item.get("error") or "").lower()
+        if "transcripts disabled" in err:
+            summary["disabled"] += 1
+        elif any(x in err for x in ("blocking", "blocked", "cloud provider", "ip block")):
+            summary["blocked"] += 1
+        elif any(x in err for x in ("could not retrieve", "no transcript", "transcriptsdisabled", "notranscriptfound")):
+            summary["missing_transcript"] += 1
+        else:
+            summary["other"] += 1
+    return summary
+
+
 def _detect_source_format(
     path_or_url: str,
 ) -> Literal["youtube", "youtube_playlist", "pdf", "discord", "plaintext", "github"] | None:
@@ -291,7 +319,7 @@ def add_file(
                 for f in result_pl.failed
             ]
             _log.info("YouTube playlist indexed: %d videos, %d failed", result_pl.total_indexed, result_pl.total_failed)
-            return {
+            out: dict[str, Any] = {
                 "indexed": indexed_items,
                 "failed": failed_items,
                 "total_indexed": result_pl.total_indexed,
@@ -299,6 +327,9 @@ def add_file(
                 "persist_directory": str(Path(_persist).expanduser().resolve()),
                 "collection_name": collection,
             }
+            if failed_items:
+                out["fail_summary"] = _categorize_failures(failed_items)
+            return out
         except Exception as e:
             _log.warning("YouTube playlist indexing failed: %s - %s", path, e)
             return {
@@ -519,7 +550,7 @@ def add_files(
             all_failed.append({"path": str(raw_path), "error": str(e)})
 
     _log.info("add_files done: %d indexed, %d failed", len(all_indexed), len(all_failed))
-    return {
+    result: dict[str, Any] = {
         "indexed": all_indexed,
         "failed": all_failed,
         "total_indexed": len(all_indexed),
@@ -527,6 +558,17 @@ def add_files(
         "persist_directory": str(Path(_persist).expanduser().resolve()),
         "collection_name": collection,
     }
+    if all_failed:
+        fail_summary = _categorize_failures(all_failed)
+        result["fail_summary"] = fail_summary
+        _log.info(
+            "Fail summary: blocked=%d, disabled=%d, missing_transcript=%d, other=%d",
+            fail_summary["blocked"],
+            fail_summary["disabled"],
+            fail_summary["missing_transcript"],
+            fail_summary["other"],
+        )
+    return result
 
 
 @traceable(name="list_documents", run_type="tool")

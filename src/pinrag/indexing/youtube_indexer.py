@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -34,6 +35,8 @@ from pinrag.vectorstore.chroma_client import (
 from pinrag.vectorstore.docstore import get_parent_docstore
 
 PathLike = Union[str, Path]
+
+_log = logging.getLogger("pinrag.indexing")
 
 
 @dataclass(frozen=True)
@@ -327,7 +330,16 @@ def index_youtube_playlist(
     if playlist_title:
         extra["playlist_title"] = playlist_title
 
-    for video_id in video_ids:
+    n_videos = len(video_ids)
+    _log.info(
+        "Playlist %s (%s): %d videos to index",
+        playlist_id,
+        playlist_title or "(no title)",
+        n_videos,
+    )
+
+    for i, video_id in enumerate(video_ids):
+        _log.info("Processing video %d/%d: %s", i + 1, n_videos, video_id)
         try:
             result = index_youtube(
                 video_id,
@@ -338,8 +350,24 @@ def index_youtube_playlist(
                 extra_metadata=extra,
             )
             indexed.append(result)
+            title_part = f" ({result.title})" if result.title else ""
+            _log.info(
+                "Video %s%s indexed: %d segments, %d chunks",
+                video_id,
+                title_part,
+                result.total_segments,
+                result.total_chunks,
+            )
         except Exception as e:
             failed.append({"video_id": video_id, "error": str(e)})
+            _log.warning("Video %s failed: %s", video_id, e)
+
+    _log.info(
+        "Playlist %s complete: %d indexed, %d failed",
+        playlist_id,
+        len(indexed),
+        len(failed),
+    )
 
     return YouTubePlaylistIndexResult(
         playlist_id=playlist_id,

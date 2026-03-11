@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -425,6 +426,35 @@ def test_add_files_partial_success(tmp_path: Path) -> None:
     assert result["total_failed"] == 2
     assert result["indexed"][0]["source_path"] == str(good_pdf)
     assert len(result["failed"]) == 2
+    assert result["fail_summary"] == {"blocked": 0, "disabled": 0, "missing_transcript": 0, "other": 2}
+
+
+def test_add_files_fail_summary_by_reason() -> None:
+    """add_files returns fail_summary categorizing failures: blocked, disabled, missing_transcript, other."""
+    from pinrag.mcp.tools import _categorize_failures
+
+    # Unit test for categorization
+    failed = [
+        {"path": "v1", "error": "YouTube is blocking requests from your IP. Cloud provider."},
+        {"path": "v2", "error": "Video xyz has transcripts disabled. Cannot index."},
+        {"path": "v3", "error": "Could not retrieve a transcript for the video."},
+        {"path": "v4", "error": "No transcript found"},
+        {"path": "v5", "error": "File not found"},
+    ]
+    summary = _categorize_failures(failed)
+    assert summary["blocked"] == 1
+    assert summary["disabled"] == 1
+    assert summary["missing_transcript"] == 2
+    assert summary["other"] == 1
+
+    # add_files with failures includes fail_summary
+    result = add_files(
+        paths=["/nonexistent/a.pdf", "/nonexistent/b.pdf"],
+        collection="test_coll",
+    )
+    assert result["total_failed"] == 2
+    assert "fail_summary" in result
+    assert result["fail_summary"]["other"] == 2
 
 
 # --- query ---
@@ -648,7 +678,7 @@ def test_query_with_document_id_filter(tmp_path: Path) -> None:
 def test_server_config_resource_includes_api_key_status() -> None:
     """server_config_resource shows API key set/not set, never the values."""
     with patch.dict("os.environ", {"OPENAI_API_KEY": "sk-secret"}, clear=False):
-        out = mcp_server.server_config_resource()
+        out = asyncio.run(mcp_server.server_config_resource())
     assert "OPENAI_API_KEY: set" in out
     assert "sk-secret" not in out
     assert "ANTHROPIC_API_KEY:" in out
@@ -659,7 +689,7 @@ def test_server_config_resource_includes_effective_config() -> None:
     """server_config_resource includes effective config from get_* functions."""
     with patch("pinrag.mcp.server.get_persist_dir", return_value="/my/chroma"):
         with patch("pinrag.mcp.server.get_collection_name", return_value="my_coll"):
-            out = mcp_server.server_config_resource()
+            out = asyncio.run(mcp_server.server_config_resource())
     assert "PINRAG_PERSIST_DIR: /my/chroma" in out
     assert "PINRAG_COLLECTION_NAME: my_coll" in out
     assert "--- Set (from env) ---" in out
@@ -674,7 +704,7 @@ def test_server_config_resource_shows_set_vs_default() -> None:
         {"PINRAG_PERSIST_DIR": "/custom/db"},
         clear=False,
     ):
-        out = mcp_server.server_config_resource()
+        out = asyncio.run(mcp_server.server_config_resource())
     assert "PINRAG_PERSIST_DIR: /custom/db" in out
     assert " (default)" in out  # at least one unset var shows (default)
 
@@ -683,7 +713,7 @@ def test_server_config_resource_unset_var_shows_default() -> None:
     """server_config_resource shows (default) for vars not in env."""
     env_no_pinrag = {k: v for k, v in __import__("os").environ.items() if not k.startswith("PINRAG_")}
     with patch.dict("os.environ", env_no_pinrag, clear=True):
-        out = mcp_server.server_config_resource()
+        out = asyncio.run(mcp_server.server_config_resource())
     assert "(default)" in out
 
 
@@ -744,5 +774,5 @@ def test_server_tool_logs_on_failure() -> None:
     mock_log = MagicMock()
     with patch.object(mcp_server, "_log", mock_log):
         with pytest.raises(ValueError, match="Query cannot be empty"):
-            mcp_server.query_tool(query="")
+            asyncio.run(mcp_server.query_tool(query=""))
     mock_log.exception.assert_called_once()

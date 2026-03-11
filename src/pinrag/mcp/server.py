@@ -10,6 +10,7 @@ import sys
 import warnings
 from typing import Annotated
 
+import anyio
 from dotenv import load_dotenv
 from pydantic import Field
 from mcp.server.fastmcp import FastMCP
@@ -48,20 +49,37 @@ load_dotenv()
 # Disable Chroma telemetry — avoids PostHog INFO messages in Cursor Output
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
-# Configure logging to stderr so it appears in Cursor's MCP Output panel
-_log_handler = logging.StreamHandler(sys.stderr)
-_log_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+# Configure PinRAG logs.
+# By default, do not write PinRAG logs to stderr because Cursor renders stderr with
+# an [error] badge and appends "undefined" lines after each entry.
+_log_to_stderr = (os.environ.get("PINRAG_LOG_TO_STDERR") or "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+_level_name = (os.environ.get("PINRAG_LOG_LEVEL") or "INFO").strip().upper()
+_level = getattr(logging, _level_name, logging.INFO)
+if _level_name not in ("DEBUG", "INFO", "WARNING", "ERROR"):
+    _level = logging.INFO
+
 _log = logging.getLogger("pinrag.mcp")
-_log.setLevel(logging.INFO)
 _log.propagate = False
-if not _log.handlers:
-    _log.addHandler(_log_handler)
-# Also send pinrag.* logs (tools, indexing) to stderr for progress/errors in Cursor Output
 _pinrag_root = logging.getLogger("pinrag")
-_pinrag_root.setLevel(logging.INFO)
 _pinrag_root.propagate = False
-if not _pinrag_root.handlers:
-    _pinrag_root.addHandler(_log_handler)
+
+if _log_to_stderr:
+    _log_handler = logging.StreamHandler(sys.stderr)
+    _log_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    _log.setLevel(_level)
+    _pinrag_root.setLevel(_level)
+    if not _log.handlers:
+        _log.addHandler(_log_handler)
+    if not _pinrag_root.handlers:
+        _pinrag_root.addHandler(_log_handler)
+else:
+    _log.setLevel(logging.CRITICAL + 1)
+    _pinrag_root.setLevel(logging.CRITICAL + 1)
 
 # Suppress verbose INFO logs from dependencies — they go to stderr and show as [error] in Cursor
 for _name in ("mcp", "chromadb", "posthog", "openai", "httpx", "httpcore"):
@@ -151,7 +169,7 @@ def _log_tool_errors(fn):
 
 @mcp.tool()
 @_log_tool_errors
-def query_tool(
+async def query_tool(
     query: Annotated[str, Field(description="Natural language question to ask.")],
     document_id: Annotated[str, Field(description="Optional document ID to filter retrieval (from list_documents).")] = "",
     page_min: Annotated[int | None, Field(description="Optional start of page range (inclusive). PDF only.")] = None,
@@ -184,21 +202,25 @@ def query_tool(
         style = style_input
     else:
         style = get_response_style()
-    return query_index(
-        user_query=query,
-        document_id=document_id or None,
-        page_min=page_min,
-        page_max=page_max,
-        tag=tag or None,
-        document_type=document_type or None,
-        file_path=file_path or None,
-        response_style=style,
-    )
+
+    def _run() -> dict:
+        return query_index(
+            user_query=query,
+            document_id=document_id or None,
+            page_min=page_min,
+            page_max=page_max,
+            tag=tag or None,
+            document_type=document_type or None,
+            file_path=file_path or None,
+            response_style=style,
+        )
+
+    return await anyio.to_thread.run_sync(_run)
 
 
 @mcp.tool()
 @_log_tool_errors
-def add_document_tool(
+async def add_document_tool(
     paths: Annotated[list[str], Field(description="Paths to index: file, directory, YouTube URL, or GitHub URL (e.g. https://github.com/owner/repo). Single path: [\"/path/to/file.pdf\"] or [\"https://github.com/owner/repo\"].")],
     tags: Annotated[list[str] | None, Field(description="Optional list of tags, one per path (same order as paths).")] = None,
 ) -> dict:
@@ -221,17 +243,21 @@ def add_document_tool(
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
     """
-    return add_files(
-        paths=paths,
-        persist_dir=get_persist_dir(),
-        collection=get_collection_name(),
-        tags=tags,
-    )
+
+    def _run() -> dict:
+        return add_files(
+            paths=paths,
+            persist_dir=get_persist_dir(),
+            collection=get_collection_name(),
+            tags=tags,
+        )
+
+    return await anyio.to_thread.run_sync(_run)
 
 
 @mcp.tool()
 @_log_tool_errors
-def list_documents_tool(
+async def list_documents_tool(
     tag: Annotated[str, Field(description="Optional tag to filter: only list documents that have this tag.")] = "",
 ) -> dict:
     """List all indexed documents in the PinRAG index.
@@ -247,16 +273,20 @@ def list_documents_tool(
         Dictionary containing documents, total_chunks, persist_directory,
         collection_name, document_details.
     """
-    return list_documents(
-        persist_dir=get_persist_dir(),
-        collection=get_collection_name(),
-        tag=tag or None,
-    )
+
+    def _run() -> dict:
+        return list_documents(
+            persist_dir=get_persist_dir(),
+            collection=get_collection_name(),
+            tag=tag or None,
+        )
+
+    return await anyio.to_thread.run_sync(_run)
 
 
 @mcp.tool()
 @_log_tool_errors
-def remove_document_tool(
+async def remove_document_tool(
     document_id: Annotated[str, Field(description="Document identifier to remove (from list_documents_tool).")],
 ) -> dict:
     """Remove a document and all its chunks from the PinRAG index.
@@ -271,11 +301,54 @@ def remove_document_tool(
     Returns:
         Dictionary containing deleted_chunks, document_id, persist_directory, collection_name.
     """
-    return remove_document(
-        document_id=document_id,
+
+    def _run() -> dict:
+        return remove_document(
+            document_id=document_id,
+            persist_dir=get_persist_dir(),
+            collection=get_collection_name(),
+        )
+
+    return await anyio.to_thread.run_sync(_run)
+
+
+def _format_documents_list() -> str:
+    """Sync helper: fetch and format documents list for documents_resource."""
+    result = list_documents(
         persist_dir=get_persist_dir(),
         collection=get_collection_name(),
     )
+    docs = result.get("documents", [])
+    total = result.get("total_chunks", 0)
+    details = result.get("document_details") or {}
+    if not docs:
+        return "No documents indexed."
+    lines = [f"Indexed documents ({total} chunks total):", ""]
+    for d in docs:
+        info = details.get(d, {})
+        extra: list[str] = []
+        if info.get("pages") is not None:
+            extra.append(f"{info['pages']} pages")
+        if info.get("messages") is not None:
+            extra.append(f"{info['messages']} messages")
+        if info.get("segments") is not None:
+            extra.append(f"{info['segments']} segments")
+        if info.get("bytes") is not None and "messages" not in info:
+            b = info["bytes"]
+            size = f"{b / 1024:.1f} KB" if b >= 1024 else f"{b} B"
+            extra.append(size)
+        if info.get("file_count") is not None:
+            extra.append(f"{info['file_count']} files")
+        if info.get("tag"):
+            extra.append(f"tag: {info['tag']}")
+        suffix = f" ({', '.join(extra)})" if extra else ""
+        # For YouTube with title, show title prominently with video ID
+        if info.get("document_type") == "youtube" and info.get("title"):
+            display_name = f"{info['title']} ({d})"
+        else:
+            display_name = d
+        lines.append(f"  - {display_name}{suffix}")
+    return "\n".join(lines)
 
 
 @mcp.resource(
@@ -283,50 +356,16 @@ def remove_document_tool(
     title="Indexed documents list",
     description="Read-only list of documents currently indexed in PinRAG (default collection).",
 )
-def documents_resource() -> str:
+async def documents_resource() -> str:
     """Return a plain-text list of indexed documents for the default collection.
 
     For PDFs: shows page count. For Discord: shows size (messages or bytes).
     For YouTube: shows video title when available, with video ID in parentheses.
     Shows tag when attached to a document.
     """
-    _log.info("Resource pinrag://documents read")
+    _log.debug("Resource pinrag://documents read")
     try:
-        result = list_documents(
-            persist_dir=get_persist_dir(),
-            collection=get_collection_name(),
-        )
-        docs = result.get("documents", [])
-        total = result.get("total_chunks", 0)
-        details = result.get("document_details") or {}
-        if not docs:
-            return "No documents indexed."
-        lines = [f"Indexed documents ({total} chunks total):", ""]
-        for d in docs:
-            info = details.get(d, {})
-            extra: list[str] = []
-            if info.get("pages") is not None:
-                extra.append(f"{info['pages']} pages")
-            if info.get("messages") is not None:
-                extra.append(f"{info['messages']} messages")
-            if info.get("segments") is not None:
-                extra.append(f"{info['segments']} segments")
-            if info.get("bytes") is not None and "messages" not in info:
-                b = info["bytes"]
-                size = f"{b / 1024:.1f} KB" if b >= 1024 else f"{b} B"
-                extra.append(size)
-            if info.get("file_count") is not None:
-                extra.append(f"{info['file_count']} files")
-            if info.get("tag"):
-                extra.append(f"tag: {info['tag']}")
-            suffix = f" ({', '.join(extra)})" if extra else ""
-            # For YouTube with title, show title prominently with video ID
-            if info.get("document_type") == "youtube" and info.get("title"):
-                display_name = f"{info['title']} ({d})"
-            else:
-                display_name = d
-            lines.append(f"  - {display_name}{suffix}")
-        return "\n".join(lines)
+        return await anyio.to_thread.run_sync(_format_documents_list)
     except Exception as e:
         _log.exception("Resource pinrag://documents failed")
         return f"Error listing documents: {e}"
@@ -337,14 +376,8 @@ def _env_set(name: str) -> bool:
     return v is not None and str(v).strip() != ""
 
 
-@mcp.resource(
-    "pinrag://server-config",
-    title="Server configuration",
-    description="Environment variables and config params used by the PinRAG MCP server.",
-)
-def server_config_resource() -> str:
-    """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
-    _log.info("Resource pinrag://server-config read")
+def _format_server_config() -> str:
+    """Sync helper: build config string for server_config_resource."""
     config_items = [
         ("PINRAG_PERSIST_DIR", get_persist_dir),
         ("PINRAG_COLLECTION_NAME", get_collection_name),
@@ -392,6 +425,17 @@ def server_config_resource() -> str:
         f"  COHERE_API_KEY: {'set' if os.environ.get('COHERE_API_KEY') else 'not set'}",
     ]
     return "\n".join(lines)
+
+
+@mcp.resource(
+    "pinrag://server-config",
+    title="Server configuration",
+    description="Environment variables and config params used by the PinRAG MCP server.",
+)
+async def server_config_resource() -> str:
+    """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
+    _log.debug("Resource pinrag://server-config read")
+    return await anyio.to_thread.run_sync(_format_server_config)
 
 
 @mcp.prompt()
