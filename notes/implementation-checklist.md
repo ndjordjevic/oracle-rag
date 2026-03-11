@@ -236,9 +236,9 @@
   - Strips the header block, `{Reactions}`, `{Attachments}` CDN URLs, `{Embed}` noise, and raw emoji.
   - Converts each message (or conversational window of N messages) into a `Document` with metadata: `source=discord`, `channel`, `guild`, `author`, `timestamp`, `document_id`, `tag`.
   - Chunks conversation in context-preserving windows (e.g. 10–20 consecutive messages per chunk) rather than per-message — preserves thread context for retrieval.
-- [x] **MCP tool `add_file`** — Single tool for adding files: accepts path (file or directory), auto-detects format (PDF vs DiscordChatExporter .txt via Guild:/Channel: header), routes to index_pdf or index_discord, indexes into vector store. Replaces separate add_pdf/add_discord_export.
+- [x] **MCP tool `add_document_tool`** — Single tool for adding files: accepts paths (file, directory, YouTube, GitHub), auto-detects format (PDF vs DiscordChatExporter .txt via Guild:/Channel: header), routes to index_pdf or index_discord (or YouTube/GitHub), indexes into vector store. Replaces separate add_pdf/add_discord_export.
 - [x] **Incremental ingestion** — Per-file `document_id`: each Discord TXT gets `discord-{channel}--{sanitized-filename-stem}` (e.g. `discord-alicia-1200-pcb--retro-tinkering-...-1404852770154217664` for full, `...--...-after-2026-03-06` for incremental). Additive: new files add chunks without replacing others. Query by `tag` for whole channel.
-- [x] **CLI / script helper** — `scripts/index_discord_channels.py` scans `data/discord-channels/` (root + subfolders) and indexes all Discord `.txt` files via `add_file`. Run manually or cron. Options: `--base-dir`, `--persist-dir`, `--collection`, `--tag`.
+- [x] **CLI / script helper** — `scripts/index_discord_channels.py` scans `data/discord-channels/` (root + subfolders) and indexes all Discord `.txt` files via the add-document indexing logic. Run manually or cron. Options: `--base-dir`, `--persist-dir`, `--collection`, `--tag`.
 - [x] **Test: index Discord export and query via MCP** — Index the full export from `data/discord-channels/` (e.g. alicia-1200-pcb channel) using `add_document_tool`, then run questions about Alicia 1200 (ROM programmer, PSU, etc.) via `query_tool` in Cursor. Confirm answers and sources use the correct `document_id`, `channel`, and `tag` metadata.
 
 ### Retrieval Improvement
@@ -265,10 +265,16 @@
 - [x] **Revise and polish MCP server params** — Keep .env (MCP env blocks, 12-factor, no YAML needed). Documented in .env.example, README config table, and server config resource (set vs defaults).
 
 ### New Document Types (Indexing)
-- [x] **YouTube indexing** — Index video transcripts via `youtube-transcript-api`. Load transcript → chunk → Chroma; metadata: `document_id` (video ID), `document_type`, `video_id`, `start` (seconds), `duration`, `title` (via oEmbed), `source` (canonical URL). MCP `add_file`/`add_files` detect YouTube URLs/IDs; citations show timestamp (e.g. `t. 1:23`). Handle `TranscriptsDisabled`, `NoTranscriptFound` with clear errors. `list_documents` and `documents_resource` show title and segments.
-- [x] **GitHub repo indexing** — Index repo contents (README, code, docs). Load via GitHub API; chunk markdown and code; metadata: `document_id` (repo/path), `source` (url), `file_path`. MCP `add_file` detects GitHub URLs; optional: `branch`, include/exclude patterns (e.g. `*.md`, `docs/`). File-size cap via PINRAG_GITHUB_MAX_FILE_BYTES (default 512 KB).
-- [ ] **YouTube playlist indexing** — Index all videos in a playlist. **Feasible:** (1) Get video IDs via yt-dlp (`extract_flat`, no API key) or YouTube Data API v3 (`playlistItems.list`, requires `YOUTUBE_API_KEY`); (2) for each video ID, reuse existing single-video flow (youtube-transcript-api → chunk → Chroma). MCP `add_file`/`add_files` detect playlist URLs (`youtube.com/playlist?list=...`); index each video as separate document; optional metadata: `playlist_id`, `playlist_title` for filtered search.
-- [ ] **Plain TXT file indexing** — Index plain text files (.txt) that are not Discord exports. Load file → chunk → Chroma; metadata: `document_id` (filename), `document_type` ("plaintext"), `source` (file path). MCP `add_file`/`add_files` detect .txt; distinguish from Discord format (check for `Guild:`/`Channel:` header—Discord takes precedence). Citations show document_id (no page; optional line range if tracked). Reuse existing chunking; optional file-size cap via config.
+- [x] **YouTube indexing** — Index video transcripts via `youtube-transcript-api`. Load transcript → chunk → Chroma; metadata: `document_id` (video ID), `document_type`, `video_id`, `start` (seconds), `duration`, `title` (via oEmbed), `source` (canonical URL). MCP `add_document_tool` detects YouTube URLs/IDs; citations show timestamp (e.g. `t. 1:23`). Handle `TranscriptsDisabled`, `NoTranscriptFound` with clear errors. `list_documents_tool` and `documents_resource` show title and segments.
+- [x] **GitHub repo indexing** — Index repo contents (README, code, docs). Load via GitHub API; chunk markdown and code; metadata: `document_id` (repo/path), `source` (url), `file_path`. MCP `add_document_tool` detects GitHub URLs; optional: `branch`, include/exclude patterns (e.g. `*.md`, `docs/`). File-size cap via PINRAG_GITHUB_MAX_FILE_BYTES (default 512 KB).
+- [x] **YouTube playlist indexing** — Index all videos in a playlist. Uses yt-dlp (`flat_playlist`, no API key) to fetch video IDs; for each video, reuses `index_youtube` (youtube-transcript-api → chunk → Chroma). MCP `add_document_tool` detects playlist URLs (`youtube.com/playlist?list=...`); each video is a separate document (document_id = video_id); metadata: `playlist_id`, `playlist_title` for filtered search. Parent-child indexing applied per video when enabled.
+- [ ] **Plain TXT file indexing** — Index plain text files (.txt) that are not Discord exports. Load file → chunk → Chroma; metadata: `document_id` (filename), `document_type` ("plaintext"), `source` (file path). MCP `add_document_tool` detects .txt; distinguish from Discord format (check for `Guild:`/`Channel:` header—Discord takes precedence). Citations show document_id (no page; optional line range if tracked). Reuse existing chunking; optional file-size cap via config.
+
+### Improve Logging
+- [x] **MCP tool/resource logging** — Log tool calls (entry + completion), resource reads, and indexing progress to stderr so they appear in Cursor's MCP Output panel. Uses `pinrag.mcp` logger with `StreamHandler(sys.stderr)`; `pinrag` parent logger also configured for indexing modules. Logs: tool name + args summary, format detection (GitHub/YouTube/playlist/PDF/Discord), per-path progress (e.g. "Processing path 2/5"), indexed counts, and errors.
+
+### Multi-threading
+- [ ] **Multi-threading** — Is multi-threading supported so we can index from one againt and query from another at the same time?
 
 ### Deployment & Operations
 - [ ] **Deployment packaging** — Package as Docker image, installable CLI (`pip install pinrag`), or hosted MCP server.
@@ -299,7 +305,7 @@
 ### Quality of Life (QoL) — optional
 *(RAG is currently exposed only via MCP tools; these apply if/when CLI or HTTP is added.)*
 - [ ] **CLI tag options** — If a CLI is exposed: add `--tag` / `--tags` to indexing commands (currently only via MCP tools).
-- [ ] **Recursive directory indexing** — Support or document recursive directory in add_file / add_files (e.g. `/my/manuals/` → `**/*.pdf`). add_file already rglobs inside directories; extend or document as needed.
+- [ ] **Recursive directory indexing** — Support or document recursive directory in `add_document_tool` (e.g. `/my/manuals/` → `**/*.pdf`). Indexing already rglobs inside directories; extend or document as needed.
 - [ ] **Retrieval tuning** — Option for higher `top_k` or MMR reranking (LangChain has it built-in) in the retriever.
 - [ ] **Health check endpoint** — If MCP is ever run over HTTP: simple `GET /health` (e.g. `http://localhost:PORT/health`) so users can confirm the server is running. Currently stdio-only.
 

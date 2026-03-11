@@ -6,11 +6,15 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-from pinrag.indexing.youtube_indexer import YouTubeIndexResult, index_youtube
+from pinrag.indexing.youtube_indexer import (
+    YouTubeIndexResult,
+    YouTubePlaylistIndexResult,
+    index_youtube,
+    index_youtube_playlist,
+)
 from pinrag.indexing.youtube_loader import YouTubeLoadResult
 
 
@@ -139,7 +143,7 @@ def test_index_youtube_with_tag(mock_load: MagicMock, mock_pc: MagicMock, tmp_pa
     mock_load.return_value = _make_load_result()
     persist = str(tmp_path / "chroma")
 
-    result = index_youtube(
+    index_youtube(
         "dQw4w9WgXcQ",
         persist_directory=persist,
         collection_name="test_tag",
@@ -183,3 +187,108 @@ def test_index_youtube_metadata_fields(mock_load: MagicMock, mock_pc: MagicMock,
     assert "upload_timestamp" in meta
     assert "doc_total_chunks" in meta
     assert "doc_bytes" in meta
+
+
+# --- index_youtube_playlist ---
+
+
+@patch("pinrag.indexing.youtube_indexer.index_youtube")
+@patch("pinrag.indexing.youtube_indexer.fetch_playlist_info")
+def test_index_youtube_playlist_smoke(
+    mock_fetch: MagicMock,
+    mock_index: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """index_youtube_playlist fetches video IDs and indexes each via index_youtube."""
+    mock_fetch.return_value = {
+        "playlist_id": "PLtest",
+        "playlist_title": "Test Playlist",
+        "video_ids": ["abc12345678", "xyz98765432"],
+    }
+    mock_index.side_effect = [
+        YouTubeIndexResult(
+            video_id="abc12345678",
+            source_url="https://www.youtube.com/watch?v=abc12345678",
+            total_segments=2,
+            total_chunks=1,
+            persist_directory=tmp_path / "chroma",
+            collection_name="test",
+            title="Video 1",
+        ),
+        YouTubeIndexResult(
+            video_id="xyz98765432",
+            source_url="https://www.youtube.com/watch?v=xyz98765432",
+            total_segments=3,
+            total_chunks=2,
+            persist_directory=tmp_path / "chroma",
+            collection_name="test",
+            title="Video 2",
+        ),
+    ]
+
+    result = index_youtube_playlist(
+        "https://www.youtube.com/playlist?list=PLtest",
+        persist_directory=str(tmp_path / "chroma"),
+        collection_name="test",
+        embedding=_MockEmbeddings(),
+    )
+
+    assert isinstance(result, YouTubePlaylistIndexResult)
+    assert result.playlist_id == "PLtest"
+    assert result.playlist_title == "Test Playlist"
+    assert result.total_indexed == 2
+    assert result.total_failed == 0
+    assert len(result.indexed) == 2
+    assert result.indexed[0].video_id == "abc12345678"
+    assert result.indexed[1].video_id == "xyz98765432"
+    assert mock_index.call_count == 2
+    calls = mock_index.call_args_list
+    assert calls[0][0][0] == "abc12345678"
+    assert calls[1][0][0] == "xyz98765432"
+    assert calls[0][1]["extra_metadata"] == {"playlist_id": "PLtest", "playlist_title": "Test Playlist"}
+
+
+@patch("pinrag.indexing.youtube_indexer.index_youtube")
+@patch("pinrag.indexing.youtube_indexer.fetch_playlist_info")
+def test_index_youtube_playlist_partial_failure(
+    mock_fetch: MagicMock,
+    mock_index: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """index_youtube_playlist continues on per-video failure and reports failed."""
+    mock_fetch.return_value = {
+        "playlist_id": "PLx",
+        "playlist_title": "",
+        "video_ids": ["ok123456789", "fail1234567"],
+    }
+    mock_index.side_effect = [
+        YouTubeIndexResult(
+            video_id="ok123456789",
+            source_url="https://www.youtube.com/watch?v=ok123456789",
+            total_segments=1,
+            total_chunks=1,
+            persist_directory=tmp_path / "chroma",
+            collection_name="test",
+            title=None,
+        ),
+        RuntimeError("No transcript found"),
+    ]
+
+    result = index_youtube_playlist(
+        "https://www.youtube.com/playlist?list=PLx",
+        persist_directory=str(tmp_path / "chroma"),
+        collection_name="test",
+        embedding=_MockEmbeddings(),
+    )
+
+    assert result.total_indexed == 1
+    assert result.total_failed == 1
+    assert len(result.failed) == 1
+    assert result.failed[0]["video_id"] == "fail1234567"
+    assert "No transcript found" in result.failed[0]["error"]
+
+
+def test_index_youtube_playlist_invalid_url_raises() -> None:
+    """index_youtube_playlist raises ValueError for non-playlist URL."""
+    with pytest.raises(ValueError, match="Invalid YouTube playlist URL"):
+        index_youtube_playlist("https://youtu.be/dQw4w9WgXcQ")

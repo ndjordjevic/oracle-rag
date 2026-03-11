@@ -305,6 +305,41 @@ def test_add_file_youtube_transcript_error_returns_failed(tmp_path: Path) -> Non
     assert "No transcript found" in result["failed"][0]["error"]
 
 
+def test_add_file_youtube_playlist_detection_and_success(tmp_path: Path) -> None:
+    """add_file detects playlist URL and routes to index_youtube_playlist."""
+    fake_result = MagicMock()
+    fake_result.playlist_id = "PLtest"
+    fake_result.playlist_title = "Test Playlist"
+    fake_result.total_indexed = 2
+    fake_result.total_failed = 0
+    fake_result.indexed = [
+        MagicMock(video_id="abc12345678", source_url="https://www.youtube.com/watch?v=abc12345678", total_segments=2, total_chunks=1, title="V1"),
+        MagicMock(video_id="xyz98765432", source_url="https://www.youtube.com/watch?v=xyz98765432", total_segments=3, total_chunks=2, title="V2"),
+    ]
+    fake_result.failed = []
+
+    with patch("pinrag.mcp.tools.index_youtube_playlist", return_value=fake_result) as mock_index:
+        with patch("pinrag.mcp.tools.get_embedding_model"):
+            result = add_file(
+                path="https://www.youtube.com/playlist?list=PLtest",
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+            )
+
+    assert result["total_indexed"] == 2
+    assert len(result["indexed"]) == 2
+    assert result["indexed"][0]["format"] == "youtube_playlist"
+    assert result["indexed"][0]["video_id"] == "abc12345678"
+    assert result["indexed"][1]["video_id"] == "xyz98765432"
+    mock_index.assert_called_once_with(
+        "https://www.youtube.com/playlist?list=PLtest",
+        persist_directory=str(tmp_path),
+        collection_name="test_coll",
+        embedding=mock_index.call_args[1]["embedding"],
+        tag=None,
+    )
+
+
 def test_add_files_tags_length_mismatch_raises() -> None:
     """add_files raises when tags length does not match paths."""
     with pytest.raises(ValueError, match="tags must have same length"):

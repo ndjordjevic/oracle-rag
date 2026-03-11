@@ -6,12 +6,20 @@ import json
 import re
 import urllib.request
 from dataclasses import dataclass
-from typing import Optional
 
 from langchain_core.documents import Document
 
+from pinrag.config import get_yt_proxy_config
+
 # YouTube video ID: 11 alphanumeric chars (base64-like)
 _VIDEO_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{11}$")
+# Playlist: list=PL... (playlist IDs are typically 13-34 chars; allow 2+ for short test IDs)
+_PLAYLIST_ID_RE = re.compile(r"[?&]list=([a-zA-Z0-9_-]{2,})", re.IGNORECASE)
+_PLAYLIST_URL_RE = re.compile(
+    r"youtube\.com/playlist\?list=([a-zA-Z0-9_-]{2,})",
+    re.IGNORECASE,
+)
+
 # youtube.com/watch?v=VIDEO_ID, youtu.be/VIDEO_ID, youtube.com/embed/VIDEO_ID, etc.
 _URL_PATTERNS = [
     re.compile(r"(?:youtube\.com/watch\?.*v=)([a-zA-Z0-9_-]{11})", re.IGNORECASE),
@@ -24,7 +32,88 @@ _URL_PATTERNS = [
 _DEFAULT_LANGUAGES = ("en", "en-US", "en-GB")
 
 
-def extract_video_id(input_str: str) -> Optional[str]:
+def extract_playlist_id(input_str: str) -> str | None:
+    """Extract YouTube playlist ID from URL.
+
+    Supports: youtube.com/playlist?list=PL..., youtube.com/watch?v=X&list=PL...
+
+    Returns:
+        Playlist ID string, or None if not a playlist URL.
+
+    """
+    s = (input_str or "").strip()
+    if not s:
+        return None
+    s_lower = s.lower()
+    if "youtube.com" not in s_lower and "youtu.be" not in s_lower:
+        return None
+    m = _PLAYLIST_URL_RE.search(s)
+    if m:
+        return m.group(1)
+    m = _PLAYLIST_ID_RE.search(s)
+    if m:
+        return m.group(1)
+    return None
+
+
+def fetch_playlist_info(playlist_id: str) -> dict:
+    """Fetch playlist metadata and video IDs via yt-dlp (no API key, no download).
+
+    Uses extract_flat to get video IDs and titles without downloading.
+
+    Args:
+        playlist_id: YouTube playlist ID (e.g. from extract_playlist_id).
+
+    Returns:
+        Dict with "playlist_id", "playlist_title", "video_ids" (list of str).
+
+    Raises:
+        ValueError: If playlist_id is empty or invalid.
+        RuntimeError: If yt-dlp cannot fetch the playlist.
+
+    """
+    if not playlist_id or not str(playlist_id).strip():
+        raise ValueError("playlist_id cannot be empty")
+    playlist_id = str(playlist_id).strip()
+    url = f"https://www.youtube.com/playlist?list={playlist_id}"
+
+    import yt_dlp
+
+    opts = {
+        "flat_playlist": True,
+        "skip_download": True,
+        "quiet": True,
+        "no_warnings": True,
+    }
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception as e:
+        raise RuntimeError(
+            f"Could not fetch YouTube playlist {playlist_id}: {e}"
+        ) from e
+
+    if not info:
+        raise RuntimeError(f"Could not fetch YouTube playlist {playlist_id}")
+
+    title = info.get("title") or ""
+    entries = info.get("entries") or []
+    video_ids: list[str] = []
+    for entry in entries:
+        if entry is None:
+            continue
+        vid = entry.get("id")
+        if vid and isinstance(vid, str) and len(vid) == 11:
+            video_ids.append(vid)
+
+    return {
+        "playlist_id": playlist_id,
+        "playlist_title": title,
+        "video_ids": video_ids,
+    }
+
+
+def extract_video_id(input_str: str) -> str | None:
     """Extract YouTube video ID from URL or raw ID.
 
     Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID,
@@ -32,6 +121,7 @@ def extract_video_id(input_str: str) -> Optional[str]:
 
     Returns:
         Video ID string, or None if not recognized.
+
     """
     s = (input_str or "").strip()
     if not s:
@@ -51,7 +141,7 @@ def _canonical_url(video_id: str) -> str:
     return f"https://www.youtube.com/watch?v={video_id}"
 
 
-def _fetch_video_title(video_id: str) -> Optional[str]:
+def _fetch_video_title(video_id: str) -> str | None:
     """Fetch video title via YouTube oEmbed (no API key required).
 
     Returns title string or None if fetch fails.
@@ -73,14 +163,14 @@ class YouTubeLoadResult:
     source_url: str
     documents: list[Document]
     total_segments: int
-    title: Optional[str] = None
+    title: str | None = None
 
 
 def load_youtube_transcript_as_documents(
     url_or_id: str,
     *,
     languages: tuple[str, ...] = _DEFAULT_LANGUAGES,
-    document_id: Optional[str] = None,
+    document_id: str | None = None,
 ) -> YouTubeLoadResult:
     """Load a YouTube video transcript into LangChain Documents.
 
@@ -99,6 +189,7 @@ def load_youtube_transcript_as_documents(
     Raises:
         ValueError: If url_or_id is not a valid YouTube URL or video ID.
         RuntimeError: If transcript cannot be retrieved (disabled, not found, etc.).
+
     """
     from youtube_transcript_api import (
         NoTranscriptFound,
@@ -117,9 +208,14 @@ def load_youtube_transcript_as_documents(
     doc_id = document_id if document_id else video_id
     title = _fetch_video_title(video_id)
 
-    api = YouTubeTranscriptApi()
+    proxy_config = get_yt_proxy_config()
+    api = (
+        YouTubeTranscriptApi(proxy_config=proxy_config)
+        if proxy_config
+        else YouTubeTranscriptApi()
+    )
     transcript = None
-    last_error: Optional[Exception] = None
+    last_error: Exception | None = None
 
     # Try requested languages first
     for lang in languages:

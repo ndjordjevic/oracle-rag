@@ -6,6 +6,8 @@ import os
 
 import pytest
 
+from youtube_transcript_api.proxies import GenericProxyConfig
+
 from pinrag.config import (
     get_chunk_overlap,
     get_chunk_size,
@@ -13,6 +15,7 @@ from pinrag.config import (
     get_rerank_retrieve_k,
     get_rerank_top_n,
     get_use_rerank,
+    get_yt_proxy_config,
 )
 
 
@@ -127,3 +130,41 @@ def test_get_rerank_top_n_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """With valid env var, returns parsed int."""
     monkeypatch.setenv("PINRAG_RERANK_TOP_N", "3")
     assert get_rerank_top_n() == 3
+
+
+# YouTube transcript proxy config
+def _clear_yt_proxy_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Clear all YouTube proxy env vars."""
+    for key in (
+        "PINRAG_YT_PROXY_HTTP_URL",
+        "PINRAG_YT_PROXY_HTTPS_URL",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_get_yt_proxy_config_none_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without any proxy env vars, returns None."""
+    _clear_yt_proxy_env(monkeypatch)
+    assert get_yt_proxy_config() is None
+
+
+def test_get_yt_proxy_config_generic_when_http_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With PINRAG_YT_PROXY_HTTP_URL, returns GenericProxyConfig."""
+    _clear_yt_proxy_env(monkeypatch)
+    monkeypatch.setenv("PINRAG_YT_PROXY_HTTP_URL", "http://proxy.example.com:8080")
+    cfg = get_yt_proxy_config()
+    assert isinstance(cfg, GenericProxyConfig)
+
+
+def test_get_yt_proxy_config_generic_when_https_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With PINRAG_YT_PROXY_HTTPS_URL, returns GenericProxyConfig."""
+    _clear_yt_proxy_env(monkeypatch)
+    monkeypatch.setenv("PINRAG_YT_PROXY_HTTPS_URL", "https://proxy.example.com:8443")
+    cfg = get_yt_proxy_config()
+    assert isinstance(cfg, GenericProxyConfig)
+
+

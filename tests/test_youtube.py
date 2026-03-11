@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from langchain_core.documents import Document
 
 from pinrag.indexing.youtube_loader import (
     _fetch_video_title,
+    extract_playlist_id,
     extract_video_id,
+    fetch_playlist_info,
     load_youtube_transcript_as_documents,
 )
 from pinrag.rag.formatting import format_docs, format_sources
-from langchain_core.documents import Document
-
 
 # --- extract_video_id ---
 
@@ -48,6 +48,87 @@ def test_extract_video_id_invalid_returns_none() -> None:
     assert extract_video_id("https://example.com/foo") is None
     assert extract_video_id("short") is None
     assert extract_video_id("toolong12345") is None
+
+
+# --- extract_playlist_id ---
+
+
+def test_extract_playlist_id_playlist_url() -> None:
+    """extract_playlist_id extracts from playlist URL."""
+    assert extract_playlist_id("https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg") == "PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg"
+
+
+def test_extract_playlist_id_watch_with_list() -> None:
+    """extract_playlist_id extracts from watch URL with list param."""
+    url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg"
+    assert extract_playlist_id(url) == "PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg"
+
+
+def test_extract_playlist_id_single_video_returns_none() -> None:
+    """extract_playlist_id returns None for single video URL."""
+    assert extract_playlist_id("https://youtu.be/dQw4w9WgXcQ") is None
+    assert extract_playlist_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ") is None
+
+
+def test_extract_playlist_id_invalid_returns_none() -> None:
+    """extract_playlist_id returns None for non-YouTube URLs."""
+    assert extract_playlist_id("") is None
+    assert extract_playlist_id("https://example.com/foo") is None
+
+
+def test_detect_source_format_youtube_playlist() -> None:
+    """_detect_source_format returns 'youtube_playlist' for playlist URLs."""
+    from pinrag.mcp.tools import _detect_source_format
+    assert _detect_source_format("https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg") == "youtube_playlist"
+    assert _detect_source_format("https://www.youtube.com/watch?v=abc12345678&list=PLtest123") == "youtube_playlist"
+
+
+# --- fetch_playlist_info ---
+
+
+@patch("yt_dlp.YoutubeDL")
+def test_fetch_playlist_info_success(mock_ydl_cls: MagicMock) -> None:
+    """fetch_playlist_info returns playlist title and video IDs."""
+    mock_ydl = MagicMock()
+    mock_ydl.__enter__ = MagicMock(return_value=mock_ydl)
+    mock_ydl.__exit__ = MagicMock(return_value=None)
+    mock_ydl.extract_info.return_value = {
+        "title": "My Playlist",
+        "entries": [
+            {"id": "abc12345678", "title": "Video 1"},
+            {"id": "xyz98765432", "title": "Video 2"},
+        ],
+    }
+    mock_ydl_cls.return_value = mock_ydl
+
+    result = fetch_playlist_info("PLtest123")
+
+    assert result["playlist_id"] == "PLtest123"
+    assert result["playlist_title"] == "My Playlist"
+    assert result["video_ids"] == ["abc12345678", "xyz98765432"]
+
+
+@patch("yt_dlp.YoutubeDL")
+def test_fetch_playlist_info_skips_none_entries(mock_ydl_cls: MagicMock) -> None:
+    """fetch_playlist_info skips None entries (deleted/private videos)."""
+    mock_ydl = MagicMock()
+    mock_ydl.__enter__ = MagicMock(return_value=mock_ydl)
+    mock_ydl.__exit__ = MagicMock(return_value=None)
+    mock_ydl.extract_info.return_value = {
+        "title": "Playlist",
+        "entries": [{"id": "abc12345678"}, None, {"id": "xyz98765432"}],
+    }
+    mock_ydl_cls.return_value = mock_ydl
+
+    result = fetch_playlist_info("PLx")
+
+    assert result["video_ids"] == ["abc12345678", "xyz98765432"]
+
+
+def test_fetch_playlist_info_empty_id_raises() -> None:
+    """fetch_playlist_info raises ValueError for empty playlist_id."""
+    with pytest.raises(ValueError, match="playlist_id cannot be empty"):
+        fetch_playlist_info("")
 
 
 # --- _fetch_video_title ---

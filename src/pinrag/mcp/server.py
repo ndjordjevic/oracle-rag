@@ -48,7 +48,7 @@ load_dotenv()
 # Disable Chroma telemetry — avoids PostHog INFO messages in Cursor Output
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
-# Configure logging to stderr so it appears in Cursor's Output panel for this MCP
+# Configure logging to stderr so it appears in Cursor's MCP Output panel
 _log_handler = logging.StreamHandler(sys.stderr)
 _log_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 _log = logging.getLogger("pinrag.mcp")
@@ -56,6 +56,12 @@ _log.setLevel(logging.INFO)
 _log.propagate = False
 if not _log.handlers:
     _log.addHandler(_log_handler)
+# Also send pinrag.* logs (tools, indexing) to stderr for progress/errors in Cursor Output
+_pinrag_root = logging.getLogger("pinrag")
+_pinrag_root.setLevel(logging.INFO)
+_pinrag_root.propagate = False
+if not _pinrag_root.handlers:
+    _pinrag_root.addHandler(_log_handler)
 
 # Suppress verbose INFO logs from dependencies — they go to stderr and show as [error] in Cursor
 for _name in ("mcp", "chromadb", "posthog", "openai", "httpx", "httpcore"):
@@ -88,15 +94,34 @@ def _user_friendly_api_error(exc: Exception) -> str | None:
 
 
 def _log_tool_errors(fn):
-    """Decorator: log exceptions to stderr (Cursor Output) then re-raise so client gets the error.
+    """Decorator: log tool entry, success, and exceptions to stderr (Cursor MCP Output).
     Preserves the wrapped function's signature so MCP/FastMCP schema introspection sees all parameters.
     """
+
+    def _summary(name: str, args: tuple, kwargs: dict) -> str:
+        if name == "add_document_tool":
+            paths = kwargs.get("paths", [])
+            n = len(paths)
+            preview = paths[0][:60] + "..." if n == 1 and len(paths[0]) > 60 else (f"{n} paths" if n > 1 else (paths[0] if paths else ""))
+            return f"paths={preview!r}"
+        if name == "query_tool":
+            q = (kwargs.get("query") or "").strip()
+            return f"query={q[:80]!r}..." if len(q) > 80 else f"query={q!r}"
+        if name == "list_documents_tool":
+            return f"tag={kwargs.get('tag', '')!r}"
+        if name == "remove_document_tool":
+            return f"document_id={kwargs.get('document_id', '')!r}"
+        return ""
 
     if inspect.iscoroutinefunction(fn):
         @functools.wraps(fn)
         async def wrapper(*args, **kwargs):
+            summary = _summary(fn.__name__, args, kwargs)
+            _log.info("Tool %s called %s", fn.__name__, summary if summary else "")
             try:
-                return await fn(*args, **kwargs)
+                result = await fn(*args, **kwargs)
+                _log.info("Tool %s completed", fn.__name__)
+                return result
             except Exception as e:
                 _log.exception("Tool %s failed", fn.__name__)
                 friendly = _user_friendly_api_error(e)
@@ -106,8 +131,12 @@ def _log_tool_errors(fn):
     else:
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
+            summary = _summary(fn.__name__, args, kwargs)
+            _log.info("Tool %s called %s", fn.__name__, summary if summary else "")
             try:
-                return fn(*args, **kwargs)
+                result = fn(*args, **kwargs)
+                _log.info("Tool %s completed", fn.__name__)
+                return result
             except Exception as e:
                 _log.exception("Tool %s failed", fn.__name__)
                 friendly = _user_friendly_api_error(e)
@@ -261,6 +290,7 @@ def documents_resource() -> str:
     For YouTube: shows video title when available, with video ID in parentheses.
     Shows tag when attached to a document.
     """
+    _log.info("Resource pinrag://documents read")
     try:
         result = list_documents(
             persist_dir=get_persist_dir(),
@@ -298,6 +328,7 @@ def documents_resource() -> str:
             lines.append(f"  - {display_name}{suffix}")
         return "\n".join(lines)
     except Exception as e:
+        _log.exception("Resource pinrag://documents failed")
         return f"Error listing documents: {e}"
 
 
@@ -313,6 +344,7 @@ def _env_set(name: str) -> bool:
 )
 def server_config_resource() -> str:
     """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
+    _log.info("Resource pinrag://server-config read")
     config_items = [
         ("PINRAG_PERSIST_DIR", get_persist_dir),
         ("PINRAG_COLLECTION_NAME", get_collection_name),

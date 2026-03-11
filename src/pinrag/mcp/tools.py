@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Literal
+
+_log = logging.getLogger("pinrag.mcp")
 
 from langsmith import traceable
 
@@ -13,11 +16,13 @@ from pinrag.indexing import (
     GitHubIndexResult,
     IndexResult,
     YouTubeIndexResult,
+    extract_playlist_id,
     extract_video_id,
     index_discord,
     index_github,
     index_pdf,
     index_youtube,
+    index_youtube_playlist,
 )
 from pinrag.llm import get_chat_model
 from pinrag.rag import run_rag
@@ -34,17 +39,21 @@ def _is_github_url(s: str) -> bool:
     return "github.com/" in t and "/" in t.split("github.com/", 1)[-1]
 
 
-def _detect_source_format(path_or_url: str) -> Literal["youtube", "pdf", "discord", "github"] | None:
-    """Detect supported format: GitHub URL, YouTube URL/ID, PDF, or DiscordChatExporter TXT.
+def _detect_source_format(
+    path_or_url: str,
+) -> Literal["youtube", "youtube_playlist", "pdf", "discord", "github"] | None:
+    """Detect supported format: GitHub URL, YouTube playlist, YouTube video, PDF, or DiscordChatExporter TXT.
 
-    Returns "github", "youtube", "pdf", "discord", or None if unsupported.
-    Prioritizes existing local paths over URL patterns.
+    Returns "github", "youtube_playlist", "youtube", "pdf", "discord", or None if unsupported.
+    Prioritizes playlist over single video when URL contains list=.
     """
     s = (path_or_url or "").strip()
     if not s:
         return None
     if _is_github_url(s):
         return "github"
+    if extract_playlist_id(s):
+        return "youtube_playlist"
     if extract_video_id(s):
         return "youtube"
     base = Path(s).expanduser().resolve()
@@ -211,6 +220,7 @@ def add_file(
 
     fmt = _detect_source_format(path)
     if fmt == "github":
+        _log.info("Indexing GitHub repo: %s", path[:80] + "..." if len(path) > 80 else path)
         try:
             embedding = get_embedding_model()
             result_gh: GitHubIndexResult = index_github(
@@ -223,6 +233,7 @@ def add_file(
                 include_patterns=include_patterns if include_patterns else None,
                 exclude_patterns=exclude_patterns if exclude_patterns else None,
             )
+            _log.info("GitHub indexed: %s (%d files, %d chunks)", f"{result_gh.owner}/{result_gh.repo}", result_gh.files_indexed, result_gh.total_chunks)
             return {
                 "indexed": [{
                     "path": path,
@@ -239,6 +250,54 @@ def add_file(
                 "collection_name": collection,
             }
         except Exception as e:
+            _log.warning("GitHub indexing failed: %s - %s", path, e)
+            return {
+                "indexed": [],
+                "failed": [{"path": path, "error": str(e)}],
+                "total_indexed": 0,
+                "total_failed": 1,
+                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "collection_name": collection,
+            }
+    if fmt == "youtube_playlist":
+        _log.info("Indexing YouTube playlist: %s", path[:80] + "..." if len(path) > 80 else path)
+        try:
+            embedding = get_embedding_model()
+            result_pl = index_youtube_playlist(
+                path,
+                persist_directory=_persist,
+                collection_name=collection,
+                embedding=embedding,
+                tag=tag_clean,
+            )
+            indexed_items: list[dict[str, Any]] = []
+            for r in result_pl.indexed:
+                item: dict[str, Any] = {
+                    "path": path,
+                    "format": "youtube_playlist",
+                    "video_id": r.video_id,
+                    "source_url": r.source_url,
+                    "total_segments": r.total_segments,
+                    "total_chunks": r.total_chunks,
+                }
+                if r.title:
+                    item["title"] = r.title
+                indexed_items.append(item)
+            failed_items = [
+                {"path": f"https://www.youtube.com/watch?v={f['video_id']}", "error": f["error"]}
+                for f in result_pl.failed
+            ]
+            _log.info("YouTube playlist indexed: %d videos, %d failed", result_pl.total_indexed, result_pl.total_failed)
+            return {
+                "indexed": indexed_items,
+                "failed": failed_items,
+                "total_indexed": result_pl.total_indexed,
+                "total_failed": result_pl.total_failed,
+                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "collection_name": collection,
+            }
+        except Exception as e:
+            _log.warning("YouTube playlist indexing failed: %s - %s", path, e)
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -248,6 +307,7 @@ def add_file(
                 "collection_name": collection,
             }
     if fmt == "youtube":
+        _log.info("Indexing YouTube video: %s", path[:80] + "..." if len(path) > 80 else path)
         try:
             embedding = get_embedding_model()
             result_yt: YouTubeIndexResult = index_youtube(
@@ -267,6 +327,7 @@ def add_file(
             }
             if result_yt.title:
                 indexed_item["title"] = result_yt.title
+            _log.info("YouTube video indexed: %s (%d chunks)", result_yt.video_id, result_yt.total_chunks)
             return {
                 "indexed": [indexed_item],
                 "failed": [],
@@ -276,6 +337,7 @@ def add_file(
                 "collection_name": collection,
             }
         except Exception as e:
+            _log.warning("YouTube video indexing failed: %s - %s", path, e)
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -290,7 +352,7 @@ def add_file(
             raise FileNotFoundError(f"Path not found: {path}")
         raise ValueError(
             f"Unsupported format: {path}. "
-            "Supported: GitHub URL, YouTube URL/video ID, .pdf, .txt (DiscordChatExporter with Guild:/Channel: header)."
+            "Supported: GitHub URL, YouTube URL/video ID, YouTube playlist URL, .pdf, .txt (DiscordChatExporter with Guild:/Channel: header)."
         )
 
     base = Path(path).expanduser().resolve()
@@ -325,6 +387,7 @@ def add_file(
     indexed: list[dict[str, Any]] = []
     failed: list[dict[str, str]] = []
 
+    _log.info("Indexing %d file(s) from %s", len(files_to_index), path)
     for f in files_to_index:
         try:
             file_fmt = _detect_file_format(f)
@@ -336,6 +399,7 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
+                _log.info("PDF indexed: %s (%d pages, %d chunks)", f.name, result.total_pages, result.total_chunks)
                 indexed.append({
                     "path": str(f),
                     "format": "pdf",
@@ -351,6 +415,7 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
+                _log.info("Discord indexed: %s (%d messages, %d chunks)", result_d.document_id, result_d.total_messages, result_d.total_chunks)
                 indexed.append({
                     "path": str(f),
                     "format": "discord",
@@ -364,6 +429,7 @@ def add_file(
             else:
                 failed.append({"path": str(f), "error": "Unsupported format"})
         except Exception as e:
+            _log.warning("File indexing failed: %s - %s", f, e)
             failed.append({"path": str(f), "error": str(e)})
 
     return {
@@ -410,6 +476,7 @@ def add_files(
     all_indexed: list[dict[str, Any]] = []
     all_failed: list[dict[str, str]] = []
 
+    n_paths = len(paths)
     for i, raw_path in enumerate(paths):
         if not raw_path or not str(raw_path).strip():
             all_failed.append({"path": str(raw_path), "error": "path cannot be empty"})
@@ -417,6 +484,8 @@ def add_files(
         doc_tag: str | None = None
         if tags is not None and i < len(tags) and tags[i] and str(tags[i]).strip():
             doc_tag = str(tags[i]).strip()
+        if n_paths > 1:
+            _log.info("Processing path %d/%d: %s", i + 1, n_paths, raw_path[:60] + "..." if len(raw_path) > 60 else raw_path)
         try:
             r = add_file(
                 path=raw_path,
@@ -427,8 +496,10 @@ def add_files(
             all_indexed.extend(r["indexed"])
             all_failed.extend(r["failed"])
         except Exception as e:
+            _log.warning("Path failed: %s - %s", raw_path, e)
             all_failed.append({"path": str(raw_path), "error": str(e)})
 
+    _log.info("add_files done: %d indexed, %d failed", len(all_indexed), len(all_failed))
     return {
         "indexed": all_indexed,
         "failed": all_failed,

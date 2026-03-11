@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -21,13 +21,17 @@ from pinrag.config import (
     get_structure_aware_chunking,
     get_use_parent_child,
 )
-from pinrag.indexing.youtube_loader import YouTubeLoadResult, load_youtube_transcript_as_documents
+from pinrag.indexing.youtube_loader import (
+    YouTubeLoadResult,
+    extract_playlist_id,
+    fetch_playlist_info,
+    load_youtube_transcript_as_documents,
+)
 from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
 from pinrag.vectorstore.docstore import get_parent_docstore
-
 
 PathLike = Union[str, Path]
 
@@ -42,18 +46,33 @@ class YouTubeIndexResult:
     total_chunks: int
     persist_directory: Path
     collection_name: str
-    title: Optional[str] = None
+    title: str | None = None
+
+
+@dataclass(frozen=True)
+class YouTubePlaylistIndexResult:
+    """Summary of indexing a YouTube playlist into Chroma."""
+
+    playlist_id: str
+    playlist_title: str
+    indexed: list[YouTubeIndexResult]
+    failed: list[dict]
+    total_indexed: int
+    total_failed: int
+    persist_directory: Path
+    collection_name: str
 
 
 def index_youtube(
     url_or_id: str,
     *,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    chunk_size: Optional[int] = None,
-    chunk_overlap: Optional[int] = None,
-    tag: Optional[str] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    chunk_size: int | None = None,
+    chunk_overlap: int | None = None,
+    tag: str | None = None,
+    extra_metadata: dict | None = None,
 ) -> YouTubeIndexResult:
     """Load, chunk, and index a YouTube video transcript into Chroma.
 
@@ -68,9 +87,12 @@ def index_youtube(
         chunk_size: Chunk size in chars; if None, uses PINRAG_CHUNK_SIZE.
         chunk_overlap: Chunk overlap in chars; if None, uses PINRAG_CHUNK_OVERLAP.
         tag: Optional tag for this document; stored on all chunks for filtering.
+        extra_metadata: Optional dict of extra metadata (e.g. playlist_id, playlist_title)
+            to add to all chunks.
 
     Returns:
         YouTubeIndexResult with video_id, total_segments, total_chunks, etc.
+
     """
     if collection_name is None:
         collection_name = get_collection_name()
@@ -103,6 +125,7 @@ def index_youtube(
             embedding=embedding,
             tag=tag,
             respect_structure=respect_structure,
+            extra_metadata=extra_metadata,
         )
     else:
         size = chunk_size if chunk_size is not None else get_chunk_size()
@@ -115,7 +138,7 @@ def index_youtube(
             respect_structure=respect_structure,
         )
 
-        upload_ts = datetime.now(timezone.utc).isoformat()
+        upload_ts = datetime.now(UTC).isoformat()
         doc_total_chunks = len(chunk_docs)
         doc_segments = load_result.total_segments
         doc_bytes = sum(len(d.page_content.encode("utf-8")) for d in load_result.documents)
@@ -129,6 +152,8 @@ def index_youtube(
                 doc.metadata["doc_title"] = load_result.title
             if tag is not None and str(tag).strip():
                 doc.metadata["tag"] = str(tag).strip()
+            for k, v in (extra_metadata or {}).items():
+                doc.metadata[k] = v
 
         store = get_chroma_store(
             persist_directory=persist_directory,
@@ -159,9 +184,10 @@ def _index_youtube_parent_child(
     load_result: YouTubeLoadResult,
     persist_directory: PathLike,
     collection_name: str,
-    embedding: Optional[Embeddings],
-    tag: Optional[str],
+    embedding: Embeddings | None,
+    tag: str | None,
     respect_structure: bool,
+    extra_metadata: dict | None = None,
 ) -> int:
     """Index YouTube using parent-child retrieval: embed small chunks, store large parents in docstore."""
     parent_size = get_parent_chunk_size()
@@ -185,7 +211,7 @@ def _index_youtube_parent_child(
     )
     docstore = get_parent_docstore(persist_directory, collection_name)
 
-    upload_ts = datetime.now(timezone.utc).isoformat()
+    upload_ts = datetime.now(UTC).isoformat()
     document_id = load_result.video_id
     source_url = load_result.source_url
     doc_bytes = sum(len(d.page_content.encode("utf-8")) for d in load_result.documents)
@@ -206,6 +232,8 @@ def _index_youtube_parent_child(
             parent.metadata["doc_title"] = load_result.title
         if tag is not None and str(tag).strip():
             parent.metadata["tag"] = str(tag).strip()
+        for k, v in (extra_metadata or {}).items():
+            parent.metadata[k] = v
 
         child_chunks = chunk_documents(
             [parent],
@@ -226,6 +254,8 @@ def _index_youtube_parent_child(
                 c.metadata["doc_title"] = load_result.title
             if tag is not None and str(tag).strip():
                 c.metadata["tag"] = str(tag).strip()
+            for k, v in (extra_metadata or {}).items():
+                c.metadata[k] = v
             all_children.append(c)
 
         parent_docstore_entries.append((parent_id, parent))
@@ -247,3 +277,77 @@ def _index_youtube_parent_child(
         store.add_documents(batch)
 
     return total_chunks
+
+
+def index_youtube_playlist(
+    playlist_url: str,
+    *,
+    persist_directory: PathLike = DEFAULT_PERSIST_DIR,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    tag: str | None = None,
+) -> YouTubePlaylistIndexResult:
+    """Index all videos in a YouTube playlist into Chroma.
+
+    Fetches video IDs via yt-dlp (extract_flat, no API key), then indexes each
+    video individually using index_youtube. Each video is a separate document
+    with its own document_id (video_id). Parent-child indexing is applied per
+    video when PINRAG_USE_PARENT_CHILD is enabled.
+
+    Args:
+        playlist_url: YouTube playlist URL (e.g. youtube.com/playlist?list=PL...).
+        persist_directory: Chroma persistence directory.
+        collection_name: Chroma collection name. If None, uses config default.
+        embedding: Optional embedding model; if None, uses default.
+        tag: Optional tag for all indexed videos; stored on all chunks.
+
+    Returns:
+        YouTubePlaylistIndexResult with indexed videos, failures, and totals.
+
+    """
+    playlist_id = extract_playlist_id(playlist_url)
+    if not playlist_id:
+        raise ValueError(
+            f"Invalid YouTube playlist URL: {playlist_url!r}. "
+            "Expected youtube.com/playlist?list=PL... or youtube.com/watch?v=X&list=PL..."
+        )
+
+    info = fetch_playlist_info(playlist_id)
+    playlist_title = info.get("playlist_title") or ""
+    video_ids = info.get("video_ids") or []
+
+    if collection_name is None:
+        collection_name = get_collection_name()
+
+    persist_path = Path(persist_directory).expanduser().resolve()
+    indexed: list[YouTubeIndexResult] = []
+    failed: list[dict] = []
+
+    extra = {"playlist_id": playlist_id}
+    if playlist_title:
+        extra["playlist_title"] = playlist_title
+
+    for video_id in video_ids:
+        try:
+            result = index_youtube(
+                video_id,
+                persist_directory=persist_directory,
+                collection_name=collection_name,
+                embedding=embedding,
+                tag=tag,
+                extra_metadata=extra,
+            )
+            indexed.append(result)
+        except Exception as e:
+            failed.append({"video_id": video_id, "error": str(e)})
+
+    return YouTubePlaylistIndexResult(
+        playlist_id=playlist_id,
+        playlist_title=playlist_title,
+        indexed=indexed,
+        failed=failed,
+        total_indexed=len(indexed),
+        total_failed=len(failed),
+        persist_directory=persist_path,
+        collection_name=collection_name,
+    )

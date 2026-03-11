@@ -362,3 +362,22 @@ def get_github_default_branch() -> str:
     if val and str(val).strip():
         return str(val).strip()
     return DEFAULT_GITHUB_DEFAULT_BRANCH
+
+
+def get_yt_proxy_config():
+    """Return YouTube transcript API proxy config from env, or None if not configured.
+
+    When PINRAG_YT_PROXY_HTTP_URL or PINRAG_YT_PROXY_HTTPS_URL is set, uses
+    GenericProxyConfig. Otherwise returns None (no proxy).
+    """
+    from youtube_transcript_api.proxies import GenericProxyConfig
+
+    http_url = os.environ.get("PINRAG_YT_PROXY_HTTP_URL", "").strip()
+    https_url = os.environ.get("PINRAG_YT_PROXY_HTTPS_URL", "").strip()
+    if http_url or https_url:
+        return GenericProxyConfig(
+            http_url=http_url or None,
+            https_url=https_url or None,
+        )
+
+    return None
