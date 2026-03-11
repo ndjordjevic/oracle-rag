@@ -102,7 +102,7 @@ def run_rag(
         page_min: Optional start of page range (inclusive). Use with page_max.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64.
         tag: Optional tag to filter retrieval (e.g. "PI_PICO").
-        document_type: Optional type to filter: "pdf", "youtube", or "discord".
+        document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
         file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style for prompt instructions ("thorough" or "concise").
 

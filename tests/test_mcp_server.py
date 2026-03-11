@@ -180,10 +180,10 @@ def test_add_file_path_not_found_raises() -> None:
 
 def test_add_file_unsupported_format_raises(tmp_path: Path) -> None:
     """add_file raises ValueError when file format is unsupported."""
-    txt_file = tmp_path / "plain.txt"
-    txt_file.write_text("just plain text, no Guild:/Channel:")
+    doc_file = tmp_path / "document.docx"
+    doc_file.write_bytes(b"PK\x03\x04")  # minimal zip header
     with pytest.raises(ValueError, match="Unsupported format"):
-        add_file(path=str(txt_file))
+        add_file(path=str(doc_file))
 
 
 def test_add_file_pdf_success(tmp_path: Path) -> None:
@@ -208,6 +208,55 @@ def test_add_file_pdf_success(tmp_path: Path) -> None:
     assert result["indexed"][0]["source_path"] == str(pdf_file)
     assert result["indexed"][0]["total_pages"] == 5
     assert result["indexed"][0]["total_chunks"] == 12
+    mock_index.assert_called_once()
+
+
+def test_add_file_plaintext_detection_and_success(tmp_path: Path) -> None:
+    """add_file detects plain .txt (no Discord header) and routes to index_plaintext."""
+    txt_file = tmp_path / "notes.txt"
+    txt_file.write_text("Hello world. Plain text content.", encoding="utf-8")
+    fake_result = MagicMock()
+    fake_result.source_path = txt_file
+    fake_result.total_chunks = 2
+    fake_result.document_id = "notes.txt"
+
+    with patch("pinrag.mcp.tools.index_plaintext", return_value=fake_result) as mock_index:
+        with patch("pinrag.mcp.tools.get_embedding_model"):
+            result = add_file(
+                path=str(txt_file),
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+            )
+
+    assert result["total_indexed"] == 1
+    assert result["indexed"][0]["format"] == "plaintext"
+    assert result["indexed"][0]["source_path"] == str(txt_file)
+    assert result["indexed"][0]["document_id"] == "notes.txt"
+    assert result["indexed"][0]["total_chunks"] == 2
+    mock_index.assert_called_once()
+
+
+def test_add_file_discord_txt_still_detected_as_discord(tmp_path: Path) -> None:
+    """add_file treats .txt with Guild:/Channel: as Discord, not plaintext."""
+    txt_file = tmp_path / "discord_export.txt"
+    txt_file.write_text(
+        "Guild: Test Server\nChannel: general\n\n[2024-01-01 12:00] User: Hello",
+        encoding="utf-8",
+    )
+    fake_result = MagicMock()
+    fake_result.source_path = txt_file
+    fake_result.total_chunks = 5
+
+    with patch("pinrag.mcp.tools.index_discord", return_value=fake_result) as mock_index:
+        with patch("pinrag.mcp.tools.get_embedding_model"):
+            result = add_file(
+                path=str(txt_file),
+                persist_dir=str(tmp_path),
+                collection="test_coll",
+            )
+
+    assert result["total_indexed"] == 1
+    assert result["indexed"][0]["format"] == "discord"
     mock_index.assert_called_once()
 
 
@@ -355,9 +404,9 @@ def test_add_files_empty_paths_raises() -> None:
 def test_add_files_partial_success(tmp_path: Path) -> None:
     """add_files indexes valid files and reports failures per file."""
     good_pdf = tmp_path / "good.pdf"
-    bad_ext = tmp_path / "bad.txt"
+    bad_ext = tmp_path / "bad.docx"  # unsupported format
     good_pdf.touch()
-    bad_ext.write_text("plain text")
+    bad_ext.write_bytes(b"PK\x03\x04")  # minimal zip header
 
     fake_result = MagicMock()
     fake_result.source_path = good_pdf

@@ -10,7 +10,7 @@ PinRAG provides intelligent document querying and retrieval capabilities for PDF
 
 ## Features
 
-- **Multi-format indexing** — PDF (.pdf), YouTube (URL or video ID), Discord export (.txt), GitHub repo (URL)
+- **Multi-format indexing** — PDF (.pdf), YouTube (URL or video ID), Discord export (.txt), plain text (.txt), GitHub repo (URL)
 - **RAG with citations** — Ask questions, get answers with source (document + page for PDFs, timestamp for YouTube)
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
 - **Metadata filtering** — Query by document, page range (PDF only), or tag
@@ -156,6 +156,8 @@ Environment variables:
 | `GITHUB_TOKEN` | *(optional)* | Personal access token for GitHub API. Required for private repos; increases rate limits for public repos. |
 | `PINRAG_GITHUB_MAX_FILE_BYTES` | `524288` (512 KB) | Skip files larger than this when indexing GitHub repos. |
 | `PINRAG_GITHUB_DEFAULT_BRANCH` | `main` | Default branch when not specified in the GitHub URL. |
+| **Plain text indexing** | | |
+| `PINRAG_PLAINTEXT_MAX_FILE_BYTES` | `524288` (512 KB) | Skip plain .txt files larger than this when indexing. |
 
 > **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 >
@@ -178,7 +180,7 @@ Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid
 | `document_id` | Search only in this document (e.g. `mybook.pdf` or video ID from `list_documents_tool`) |
 | `page_min`, `page_max` | Restrict to page range (PDF only; single page: `page_min=16`, `page_max=16`) |
 | `tag` | Search only documents with this tag (e.g. `AMIGA`, `PI_PICO`) |
-| `document_type` | Search only by type: `pdf`, `youtube`, or `discord` |
+| `document_type` | Search only by type: `pdf`, `youtube`, `discord`, `github`, or `plaintext` |
 | `response_style` | Answer style: `thorough` (default) or `concise` |
 
 Filters can be combined. Sources include `page` for PDFs and `start` (timestamp in seconds) for YouTube. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  

@@ -293,3 +293,16 @@ def test_format_docs_citation_label_page() -> None:
     out = format_docs(docs, number_chunks=True)
     assert "p. 16" in out
     assert "doc: doc.pdf" in out
+
+
+def test_format_docs_citation_label_plaintext() -> None:
+    """format_docs uses document_id for plaintext chunks (no page)."""
+    docs = [
+        Document(
+            page_content="Hello world",
+            metadata={"document_id": "notes.txt", "document_type": "plaintext"},
+        ),
+    ]
+    out = format_docs(docs, number_chunks=True)
+    assert "notes.txt" in out
+    assert "p. " not in out  # plaintext: no page number

@@ -157,7 +157,7 @@ def query_tool(
     page_min: Annotated[int | None, Field(description="Optional start of page range (inclusive). PDF only.")] = None,
     page_max: Annotated[int | None, Field(description="Optional end of page range (inclusive). PDF only.")] = None,
     tag: Annotated[str, Field(description="Optional tag to filter retrieval (from list_documents).")] = "",
-    document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', 'discord', or 'github'.")] = "",
+    document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', 'discord', 'github', or 'plaintext'.")] = "",
     file_path: Annotated[str, Field(description="Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.")] = "",
     response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "",
 ) -> dict:
@@ -172,7 +172,7 @@ def query_tool(
         page_min: Optional start of page range (inclusive). PDF only.
         page_max: Optional end of page range (inclusive). PDF only.
         tag: Optional tag to filter retrieval (from list_documents).
-        document_type: Optional type to filter: "pdf", "youtube", "discord", or "github".
+        document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
         file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
 
@@ -405,7 +405,7 @@ def ask_about_documents(question: str) -> str:
         f"Answer this question using the PinRAG indexed documents: {question}\n\n"
         f"You MUST call the query_tool first to retrieve relevant context. "
         "Required: query (the question). Optional params: document_id (filter to one doc), "
-        "page_min/page_max (PDF page range only), tag (filter by tag), document_type ('pdf', 'youtube', 'discord', 'github'), "
+        "page_min/page_max (PDF page range only), tag (filter by tag), document_type ('pdf', 'youtube', 'discord', 'github', 'plaintext'), "
         "file_path (filter to specific file within a doc, e.g. src/ria/api/atr.c for GitHub), response_style ('thorough' or 'concise'). "
         "Sources may show 'page' (PDF) or 'start' (YouTube timestamp in seconds). "
         "Use list_documents_tool to see available docs and tags. "

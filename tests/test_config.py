@@ -12,6 +12,7 @@ from pinrag.config import (
     get_chunk_overlap,
     get_chunk_size,
     get_collection_name,
+    get_plaintext_max_file_bytes,
     get_rerank_retrieve_k,
     get_rerank_top_n,
     get_use_rerank,
@@ -77,6 +78,31 @@ def test_get_collection_name_default(monkeypatch: pytest.MonkeyPatch) -> None:
     """Without PINRAG_COLLECTION_NAME, returns pinrag."""
     monkeypatch.delenv("PINRAG_COLLECTION_NAME", raising=False)
     assert get_collection_name() == "pinrag"
+
+
+# Plaintext max file bytes
+def test_get_plaintext_max_file_bytes_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without env var, returns default 524288 (512 KB)."""
+    monkeypatch.delenv("PINRAG_PLAINTEXT_MAX_FILE_BYTES", raising=False)
+    assert get_plaintext_max_file_bytes() == 524288
+
+
+def test_get_plaintext_max_file_bytes_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With valid env var, returns parsed int."""
+    monkeypatch.setenv("PINRAG_PLAINTEXT_MAX_FILE_BYTES", "262144")
+    assert get_plaintext_max_file_bytes() == 262144
+
+
+def test_get_plaintext_max_file_bytes_invalid_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With invalid env var, returns default."""
+    monkeypatch.setenv("PINRAG_PLAINTEXT_MAX_FILE_BYTES", "not_a_number")
+    assert get_plaintext_max_file_bytes() == 524288
+
+
+def test_get_plaintext_max_file_bytes_negative_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With negative value, returns default."""
+    monkeypatch.setenv("PINRAG_PLAINTEXT_MAX_FILE_BYTES", "-1")
+    assert get_plaintext_max_file_bytes() == 524288
 
 
 # Re-ranking config

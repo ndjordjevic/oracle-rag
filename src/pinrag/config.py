@@ -364,6 +364,24 @@ def get_github_default_branch() -> str:
     return DEFAULT_GITHUB_DEFAULT_BRANCH
 
 
+# Plain text file indexing
+DEFAULT_PLAINTEXT_MAX_FILE_BYTES = 524288  # 512 KB
+
+
+def get_plaintext_max_file_bytes() -> int:
+    """Return max file size in bytes for plain text indexing (default 512 KB)."""
+    val = os.environ.get("PINRAG_PLAINTEXT_MAX_FILE_BYTES")
+    if val is None:
+        return DEFAULT_PLAINTEXT_MAX_FILE_BYTES
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_PLAINTEXT_MAX_FILE_BYTES
+        return n
+    except ValueError:
+        return DEFAULT_PLAINTEXT_MAX_FILE_BYTES
+
+
 def get_yt_proxy_config():
     """Return YouTube transcript API proxy config from env, or None if not configured.
 

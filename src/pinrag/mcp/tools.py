@@ -15,12 +15,14 @@ from pinrag.indexing import (
     DiscordIndexResult,
     GitHubIndexResult,
     IndexResult,
+    PlaintextIndexResult,
     YouTubeIndexResult,
     extract_playlist_id,
     extract_video_id,
     index_discord,
     index_github,
     index_pdf,
+    index_plaintext,
     index_youtube,
     index_youtube_playlist,
 )
@@ -41,7 +43,7 @@ def _is_github_url(s: str) -> bool:
 
 def _detect_source_format(
     path_or_url: str,
-) -> Literal["youtube", "youtube_playlist", "pdf", "discord", "github"] | None:
+) -> Literal["youtube", "youtube_playlist", "pdf", "discord", "plaintext", "github"] | None:
     """Detect supported format: GitHub URL, YouTube playlist, YouTube video, PDF, or DiscordChatExporter TXT.
 
     Returns "github", "youtube_playlist", "youtube", "pdf", "discord", or None if unsupported.
@@ -65,10 +67,11 @@ def _detect_source_format(
     return None
 
 
-def _detect_file_format(path: Path) -> Literal["pdf", "discord"] | None:
-    """Detect supported file format: PDF or DiscordChatExporter TXT.
+def _detect_file_format(path: Path) -> Literal["pdf", "discord", "plaintext"] | None:
+    """Detect supported file format: PDF, DiscordChatExporter TXT, or plain TXT.
 
-    Returns "pdf", "discord", or None if unsupported.
+    Returns "pdf", "discord", "plaintext", or None if unsupported.
+    For .txt: Discord (Guild:/Channel: header) takes precedence; else plaintext.
     """
     if not path.is_file():
         return None
@@ -86,7 +89,7 @@ def _detect_file_format(path: Path) -> Literal["pdf", "discord"] | None:
                 return "discord"
         except OSError:
             pass
-        return None
+        return "plaintext"
     return None
 
 
@@ -113,7 +116,7 @@ def query(
         page_min: Optional start of page range (inclusive). Use with page_max. PDF only.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64. PDF only.
         tag: Optional tag to filter retrieval (e.g. from list_documents document_details).
-        document_type: Optional type to filter: "pdf", "youtube", or "discord".
+        document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
         file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style for generation ("thorough" or "concise").
 
@@ -352,7 +355,7 @@ def add_file(
             raise FileNotFoundError(f"Path not found: {path}")
         raise ValueError(
             f"Unsupported format: {path}. "
-            "Supported: GitHub URL, YouTube URL/video ID, YouTube playlist URL, .pdf, .txt (DiscordChatExporter with Guild:/Channel: header)."
+            "Supported: GitHub URL, YouTube URL/video ID, YouTube playlist URL, .pdf, .txt (Discord or plain text)."
         )
 
     base = Path(path).expanduser().resolve()
@@ -366,7 +369,7 @@ def add_file(
         else:
             raise ValueError(
                 f"Unsupported file format: {base.name}. "
-                "Supported: .pdf, .txt (DiscordChatExporter with Guild:/Channel: header)."
+                "Supported: .pdf, .txt (Discord or plain text)."
             )
     else:
         for p in sorted(base.rglob("*")):
@@ -425,6 +428,22 @@ def add_file(
                     "guild": result_d.guild,
                     "total_messages": result_d.total_messages,
                     "total_chunks": result_d.total_chunks,
+                })
+            elif file_fmt == "plaintext":
+                result_pt: PlaintextIndexResult = index_plaintext(
+                    f,
+                    persist_directory=_persist,
+                    collection_name=collection,
+                    embedding=embedding,
+                    tag=tag_clean,
+                )
+                _log.info("Plaintext indexed: %s (%d chunks)", result_pt.document_id, result_pt.total_chunks)
+                indexed.append({
+                    "path": str(f),
+                    "format": "plaintext",
+                    "source_path": str(result_pt.source_path),
+                    "document_id": result_pt.document_id,
+                    "total_chunks": result_pt.total_chunks,
                 })
             else:
                 failed.append({"path": str(f), "error": "Unsupported format"})

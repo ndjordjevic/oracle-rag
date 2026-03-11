@@ -28,6 +28,8 @@ def _citation_label(meta: dict) -> str:
     if meta.get("document_type") == "discord":
         channel = meta.get("channel")
         return f"channel: {channel}" if channel else "discord"
+    if meta.get("document_type") == "plaintext":
+        return meta.get("document_id") or "plaintext"
     page = meta.get("page", "?")
     return f"p. {page}"
 

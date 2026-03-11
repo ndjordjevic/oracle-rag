@@ -11,6 +11,11 @@ from pinrag.indexing.github_loader import (
     load_github_repo_as_documents,
 )
 from pinrag.indexing.pdf_indexer import IndexResult, index_pdf, query_index
+from pinrag.indexing.plaintext_indexer import PlaintextIndexResult, index_plaintext
+from pinrag.indexing.plaintext_loader import (
+    PlaintextLoadResult,
+    load_plaintext_as_documents,
+)
 from pinrag.indexing.youtube_indexer import (
     YouTubeIndexResult,
     YouTubePlaylistIndexResult,
@@ -28,6 +33,8 @@ from pinrag.indexing.youtube_loader import (
 __all__ = [
     "DiscordIndexResult",
     "DiscordLoadResult",
+    "PlaintextIndexResult",
+    "PlaintextLoadResult",
     "GitHubIndexResult",
     "GitHubLoadResult",
     "IndexResult",
@@ -40,10 +47,12 @@ __all__ = [
     "index_discord",
     "index_github",
     "index_pdf",
+    "index_plaintext",
     "index_youtube",
     "index_youtube_playlist",
     "load_discord_export_as_documents",
     "load_github_repo_as_documents",
+    "load_plaintext_as_documents",
     "load_youtube_transcript_as_documents",
     "query_index",
 ]
