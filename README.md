@@ -107,6 +107,21 @@ Index a GitHub repository to ask questions about its code and docs. Use `add_doc
 
 Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in `.env` for private repos or higher API rate limits. Large files (>512 KB by default) and binaries are skipped.
 
+### YouTube indexing and IP blocking
+
+YouTube often blocks transcript requests from IPs that have made too many requests or from cloud provider IPs (AWS, GCP, Azure, etc.). When indexing playlists or many videos, you may see errors like *"YouTube is blocking requests from your IP"*.
+
+**Workaround:** Use an HTTP/HTTPS proxy. Add to `.env`:
+
+```env
+PINRAG_YT_PROXY_HTTP_URL=http://user:pass@proxy.example.com:80
+PINRAG_YT_PROXY_HTTPS_URL=http://user:pass@proxy.example.com:80
+```
+
+Rotating proxy services (e.g. [Webshare](https://www.webshare.io/)) work well; residential proxies are often more reliable than datacenter IPs for avoiding YouTube blocks. The proxy is used only for fetching transcripts via `youtube-transcript-api`.
+
+When indexing fails, `add_document_tool` returns a `fail_summary` with counts by reason: `blocked` (IP blocking), `disabled` (transcripts disabled by creator), `missing_transcript`, and `other`.
+
 ## Configuration
 
 `.env` is loaded from (first existing file wins):
@@ -158,10 +173,17 @@ Environment variables:
 | `PINRAG_GITHUB_DEFAULT_BRANCH` | `main` | Default branch when not specified in the GitHub URL. |
 | **Plain text indexing** | | |
 | `PINRAG_PLAINTEXT_MAX_FILE_BYTES` | `524288` (512 KB) | Skip plain .txt files larger than this when indexing. |
+| **YouTube transcript proxy** | | |
+| `PINRAG_YT_PROXY_HTTP_URL` | *(none)* | HTTP proxy URL for transcript fetches (e.g. `http://user:pass@proxy:80`). Use when YouTube blocks your IP. |
+| `PINRAG_YT_PROXY_HTTPS_URL` | *(none)* | HTTPS proxy URL for transcript fetches. Same as HTTP when using a generic proxy. |
 
 > **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 >
 > **Re-indexing when enabling parent-child:** Setting `PINRAG_USE_PARENT_CHILD=true` requires re-indexing; the new structure (child chunks in Chroma, parent chunks in docstore) is created only during indexing.
+
+### Monitoring & Observability
+
+For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in `.env`; traces are sent automatically. See `notes/langsmith-setup.md` for setup. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
 
 ### Multiple providers and collections
 

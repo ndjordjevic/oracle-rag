@@ -7,6 +7,7 @@ import inspect
 import logging
 import os
 import sys
+import time
 import warnings
 from typing import Annotated
 
@@ -136,9 +137,10 @@ def _log_tool_errors(fn):
         async def wrapper(*args, **kwargs):
             summary = _summary(fn.__name__, args, kwargs)
             _log.info("Tool %s called %s", fn.__name__, summary if summary else "")
+            start = time.perf_counter()
             try:
                 result = await fn(*args, **kwargs)
-                _log.info("Tool %s completed", fn.__name__)
+                _log.info("Tool %s completed in %.2fs", fn.__name__, time.perf_counter() - start)
                 return result
             except Exception as e:
                 _log.exception("Tool %s failed", fn.__name__)
@@ -151,9 +153,10 @@ def _log_tool_errors(fn):
         def wrapper(*args, **kwargs):
             summary = _summary(fn.__name__, args, kwargs)
             _log.info("Tool %s called %s", fn.__name__, summary if summary else "")
+            start = time.perf_counter()
             try:
                 result = fn(*args, **kwargs)
-                _log.info("Tool %s completed", fn.__name__)
+                _log.info("Tool %s completed in %.2fs", fn.__name__, time.perf_counter() - start)
                 return result
             except Exception as e:
                 _log.exception("Tool %s failed", fn.__name__)

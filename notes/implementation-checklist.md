@@ -277,37 +277,11 @@
 - [x] **Multi-threading** — MCP server tools/resources converted to async with `anyio.to_thread.run_sync`; heavy indexing (YouTube playlist, GitHub repo) no longer blocks the event loop. You can index from one agent and query or read the documents resource from another at the same time.
 
 ### Deployment & Operations
-- [ ] **Deployment packaging** — Package as Docker image, installable CLI (`pip install pinrag`), or hosted MCP server.
-- [ ] **Backup and restore** — Implement Chroma index backup/restore (export/import) for migration and recovery.
+- [x] **Deployment packaging** — Distribute via PyPI (`pip install pinrag` / `pipx install pinrag` / `uv tool install pinrag`). See notes/distribution-options.md. Docker and hosted MCP deferred for now.
+- [x] **Backup and restore** — Documentation only: README notes that users should back up `~/.pinrag/chroma_db` (or `PINRAG_PERSIST_DIR`) for migration and recovery. Restore = copy the directory back. No programmatic export/import.
 
 ### Monitoring & Observability
-- [ ] **Metrics & Logging** — Query performance metrics, retrieval quality metrics, comprehensive logging, error tracking.
-- [ ] **Usage analytics** (optional) — Track query patterns, most-queried documents, average response quality.
-
-### Security & Access Control
-- [ ] **Security Features** — Document-level access control, query authentication, audit logging, security review.
-
-### Scalability
-- [ ] **Performance Optimization** — Caching strategies, batch indexing parallelism (`ThreadPoolExecutor`), scalability test with hundreds of PDFs.
-
-### Documentation
-- [ ] **Complete Documentation** — API docs, usage examples, configuration guide, deployment instructions, architecture overview, troubleshooting guide.
-
-### Production Readiness
-- [ ] **Final Polish** — Code review, performance optimization pass, security audit, documentation review, deployment testing.
-
-### Evaluation & Retrieval Polish
-*(Deferred from Phase 4 — low impact given current reranking pipeline.)*
-- [ ] **RAG Fusion: top-K after merge** — Reciprocal rank fusion to merge per-query result lists; pass only top K to the LLM. Redundant when Cohere reranking is on (reranker already re-scores merged set); consider only if reranking is removed. Ref: rag-from-scratch.
-- [ ] **Long-context ordering** — Order retrieved docs so best-ranked chunks appear at the start and end of the context ("lost in the middle" effect). Negligible with ≤10 reranked chunks and modern models; revisit if chunk count grows significantly. Ref: Lost in the middle; rag-from-scratch 18.
-- [ ] **Lenient / partial-credit grader** — For the ~2–3 nearly-correct answers marked 0: relax reference expectations or add a partial-credit correctness grader. Improves metrics fairness, not retrieval.
-
-### Quality of Life (QoL) — optional
-*(RAG is currently exposed only via MCP tools; these apply if/when CLI or HTTP is added.)*
-- [ ] **CLI tag options** — If a CLI is exposed: add `--tag` / `--tags` to indexing commands (currently only via MCP tools).
-- [ ] **Recursive directory indexing** — Support or document recursive directory in `add_document_tool` (e.g. `/my/manuals/` → `**/*.pdf`). Indexing already rglobs inside directories; extend or document as needed.
-- [ ] **Retrieval tuning** — Option for higher `top_k` or MMR reranking (LangChain has it built-in) in the retriever.
-- [ ] **Health check endpoint** — If MCP is ever run over HTTP: simple `GET /health` (e.g. `http://localhost:PORT/health`) so users can confirm the server is running. Currently stdio-only.
+- [x] **Metrics & Logging** — LangSmith for query performance (latency, timing, token usage); README documents setup (notes/langsmith-setup.md). Tool completion timing logged when PINRAG_LOG_TO_STDERR=true. Error tracking via existing exception logging. Retrieval quality metrics remain eval-only (LLM-as-judge per query is costly).
 
 ---
 
@@ -331,6 +305,7 @@
 - [ ] **Hybrid search** ⭐⭐ — Add a keyword (BM25) retrieval path alongside vector search and combine scores. **High impact for deep-in-book content** (specific register names, opcodes, exact terms that embeddings spread across semantic neighbours). Especially important as corpus grows (more PDFs, Discord). Options: `BM25Retriever` + `EnsembleRetriever` over the same docs in memory. Chroma has no native BM25; if memory becomes a concern, consider Qdrant or Weaviate.
 - [ ] **HyDE (Hypothetical Document Embeddings)** — Embed a LLM-generated hypothetical answer passage instead of the raw question; retrieves docs closer in style/length to the actual chunks. Overlaps with multi-query (Phase 4); revisit if multi-query + hybrid leave a gap. Ref: HyDE paper; rag-from-scratch series.
 - [ ] **ColBERT** — Token-level retrieval (MaxSim scoring); avoids compressing a full chunk into one vector. High recall ceiling but requires a ColBERT index (e.g. RAGatouille) and re-indexing. Consider only if reranker + multi-query + hybrid still leave a measurable gap. Ref: ColBERT; rag-from-scratch 14.
+- [ ] **MMR (Maximal Marginal Relevance)** — Optional retriever diversity: balance relevance vs diversity to reduce redundant chunks. See notes/mmr-analysis.md. Adds moderate value when rerank is OFF; low when rerank is ON. LangChain Chroma supports `search_type="mmr"`, `fetch_k`, `lambda_mult`.
 
 ### Document Intelligence
 - [ ] **Document name resolution** — Accept fuzzy doc references in queries (e.g. "pico debug probe manual"), resolve to exact `document_id` from `list_pdfs`; add auto-complete helper.
@@ -343,6 +318,18 @@
 
 ### Evaluation
 - [ ] **Pairwise prompt experiments** — Run two prompt variants as separate LangSmith experiments on the golden dataset, then use `langsmith.evaluate(("exp-A-id", "exp-B-id"), evaluators=[ranked_preference])` to have an LLM judge pick the better answer head-to-head (more informative than absolute scores when both produce partially-correct answers). Ref: intro-to-langsmith/notebooks/module_2/pairwise_experiments.ipynb.
+
+### Security & Access Control
+- [ ] **Security Features** — Document-level access control, query authentication, audit logging, security review.
+
+### Scalability
+- [ ] **Performance Optimization** — Caching strategies, batch indexing parallelism (`ThreadPoolExecutor`), scalability test with hundreds of PDFs.
+
+### Evaluation & Retrieval Polish
+*(Deferred from Phase 4 — low impact given current reranking pipeline.)*
+- [ ] **RAG Fusion: top-K after merge** — Reciprocal rank fusion to merge per-query result lists; pass only top K to the LLM. Redundant when Cohere reranking is on (reranker already re-scores merged set); consider only if reranking is removed. Ref: rag-from-scratch.
+- [ ] **Long-context ordering** — Order retrieved docs so best-ranked chunks appear at the start and end of the context ("lost in the middle" effect). Negligible with ≤10 reranked chunks and modern models; revisit if chunk count grows significantly. Ref: Lost in the middle; rag-from-scratch 18.
+- [ ] **Lenient / partial-credit grader** — For the ~2–3 nearly-correct answers marked 0: relax reference expectations or add a partial-credit correctness grader. Improves metrics fairness, not retrieval.
 
 ---
 
