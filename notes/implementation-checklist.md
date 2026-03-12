@@ -287,16 +287,21 @@
 - [x] Update PyPi package description: set in `pyproject.toml` — `description` = one-line summary (PyPI summary); `readme = "README.md"` = long description (PyPI project page body). Re-publish to PyPI for changes to appear.
 - [x] Test pinrag mcp in visual studio code locally.
 - [x] Polish README.md
-- [ ] Check other action items from Phase 6 and above.
+- [x] **Investigate** to add pinrag mcp to visual studio code extensions marketplace — see `notes/vscode-marketplace-investigation.md`. Summary: (A) VS Code extension wrapping `uvx pinrag` for Extensions view; (B) one-click install URL (`vscode:mcp/install?…`) for README; (C) curated list (process TBD). Recommend B first, then A.
+- [x] **Investigate** how to add pinrag mcp to cursor mcp server list — see `notes/cursor-mcp-list-investigation.md`. Summary: Submit via (1) cursor/mcp-servers GitHub issue (Server Request Template), (2) cursor.store/mcp/new, (3) mcp-marketplace.io/submit. One-click install: `cursor.com/en/install-mcp?name=pinrag&config=...`
 
 ---
 
 ## Phase 6: Document Intelligence & Advanced Indexing
 
-**Goal:** Smarter document understanding — richer PDF parsing, better chunking strategies, and query-time document intelligence.
+**Goal:** Smarter document understanding — richer PDF parsing, better chunking strategies, and query-time document intelligence, and misc.
 
 ### Misc
 - [ ] Check OpenRouter AI for a free AI models.
+- [ ] Add pinrag mcp to visual studio code extensions marketplace.
+- [ ] Add pinrag mcp to cursor mcp server list.
+- [ ] Check RAG accuracy (independent benchmark) for our RAG pipeline comparing to existing RAG pipelines.
+- [ ] Marketing strategies for the open-source version.
 
 ### Advanced PDF Processing
 - [ ] **OCR integration** — Detect image-only pages and run OCR automatically (or offer as option in `add_pdf`). Research done: ocrmypdf + Tesseract used externally.
