@@ -285,7 +285,9 @@
 
 ### Misc
 - [x] Update PyPi package description: set in `pyproject.toml` — `description` = one-line summary (PyPI summary); `readme = "README.md"` = long description (PyPI project page body). Re-publish to PyPI for changes to appear.
-- [ ] Test pinrag mcp in visual studio code locally then on my Raspberry Pi 5.
+- [x] Test pinrag mcp in visual studio code locally.
+- [x] Polish README.md
+- [ ] Check other action items from Phase 6 and above.
 
 ---
 

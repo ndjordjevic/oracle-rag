@@ -197,6 +197,16 @@ async def query_tool(
         file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
 
+    Parameters:
+        query: Natural language question to ask.
+        document_id: Optional document ID to filter retrieval (from list_documents).
+        page_min: Optional start of page range (inclusive). PDF only.
+        page_max: Optional end of page range (inclusive). PDF only.
+        tag: Optional tag to filter retrieval (from list_documents).
+        document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
+        file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
+        response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
+
     Returns:
         Dictionary containing answer and sources (document_id, page).
     """
@@ -226,6 +236,9 @@ async def query_tool(
 async def add_document_tool(
     paths: Annotated[list[str], Field(description="Paths to index: file, directory, YouTube URL, or GitHub URL (e.g. https://github.com/owner/repo). Single path: [\"/path/to/file.pdf\"] or [\"https://github.com/owner/repo\"].")],
     tags: Annotated[list[str] | None, Field(description="Optional list of tags, one per path (same order as paths).")] = None,
+    branch: Annotated[str | None, Field(description="For GitHub URLs: override branch (default: main). Ignored for other formats.")] = None,
+    include_patterns: Annotated[list[str] | None, Field(description="For GitHub URLs: glob patterns for files to include (e.g. [\"*.md\", \"src/**/*.py\"]). Ignored for other formats.")] = None,
+    exclude_patterns: Annotated[list[str] | None, Field(description="For GitHub URLs: glob patterns to exclude. Ignored for other formats.")] = None,
 ) -> dict:
     """Add files, directories, YouTube videos, or GitHub repos to the index.
 
@@ -242,6 +255,16 @@ async def add_document_tool(
     Args:
         paths: List of file paths, directory paths, YouTube URLs, or GitHub URLs to index.
         tags: Optional list of tags, one per path (same order as paths).
+        branch: For GitHub URLs: override branch (default: main). Ignored for other formats.
+        include_patterns: For GitHub URLs: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]).
+        exclude_patterns: For GitHub URLs: glob patterns to exclude. Ignored for other formats.
+
+    Parameters:
+        paths: Paths to index: file, directory, YouTube URL, or GitHub URL.
+        tags: Optional list of tags, one per path (same order as paths).
+        branch: For GitHub URLs: override branch (default: main). Ignored for other formats.
+        include_patterns: For GitHub URLs: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]).
+        exclude_patterns: For GitHub URLs: glob patterns to exclude. Ignored for other formats.
 
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
@@ -253,6 +276,9 @@ async def add_document_tool(
             persist_dir=get_persist_dir(),
             collection=get_collection_name(),
             tags=tags,
+            branch=branch,
+            include_patterns=include_patterns,
+            exclude_patterns=exclude_patterns,
         )
 
     return await anyio.to_thread.run_sync(_run)
@@ -270,6 +296,9 @@ async def list_documents_tool(
     for vector store location and collection.
 
     Args:
+        tag: Optional tag to filter: only list documents that have this tag.
+
+    Parameters:
         tag: Optional tag to filter: only list documents that have this tag.
 
     Returns:
@@ -299,6 +328,9 @@ async def remove_document_tool(
     Uses server config for vector store location and collection.
 
     Args:
+        document_id: Document identifier to remove (from list_documents_tool).
+
+    Parameters:
         document_id: Document identifier to remove (from list_documents_tool).
 
     Returns:

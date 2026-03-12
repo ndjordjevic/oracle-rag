@@ -15,7 +15,7 @@ PinRAG provides intelligent document querying and retrieval capabilities for PDF
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
 - **Metadata filtering** — Query by document, page range (PDF only), or tag
 - **MCP tools** — `add_document_tool`, `query_tool`, `list_documents_tool`, `remove_document_tool`
-- **MCP resource** — Read-only list of indexed documents (`pinrag://documents`); click in Cursor’s MCP panel to view
+- **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `ask_about_documents` (parameter: question) for guided RAG queries
 - **Configurable LLM** — Anthropic (default) or OpenAI; set via `PINRAG_LLM_PROVIDER` and model in `.env`
 - **Configurable embeddings** — OpenAI (default) or Cohere; set via `PINRAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
@@ -65,7 +65,11 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/.pinrag/.env
 {
   "mcpServers": {
     "pinrag": {
-      "command": "pinrag-mcp"
+      "command": "pinrag-mcp",
+      "env": {
+        "OPENAI_API_KEY": "sk-...",
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
     }
   }
 }
@@ -77,7 +81,11 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/.pinrag/.env
 {
   "servers": {
     "pinrag": {
-      "command": "pinrag-mcp"
+      "command": "pinrag-mcp",
+      "env": {
+        "OPENAI_API_KEY": "sk-...",
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
     }
   }
 }
@@ -85,11 +93,8 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/.pinrag/.env
 
 Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code or Cursor after editing.
 
-> **Where the MCP finds `.env`:** The server loads `.env` from the **current working directory (cwd)** of the MCP process, which is usually the **workspace folder** you have open. If you use a global `~/.cursor/mcp.json` and open a different project, cwd is that project—so the MCP will not see a `.env` that lives only in another folder (e.g. an pinrag project). You can either put your `.env` in `~/.pinrag/` or `~/.config/pinrag/` (so it is always found), or add an `env` block to your MCP config and set all required variables there (API keys, `PINRAG_*`, etc.). Do not put secrets in a project-level `.cursor/mcp.json` if that file is committed to git.
-
+> **Where the MCP finds `.env`:** Load order (first existing wins): `~/.config/pinrag/`, `~/.pinrag/`, `{cwd}/`. Alternatively, add an `env` block to your MCP config and set all required variables there.
 > **Backup:** Back up `~/.pinrag/chroma_db` (or your `PINRAG_PERSIST_DIR`) if your indexed documents are important — deleting it removes all indexes.
-
-> **Note:** MCP in VS Code requires GitHub Copilot and VS Code 1.102+. Enterprise users may need an admin to enable "MCP servers in Copilot."
 
 ### 3. Use in chat
 
@@ -132,12 +137,6 @@ When indexing fails, `add_document_tool` returns a `fail_summary` with counts by
 
 The MCP resource `pinrag://server-config` shows the main operational vars (LLM, embeddings, chunking, retrieval, logging) and API key status. The table below documents all supported variables.
 
-`.env` is loaded from (first existing file wins):
-
-1. `~/.config/pinrag/.env`
-2. `~/.pinrag/.env`
-3. `{cwd}/.env` (current working directory of the process)
-
 Environment variables:
 
 | Variable | Default | Description |
@@ -157,8 +156,9 @@ Environment variables:
 | `COHERE_API_KEY` | *(required for Cohere)* | Cohere API key; install with `pip install pinrag[cohere]` when using Cohere embeddings or re-ranking |
 | **Storage & chunking** | | |
 | `PINRAG_PERSIST_DIR` | `chroma_db` | Chroma vector store directory (project-local by default; use `~/.pinrag/chroma_db` for global) |
-| `PINRAG_CHUNK_SIZE` | `1000` | Text chunk size |
-| `PINRAG_CHUNK_OVERLAP` | `200` | Chunk overlap |
+| `PINRAG_CHUNK_SIZE` | `1000` | Text chunk size (chars) |
+| `PINRAG_CHUNK_OVERLAP` | `200` | Chunk overlap (chars) |
+| `PINRAG_STRUCTURE_AWARE_CHUNKING` | `true` | Apply structure-aware chunking heuristics for code/table boundaries |
 | `PINRAG_COLLECTION_NAME` | `pinrag` | Chroma collection name. Single shared collection by default. |
 | **Parent-child retrieval** | | |
 | `PINRAG_USE_PARENT_CHILD` | `false` | Set to `true` to embed small chunks (precise matching) and return larger parent chunks (rich context). Requires re-indexing. |
@@ -204,59 +204,61 @@ Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid
 - **Per-provider collections:** Set `PINRAG_COLLECTION_NAME` to a provider-specific name (e.g. `pinrag_openai`, `pinrag_cohere`) when indexing, and use the same name when querying with that provider. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_PROVIDER` and `PINRAG_COLLECTION_NAME` in `.env`.
 - **MCP tools:** The server uses `PINRAG_COLLECTION_NAME` (default `pinrag`) for all tools. Collection is not configurable per call; change it via `.env` to target a different collection.
 
-## Query Filtering
+## MCP Tools Reference
 
-`query_tool` supports optional filters to narrow retrieval:
+### `query_tool`
+
+Ask a question and get an answer with citations. Optional filters narrow retrieval:
 
 | Parameter | Description |
 |-----------|-------------|
+| `query` | Natural language question (required) |
 | `document_id` | Search only in this document (e.g. `mybook.pdf` or video ID from `list_documents_tool`) |
 | `page_min`, `page_max` | Restrict to page range (PDF only; single page: `page_min=16`, `page_max=16`) |
 | `tag` | Search only documents with this tag (e.g. `AMIGA`, `PI_PICO`) |
 | `document_type` | Search only by type: `pdf`, `youtube`, `discord`, `github`, or `plaintext` |
+| `file_path` | Search only within this file (GitHub: e.g. `src/ria/api/atr.c`). Use `list_documents_tool` to see files. |
 | `response_style` | Answer style: `thorough` (default) or `concise` |
 
 Filters can be combined. Sources include `page` for PDFs and `start` (timestamp in seconds) for YouTube. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  
 `query_tool(query="...", document_id="RP-008276-DS-1-getting-started-with-pico.pdf", page_min=16, page_max=17)`.
 
-## Development
+### `add_document_tool`
 
-```bash
-git clone https://github.com/ndjordjevic/pinrag.git
-cd pinrag
-uv sync --extra dev
-uv run pytest
-```
+Index files, directories, YouTube videos, or GitHub repos.
 
-Run MCP server from source:
+| Parameter | Description |
+|-----------|-------------|
+| `paths` | List of paths to index (required). File, directory, YouTube URL, or GitHub URL. |
+| `tags` | Optional list of tags, one per path (same order as paths) |
+| `branch` | For GitHub URLs: override branch (default: main). Ignored for other formats. |
+| `include_patterns` | For GitHub URLs: glob patterns for files to include (e.g. `["*.md", "src/**/*.py"]`) |
+| `exclude_patterns` | For GitHub URLs: glob patterns to exclude |
 
-```bash
-uv run pinrag-mcp
-```
+### `list_documents_tool`
 
-For local development, point the MCP config to your venv:
+List indexed documents and chunk counts.
 
-**Cursor** (`.cursor/mcp.json`):
-```json
-{
-  "mcpServers": {
-    "pinrag": {
-      "command": "/path/to/pinrag/.venv/bin/pinrag-mcp"
-    }
-  }
-}
-```
+| Parameter | Description |
+|-----------|-------------|
+| `tag` | Optional: only list documents that have this tag |
 
-**VS Code** (`.vscode/mcp.json`):
-```json
-{
-  "servers": {
-    "pinrag": {
-      "command": "/path/to/pinrag/.venv/bin/pinrag-mcp"
-    }
-  }
-}
-```
+### `remove_document_tool`
+
+Remove a document and all its chunks from the index.
+
+| Parameter | Description |
+|-----------|-------------|
+| `document_id` | Document identifier to remove (from `list_documents_tool`) |
+
+### MCP Resources
+
+Read-only resources; click in Cursor’s MCP panel to view:
+
+| Resource | Description |
+|----------|-------------|
+| `pinrag://documents` | Indexed documents (IDs, chunk counts, tags, metadata) |
+| `pinrag://server-config` | Env vars and config (LLM, embeddings, chunking, retrieval, logging; API key status) |
 
 ## License
 

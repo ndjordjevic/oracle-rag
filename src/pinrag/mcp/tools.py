@@ -503,6 +503,9 @@ def add_files(
     persist_dir: str = "",
     collection: str | None = None,
     tags: list[str] | None = None,
+    branch: str | None = None,
+    include_patterns: list[str] | None = None,
+    exclude_patterns: list[str] | None = None,
 ) -> dict[str, Any]:
     """Add multiple files, directories, or URLs to the index in one call.
 
@@ -514,6 +517,9 @@ def add_files(
         persist_dir: Chroma persistence directory (default: "chroma_db").
         collection: Chroma collection name (default: "pinrag").
         tags: Optional list of tags, one per path (same order as paths). Empty string = no tag.
+        branch: For GitHub URLs: override branch (default: main). Ignored for other formats.
+        include_patterns: For GitHub URLs: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]).
+        exclude_patterns: For GitHub URLs: glob patterns to exclude. Ignored for other formats.
 
     Returns:
         Dictionary containing indexed file results, failed file errors, and totals.
@@ -547,6 +553,9 @@ def add_files(
                 persist_dir=_persist,
                 collection=collection,
                 tag=doc_tag,
+                branch=branch.strip() if branch and str(branch).strip() else None,
+                include_patterns=include_patterns if include_patterns else None,
+                exclude_patterns=exclude_patterns if exclude_patterns else None,
             )
             all_indexed.extend(r["indexed"])
             all_failed.extend(r["failed"])
