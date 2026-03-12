@@ -57,8 +57,6 @@ venv.bak/
 *.sqlite
 *.sqlite3
 chroma_db/
-vectorstore/
-embeddings/
 
 # PDF files (if you want to ignore uploaded PDFs)
 # *.pdf

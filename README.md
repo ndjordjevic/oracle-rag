@@ -2,7 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/pinrag)](https://pypi.org/project/pinrag/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP (Model Context Protocol) server for Cursor, VS Code (GitHub Copilot), and other AI assistants.
+A powerful RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP (Model Context Protocol) server for Cursor, VS Code (GitHub Copilot), and other AI assistants.
 
 ## Overview
 
@@ -45,11 +45,17 @@ Restart your editor after updating so the MCP server picks up the new version.
 
 ```bash
 mkdir -p ~/.pinrag
-# Default: Anthropic (Claude) for LLM, OpenAI for embeddings; rerank off (set PINRAG_USE_RERANK=true to enable)
-echo "ANTHROPIC_API_KEY=sk-ant-..." > ~/.pinrag/.env
-echo "OPENAI_API_KEY=sk-..." >> ~/.pinrag/.env
+# Minimum required (defaults: Anthropic for LLM, OpenAI for embeddings)
+echo "OPENAI_API_KEY=sk-..." > ~/.pinrag/.env
+echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/.pinrag/.env
 # Optional: Cohere for re-ranking (COHERE_API_KEY + PINRAG_USE_RERANK=true); see Configuration below
 ```
+
+**Minimum required env vars:**
+
+- **Default setup** (Anthropic LLM + OpenAI embeddings): set both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in `~/.pinrag/.env` (or `~/.config/pinrag/.env`). The server checks for `OPENAI_API_KEY` at startup; the LLM needs `ANTHROPIC_API_KEY` when you run a query.
+- **OpenAI only:** set `PINRAG_LLM_PROVIDER=openai` and only `OPENAI_API_KEY` (one key for both embeddings and chat).
+- **Cohere embeddings:** set `PINRAG_EMBEDDING_PROVIDER=cohere` and `COHERE_API_KEY`; you still need an LLM key (OpenAI or Anthropic) per above.
 
 ### 2. Add MCP server
 

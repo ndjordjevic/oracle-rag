@@ -285,13 +285,16 @@
 
 ### Misc
 - [x] Update PyPi package description: set in `pyproject.toml` — `description` = one-line summary (PyPI summary); `readme = "README.md"` = long description (PyPI project page body). Re-publish to PyPI for changes to appear.
-- [ ] Check OpenRouter AI for a free AI models.
+- [ ] Test pinrag mcp in visual studio code locally then on my Raspberry Pi 5.
 
 ---
 
 ## Phase 6: Document Intelligence & Advanced Indexing
 
 **Goal:** Smarter document understanding — richer PDF parsing, better chunking strategies, and query-time document intelligence.
+
+### Misc
+- [ ] Check OpenRouter AI for a free AI models.
 
 ### Advanced PDF Processing
 - [ ] **OCR integration** — Detect image-only pages and run OCR automatically (or offer as option in `add_pdf`). Research done: ocrmypdf + Tesseract used externally.
