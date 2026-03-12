@@ -130,6 +130,8 @@ When indexing fails, `add_document_tool` returns a `fail_summary` with counts by
 
 ## Configuration
 
+The MCP resource `pinrag://server-config` shows the main operational vars (LLM, embeddings, chunking, retrieval, logging) and API key status. The table below documents all supported variables.
+
 `.env` is loaded from (first existing file wins):
 
 1. `~/.config/pinrag/.env`
@@ -182,6 +184,9 @@ Environment variables:
 | **YouTube transcript proxy** | | |
 | `PINRAG_YT_PROXY_HTTP_URL` | *(none)* | HTTP proxy URL for transcript fetches (e.g. `http://user:pass@proxy:80`). Use when YouTube blocks your IP. |
 | `PINRAG_YT_PROXY_HTTPS_URL` | *(none)* | HTTPS proxy URL for transcript fetches. Same as HTTP when using a generic proxy. |
+| **Logging (MCP output)** | | |
+| `PINRAG_LOG_TO_STDERR` | `false` | Set to `true` to send PinRAG logs (tool calls, completion timing, indexing messages) to stderr so they appear in the MCP server output in VS Code or Cursor. Default is off to avoid noisy or misleading badges in the editor. |
+| `PINRAG_LOG_LEVEL` | `INFO` | Log level when `PINRAG_LOG_TO_STDERR=true`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. |
 
 > **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 >

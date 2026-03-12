@@ -692,6 +692,8 @@ def test_server_config_resource_includes_effective_config() -> None:
             out = asyncio.run(mcp_server.server_config_resource())
     assert "PINRAG_PERSIST_DIR: /my/chroma" in out
     assert "PINRAG_COLLECTION_NAME: my_coll" in out
+    assert "PINRAG_LOG_TO_STDERR:" in out
+    assert "PINRAG_LOG_LEVEL:" in out
     assert "--- Set (from env) ---" in out
     assert "--- Defaults (not set) ---" in out
     assert "--- API keys (sensitive; only status) ---" in out

@@ -401,6 +401,8 @@ def _format_server_config() -> str:
         ("PINRAG_PARENT_CHUNK_SIZE", lambda: str(get_parent_chunk_size())),
         ("PINRAG_CHILD_CHUNK_SIZE", lambda: str(get_child_chunk_size())),
         ("PINRAG_RESPONSE_STYLE", get_response_style),
+        ("PINRAG_LOG_TO_STDERR", lambda: str(_log_to_stderr).lower()),
+        ("PINRAG_LOG_LEVEL", lambda: _level_name),
     ]
     set_items: list[str] = []
     default_items: list[str] = []
