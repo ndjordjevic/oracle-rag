@@ -77,10 +77,16 @@ def test_extract_playlist_id_invalid_returns_none() -> None:
 
 
 def test_detect_source_format_youtube_playlist() -> None:
-    """_detect_source_format returns 'youtube_playlist' for playlist URLs."""
+    """_detect_source_format returns 'youtube_playlist' only for dedicated playlist URLs."""
     from pinrag.mcp.tools import _detect_source_format
     assert _detect_source_format("https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg") == "youtube_playlist"
-    assert _detect_source_format("https://www.youtube.com/watch?v=abc12345678&list=PLtest123") == "youtube_playlist"
+
+
+def test_detect_source_format_watch_url_with_list_is_single_video() -> None:
+    """_detect_source_format returns 'youtube' for watch URLs with both v= and list= (single video)."""
+    from pinrag.mcp.tools import _detect_source_format
+    assert _detect_source_format("https://www.youtube.com/watch?v=abc12345678&list=PLtest123") == "youtube"
+    assert _detect_source_format("https://www.youtube.com/watch?v=wxV6x5BUMH4&list=PLvCRDUYedILfHDoD57Yj8BAXNmNJLVM2r&index=3") == "youtube"
 
 
 # --- fetch_playlist_info ---

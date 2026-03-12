@@ -75,16 +75,21 @@ def _detect_source_format(
     """Detect supported format: GitHub URL, YouTube playlist, YouTube video, PDF, or DiscordChatExporter TXT.
 
     Returns "github", "youtube_playlist", "youtube", "pdf", "discord", or None if unsupported.
-    Prioritizes playlist over single video when URL contains list=.
+    A watch URL with both v= and list= (e.g. shared link to one video in a playlist) is treated
+    as a single video; only dedicated playlist URLs (youtube.com/playlist?list=...) index the full playlist.
     """
     s = (path_or_url or "").strip()
     if not s:
         return None
     if _is_github_url(s):
         return "github"
-    if extract_playlist_id(s):
+    has_playlist = extract_playlist_id(s) is not None
+    has_video = extract_video_id(s) is not None
+    if has_video and has_playlist:
+        return "youtube"
+    if has_playlist:
         return "youtube_playlist"
-    if extract_video_id(s):
+    if has_video:
         return "youtube"
     base = Path(s).expanduser().resolve()
     if base.exists():

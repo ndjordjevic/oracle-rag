@@ -283,6 +283,10 @@
 ### Monitoring & Observability
 - [x] **Metrics & Logging** — LangSmith for query performance (latency, timing, token usage); README documents setup (notes/langsmith-setup.md). Tool completion timing logged when PINRAG_LOG_TO_STDERR=true. Error tracking via existing exception logging. Retrieval quality metrics remain eval-only (LLM-as-judge per query is costly).
 
+### Misc
+- [x] Update PyPi package description: set in `pyproject.toml` — `description` = one-line summary (PyPI summary); `readme = "README.md"` = long description (PyPI project page body). Re-publish to PyPI for changes to appear.
+- [ ] Check OpenRouter AI for a free AI models.
+
 ---
 
 ## Phase 6: Document Intelligence & Advanced Indexing

@@ -1,7 +1,8 @@
 [project]
 name = "pinrag"
 version = "0.8.1"
-description = "A powerful PDF RAG (Retrieval-Augmented Generation) system built with LangChain, designed to be wrapped as an MCP server"
+description = "A powerful RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP server for Cursor, VS Code, and other AI assistants"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.4.1",
