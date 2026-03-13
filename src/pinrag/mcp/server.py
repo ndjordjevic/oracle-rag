@@ -13,8 +13,8 @@ from typing import Annotated
 
 import anyio
 from dotenv import load_dotenv
+from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field
-from mcp.server.fastmcp import FastMCP
 
 from pinrag.config import (
     get_chunk_overlap,
@@ -98,6 +98,11 @@ if not os.environ.get("OPENAI_API_KEY"):
 mcp = FastMCP("PinRAG", json_response=True)
 
 
+@mcp._mcp_server.set_logging_level()
+async def _handle_set_level(level: str) -> None:
+    _log.debug("Client requested log level: %s", level)
+
+
 def _user_friendly_api_error(exc: Exception) -> str | None:
     """Return a short, user-friendly message for API key / auth errors, or None."""
     msg = str(exc).lower()
@@ -132,18 +137,42 @@ def _log_tool_errors(fn):
             return f"document_id={kwargs.get('document_id', '')!r}"
         return ""
 
+    async def _emit_client_log(ctx: Context | None, message: str, level: str = "info") -> None:
+        """Best-effort tool log emission to MCP clients via notifications/message."""
+        if ctx is None:
+            return
+        try:
+            sender = getattr(ctx, level, None)
+            if sender is None:
+                await ctx.info(message)
+                return
+            await sender(message)
+        except Exception:
+            _log.debug("client_log_emit_failed level=%s message=%s", level, message, exc_info=True)
+
     if inspect.iscoroutinefunction(fn):
         @functools.wraps(fn)
         async def wrapper(*args, **kwargs):
             summary = _summary(fn.__name__, args, kwargs)
+            ctx: Context | None = kwargs.get("ctx")
+            start_msg = f"tool={fn.__name__} status=start {summary}".strip()
             _log.info("Tool %s called %s", fn.__name__, summary if summary else "")
+            await _emit_client_log(ctx, start_msg)
             start = time.perf_counter()
             try:
                 result = await fn(*args, **kwargs)
-                _log.info("Tool %s completed in %.2fs", fn.__name__, time.perf_counter() - start)
+                elapsed_s = time.perf_counter() - start
+                _log.info("Tool %s completed in %.2fs", fn.__name__, elapsed_s)
+                await _emit_client_log(ctx, f"tool={fn.__name__} status=ok duration_s={elapsed_s:.2f}")
                 return result
             except Exception as e:
                 _log.exception("Tool %s failed", fn.__name__)
+                elapsed_s = time.perf_counter() - start
+                await _emit_client_log(
+                    ctx,
+                    f"tool={fn.__name__} status=error duration_s={elapsed_s:.2f}",
+                    level="error",
+                )
                 friendly = _user_friendly_api_error(e)
                 if friendly:
                     raise RuntimeError(friendly) from e
@@ -181,6 +210,7 @@ async def query_tool(
     document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', 'discord', 'github', or 'plaintext'.")] = "",
     file_path: Annotated[str, Field(description="Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.")] = "",
     response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "",
+    ctx: Context | None = None,
 ) -> dict:
     """Query indexed documents and return an answer with citations.
 
@@ -239,6 +269,7 @@ async def add_document_tool(
     branch: Annotated[str | None, Field(description="For GitHub URLs: override branch (default: main). Ignored for other formats.")] = None,
     include_patterns: Annotated[list[str] | None, Field(description="For GitHub URLs: glob patterns for files to include (e.g. [\"*.md\", \"src/**/*.py\"]). Ignored for other formats.")] = None,
     exclude_patterns: Annotated[list[str] | None, Field(description="For GitHub URLs: glob patterns to exclude. Ignored for other formats.")] = None,
+    ctx: Context | None = None,
 ) -> dict:
     """Add files, directories, YouTube videos, or GitHub repos to the index.
 
@@ -288,6 +319,7 @@ async def add_document_tool(
 @_log_tool_errors
 async def list_documents_tool(
     tag: Annotated[str, Field(description="Optional tag to filter: only list documents that have this tag.")] = "",
+    ctx: Context | None = None,
 ) -> dict:
     """List all indexed documents in the PinRAG index.
 
@@ -320,6 +352,7 @@ async def list_documents_tool(
 @_log_tool_errors
 async def remove_document_tool(
     document_id: Annotated[str, Field(description="Document identifier to remove (from list_documents_tool).")],
+    ctx: Context | None = None,
 ) -> dict:
     """Remove a document and all its chunks from the PinRAG index.
 
