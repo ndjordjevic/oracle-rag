@@ -137,11 +137,14 @@ def query(
     document_type: str | None = None,
     file_path: str | None = None,
     response_style: Literal["thorough", "concise"] = "thorough",
+    persist_dir: str = "",
+    collection: str | None = None,
 ) -> dict[str, Any]:
     """Query indexed documents (PDF, Discord) and return an answer with citations.
 
     Retrieval is driven by .env: PINRAG_RETRIEVE_K, rerank, multi-query, etc.
-    Persist dir and collection come from PINRAG_PERSIST_DIR and PINRAG_COLLECTION_NAME.
+    Persist dir and collection come from persist_dir/collection params or
+    PINRAG_PERSIST_DIR and PINRAG_COLLECTION_NAME when not provided.
 
     Args:
     user_query: Natural language question to ask.
@@ -152,6 +155,8 @@ def query(
         document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
         file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style for generation ("thorough" or "concise").
+        persist_dir: Chroma persistence directory (default: from PINRAG_PERSIST_DIR or chroma_db).
+        collection: Chroma collection name (default: from PINRAG_COLLECTION_NAME or pinrag).
 
     Returns:
         Dictionary with "answer" (str) and "sources" (list of dicts with document_id and page).
@@ -170,7 +175,8 @@ def query(
     if response_style not in ("thorough", "concise"):
         raise ValueError("response_style must be 'thorough' or 'concise'")
 
-    _persist = get_persist_dir()
+    _persist = (persist_dir or "").strip() or get_persist_dir()
+    _collection = (collection or "").strip() or get_collection_name()
     persist_path = Path(_persist).expanduser().resolve()
     if not persist_path.exists():
         raise FileNotFoundError(
@@ -190,7 +196,7 @@ def query(
         llm,
         k=None,
         persist_directory=str(persist_path),
-        collection_name=get_collection_name(),
+        collection_name=_collection,
         embedding=embedding,
         document_id=doc_id_filter,
         page_min=page_min,
