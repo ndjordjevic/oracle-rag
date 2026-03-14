@@ -16,7 +16,7 @@ PinRAG provides intelligent document querying and retrieval capabilities for PDF
 - **Metadata filtering** — Query by document, page range (PDF only), or tag
 - **MCP tools** — `add_document_tool`, `query_tool`, `list_documents_tool`, `remove_document_tool`
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
-- **MCP prompt** — `ask_about_documents` (parameter: question) for guided RAG queries
+- **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
 - **Configurable LLM** — Anthropic (default) or OpenAI; set via `PINRAG_LLM_PROVIDER` and model in `.env`
 - **Configurable embeddings** — OpenAI (default) or Cohere; set via `PINRAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
 - **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, Cohere

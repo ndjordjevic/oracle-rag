@@ -484,21 +484,35 @@ async def server_config_resource() -> str:
 
 
 @mcp.prompt()
-def ask_about_documents(question: str) -> str:
-    """Ask a question about the indexed documents.
+def use_pinrag(request: str = "") -> str:
+    """Use PinRAG to query, index, list, or remove documents.
 
-    Use the query_tool to search the PinRAG index and return an answer
-    with citations. The question will be sent as the user message to guide the AI.
+    Routes to the correct tool based on the request:
+    - Query / question  → query_tool
+    - Index / add       → add_document_tool
+    - List / show       → list_documents_tool
+    - Remove / delete   → remove_document_tool
     """
     return (
-        f"Answer this question using the PinRAG indexed documents: {question}\n\n"
-        f"You MUST call the query_tool first to retrieve relevant context. "
-        "Required: query (the question). Optional params: document_id (filter to one doc), "
-        "page_min/page_max (PDF page range only), tag (filter by tag), document_type ('pdf', 'youtube', 'discord', 'github', 'plaintext'), "
-        "file_path (filter to specific file within a doc, e.g. src/ria/api/atr.c for GitHub), response_style ('thorough' or 'concise'). "
-        "Sources may show 'page' (PDF) or 'start' (YouTube timestamp in seconds). "
-        "Use list_documents_tool to see available docs and tags. "
-        "Then use the returned answer and sources in your response. Do not answer from memory alone."
+        f"Use PinRAG to fulfil this request: {request or 'not specified'}.\n\n"
+        "Available tools and when to use them:\n\n"
+        "query_tool — answer a question from indexed documents.\n"
+        "  Required: query (str). "
+        "  Optional: document_id (filter to one doc, from list_documents_tool), "
+        "page_min/page_max (PDF page range), tag (filter by tag), "
+        "document_type ('pdf', 'youtube', 'discord', 'github', 'plaintext'), "
+        "file_path (filter to a file within a doc, e.g. src/foo.c for GitHub), "
+        "response_style ('thorough' or 'concise').\n\n"
+        "add_document_tool — index files, directories, YouTube URLs, or GitHub repos.\n"
+        "  Required: paths (list of str). "
+        "  Optional: tags (list, one per path), branch (GitHub only), "
+        "include_patterns / exclude_patterns (GitHub only, e.g. ['*.md', 'src/**/*.py']).\n\n"
+        "list_documents_tool — list all indexed documents and chunk counts.\n"
+        "  Optional: tag (filter by tag).\n\n"
+        "remove_document_tool — remove a document and all its chunks.\n"
+        "  Required: document_id (get exact ID from list_documents_tool first).\n\n"
+        "If the request is ambiguous, call list_documents_tool first to show what is indexed, "
+        "then decide which tool to use."
     )
 
 

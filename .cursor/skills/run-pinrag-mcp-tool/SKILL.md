@@ -1,3 +1,11 @@
+---
+name: run-pinrag-mcp-tool
+description: >-
+  Run PinRAG MCP tools when the user asks to query indexed documents, list
+  documents, add documents, or remove documents. Use call_mcp_tool with server
+  user-pinrag.
+---
+
 # Run PinRAG MCP tool
 
 Run an PinRAG MCP tool via `call_mcp_tool` with server `user-pinrag`.

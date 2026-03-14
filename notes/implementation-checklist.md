@@ -197,7 +197,7 @@
   - [x] Expose list of indexed documents as resource (`pinrag://documents`)
 
 - [x] **MCP Prompts** (pre-built templates with parameters)
-  - [x] “Ask about this document prompt” (`ask_about_documents`)
+  - [x] “Use PinRAG (query, index, list, remove)” (`use_pinrag`)
 
 ### Retriever Abstraction
 - [x] **Retriever abstraction (pinrag 2.0)**
@@ -394,7 +394,7 @@
 
 ### Phase 3: Advanced Configuration & Deployment ✅
 - Embedding and LLM configurable (env/config; swap providers, tune chunk settings)
-- MCP resources (`pinrag://documents`), MCP prompts (`ask_about_documents`)
+- MCP resources (`pinrag://documents`), MCP prompts (`use_pinrag`)
 - Retriever abstraction: `store.as_retriever()`, `run_rag()` accepts optional retriever
 - Error handling: corrupted PDFs (user-facing ValueError), zero-retrieval and LLM failure (graceful degradation)
 - Testing: integration test for multiple PDFs with document_id/tag filters
