@@ -71,7 +71,7 @@ def _categorize_failures(failed: list[dict[str, str]]) -> dict[str, int]:
 
 def _detect_source_format(
     path_or_url: str,
-) -> Literal["youtube", "youtube_playlist", "pdf", "discord", "plaintext", "github"] | None:
+) -> Literal["youtube", "youtube_playlist", "pdf", "discord", "plaintext", "github", "directory"] | None:
     """Detect supported format: GitHub URL, YouTube playlist, YouTube video, PDF, or DiscordChatExporter TXT.
 
     Returns "github", "youtube_playlist", "youtube", "pdf", "discord", or None if unsupported.
@@ -93,6 +93,8 @@ def _detect_source_format(
         return "youtube"
     base = Path(s).expanduser().resolve()
     if base.exists():
+        if base.is_dir():
+            return "directory"
         file_fmt = _detect_file_format(base)
         if file_fmt:
             return file_fmt
@@ -389,7 +391,9 @@ def add_file(
                 "persist_directory": str(Path(_persist).expanduser().resolve()),
                 "collection_name": collection,
             }
-    if fmt is None:
+    if fmt == "directory":
+        pass
+    elif fmt is None:
         base = Path(path).expanduser().resolve()
         if not base.exists():
             raise FileNotFoundError(f"Path not found: {path}")
