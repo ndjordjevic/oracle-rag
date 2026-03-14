@@ -62,6 +62,50 @@ def _retrieve(retriever: BaseRetriever, query: str) -> list[Document]:
     return retriever.invoke(query)
 
 
+def _build_standard_retriever(
+    *,
+    llm: BaseChatModel,
+    use_multi_query: bool,
+    effective_k: int,
+    persist_directory: PathLike,
+    collection_name: str,
+    embedding: Optional[Embeddings],
+    document_id: Optional[str],
+    page_min: Optional[int],
+    page_max: Optional[int],
+    tag: Optional[str],
+    document_type: Optional[str],
+    file_path: Optional[str],
+) -> tuple[BaseRetriever, bool, Optional[int]]:
+    """Build standard retriever and optionally wrap with multi-query.
+
+    Returns (retriever, was_multi_query_wrapped_without_rerank, truncate_k).
+    """
+    base_retriever = create_retriever(
+        k=effective_k,
+        persist_directory=persist_directory,
+        collection_name=collection_name,
+        embedding=embedding,
+        document_id=document_id,
+        page_min=page_min,
+        page_max=page_max,
+        tag=tag,
+        document_type=document_type,
+        file_path=file_path,
+    )
+    if use_multi_query:
+        return (
+            wrap_retriever_with_multiquery(
+                base_retriever,
+                llm,
+                num_queries=get_multi_query_count(),
+            ),
+            True,
+            effective_k,
+        )
+    return base_retriever, False, None
+
+
 @traceable(name="run_rag", run_type="chain")
 def run_rag(
     query: str,
@@ -151,8 +195,10 @@ def run_rag(
                     "Re-ranking disabled: %s. Using standard retrieval.", err
                 )
                 effective_k = k if k is not None else get_retrieve_k()
-                base_retriever = create_retriever(
-                    k=effective_k,
+                retriever, built_with_multi_query_no_rerank, truncate_k = _build_standard_retriever(
+                    llm=llm,
+                    use_multi_query=use_multi_query,
+                    effective_k=effective_k,
                     persist_directory=persist_directory,
                     collection_name=collection_name,
                     embedding=embedding,
@@ -163,20 +209,12 @@ def run_rag(
                     document_type=document_type,
                     file_path=file_path,
                 )
-                if use_multi_query:
-                    retriever = wrap_retriever_with_multiquery(
-                        base_retriever,
-                        llm,
-                        num_queries=get_multi_query_count(),
-                    )
-                    built_with_multi_query_no_rerank = True
-                    truncate_k = effective_k
-                else:
-                    retriever = base_retriever
         else:
             effective_k = k if k is not None else get_retrieve_k()
-            base_retriever = create_retriever(
-                k=effective_k,
+            retriever, built_with_multi_query_no_rerank, truncate_k = _build_standard_retriever(
+                llm=llm,
+                use_multi_query=use_multi_query,
+                effective_k=effective_k,
                 persist_directory=persist_directory,
                 collection_name=collection_name,
                 embedding=embedding,
@@ -187,16 +225,8 @@ def run_rag(
                 document_type=document_type,
                 file_path=file_path,
             )
-            if use_multi_query:
-                retriever = wrap_retriever_with_multiquery(
-                    base_retriever,
-                    llm,
-                    num_queries=get_multi_query_count(),
-                )
-                built_with_multi_query_no_rerank = True
-                truncate_k = effective_k
-            else:
-                retriever = base_retriever
+    if retriever is None:
+        raise ValueError("Retriever must be provided or constructible from config.")
     docs = _retrieve(retriever, query_for_retrieval)
 
     if built_with_multi_query_no_rerank and truncate_k is not None and len(docs) > truncate_k:

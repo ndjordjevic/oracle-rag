@@ -463,9 +463,9 @@ def test_add_files_fail_summary_by_reason() -> None:
 def test_query_empty_query_raises() -> None:
     """query raises ValueError when query is empty."""
     with pytest.raises(ValueError, match="Query cannot be empty"):
-        query(query="")
+        query(user_query="")
     with pytest.raises(ValueError, match="Query cannot be empty"):
-        query(query="   ")
+        query(user_query="   ")
 
 
 def test_query_uses_config_for_persist_and_collection(tmp_path: Path) -> None:
@@ -479,7 +479,7 @@ def test_query_uses_config_for_persist_and_collection(tmp_path: Path) -> None:
                 with patch("pinrag.mcp.tools.get_chat_model"):
                     with patch("pinrag.mcp.tools.run_rag") as mock_run:
                         mock_run.return_value = RAGResult(answer="ok", sources=[])
-                        query(query="test")
+                        query(user_query="test")
     mock_run.assert_called_once()
 
 
@@ -487,7 +487,7 @@ def test_query_missing_persist_dir_raises() -> None:
     """query raises FileNotFoundError when persist dir does not exist."""
     with patch("pinrag.mcp.tools.get_persist_dir", return_value="/nonexistent/chroma_db"):
         with pytest.raises(FileNotFoundError, match="Persistence directory does not exist"):
-            query(query="test")
+            query(user_query="test")
 
 
 def test_query_chain_error_propagates(tmp_path: Path) -> None:
@@ -502,7 +502,7 @@ def test_query_chain_error_propagates(tmp_path: Path) -> None:
                     side_effect=RuntimeError("OpenAI API rate limit"),
                 ):
                     with pytest.raises(RuntimeError, match="OpenAI API rate limit"):
-                        query(query="test")
+                        query(user_query="test")
 
 
 def test_query_success(tmp_path: Path) -> None:
@@ -525,7 +525,7 @@ def test_query_success(tmp_path: Path) -> None:
             with patch("pinrag.mcp.tools.get_embedding_model"):
                 with patch("pinrag.mcp.tools.get_chat_model"):
                     with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
-                        result = query(query="What is the answer?")
+                        result = query(user_query="What is the answer?")
 
     assert result["answer"] == "The answer is 42."
     assert len(result["sources"]) == 2
@@ -554,7 +554,7 @@ def test_query_sources_include_start_for_youtube(tmp_path: Path) -> None:
             with patch("pinrag.mcp.tools.get_embedding_model"):
                 with patch("pinrag.mcp.tools.get_chat_model"):
                     with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
-                        result = query(query="What does the video say?")
+                        result = query(user_query="What does the video say?")
 
     assert result["sources"][0] == {"document_id": "dQw4w9WgXcQ", "page": 0, "start": 83}
     assert result["sources"][1] == {"document_id": "dQw4w9WgXcQ", "page": 0, "start": 120}
@@ -564,11 +564,11 @@ def test_query_sources_include_start_for_youtube(tmp_path: Path) -> None:
 def test_query_page_range_validation() -> None:
     """query raises when page_min or page_max is provided without the other."""
     with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
-        query(query="test", page_min=1)
+        query(user_query="test", page_min=1)
     with pytest.raises(ValueError, match="page_min and page_max must be provided together"):
-        query(query="test", page_max=10)
+        query(user_query="test", page_max=10)
     with pytest.raises(ValueError, match="page_min must be <= page_max"):
-        query(query="test", page_min=10, page_max=1)
+        query(user_query="test", page_min=10, page_max=1)
 
 
 def test_query_with_page_range(tmp_path: Path) -> None:
@@ -589,7 +589,7 @@ def test_query_with_page_range(tmp_path: Path) -> None:
                 with patch("pinrag.mcp.tools.get_chat_model"):
                     with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         query(
-                            query="OpenOCD?",
+                            user_query="OpenOCD?",
                             document_id="pico.pdf",
                             page_min=16,
                             page_max=16,
@@ -617,7 +617,7 @@ def test_query_with_document_type_filter(tmp_path: Path) -> None:
             with patch("pinrag.mcp.tools.get_embedding_model"):
                 with patch("pinrag.mcp.tools.get_chat_model"):
                     with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
-                        query(query="OTG?", document_type="youtube")
+                        query(user_query="OTG?", document_type="youtube")
 
     mock_run_rag.assert_called_once()
     assert mock_run_rag.call_args[1]["document_type"] == "youtube"
@@ -640,7 +640,7 @@ def test_query_with_tag_filter(tmp_path: Path) -> None:
             with patch("pinrag.mcp.tools.get_embedding_model"):
                 with patch("pinrag.mcp.tools.get_chat_model"):
                     with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
-                        query(query="GPIO?", tag="PI_PICO")
+                        query(user_query="GPIO?", tag="PI_PICO")
 
     mock_run_rag.assert_called_once()
     assert mock_run_rag.call_args[1]["tag"] == "PI_PICO"
@@ -664,7 +664,7 @@ def test_query_with_document_id_filter(tmp_path: Path) -> None:
                 with patch("pinrag.mcp.tools.get_chat_model"):
                     with patch("pinrag.mcp.tools.run_rag", mock_run_rag):
                         query(
-                            query="GPIO?",
+                            user_query="GPIO?",
                             document_id="RP-008276-DS-1-getting-started-with-pico.pdf",
                         )
 

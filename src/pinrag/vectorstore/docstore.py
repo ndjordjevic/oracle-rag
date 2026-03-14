@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Union
 
-from langchain_classic.storage import LocalFileStore
-from langchain_classic.storage._lc_store import create_kv_docstore
+from langchain_classic.storage import LocalFileStore, create_kv_docstore
 from langchain_core.documents import Document
 from langchain_core.stores import BaseStore
 
@@ -23,7 +22,7 @@ def get_parent_docstore(
     the Chroma data. Survives process restarts.
 
     Args:
-        persist_directory: Chroma persist directory (e.g. ~/.oracle-rag/chroma_db).
+        persist_directory: Chroma persist directory (e.g. ~/.pinrag/chroma_db).
         collection_name: Chroma collection name (e.g. pinrag).
 
     Returns:

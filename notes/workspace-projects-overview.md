@@ -1,19 +1,23 @@
-## Workspace Projects Overview
+# Workspace Projects Overview
+
+Reference projects from `Langchain.code-workspace` (9 folders; pinrag and pinrag-cloud are not listed here). Consult the relevant "Value for PinRAG" section first when looking for example patterns, then use the module/path details to locate code.
 
 ---
 
 ### `langchain-academy` — LangChain Academy: Introduction to LangGraph
 
-Official LangChain Academy course for LangGraph, organized into 7 modules (0–6) of Jupyter notebooks with companion `studio/` directories for LangGraph Studio.
+**Value for PinRAG:** Core LangGraph primitives: `StateGraph`, `ToolNode`, `MemorySaver`, conditional edges, ReAct pattern (Module 1); state reducers, message management, summarization (Module 2); HITL breakpoints and time-travel (Module 3); multi-agent fan-out, `Send` API, map-reduce (Module 4); `BaseStore` for persistent memory (Module 5); deployment with `langgraph dev` / SDK (Module 6).
+
+Official LangChain Academy LangGraph course, 7 modules (0–6) of Jupyter notebooks with companion `studio/` directories.
 
 **Module breakdown:**
-- **Module 0 (Basics):** Environment setup, chat models, message types, basic model invocation and tool integration (TavilySearch).
-- **Module 1 (Building Agents):** `StateGraph`, `MessagesState`, `ToolNode`, conditional edges, the ReAct pattern (tool-calling loop), and memory via `MemorySaver`. Studio files include a simple graph, router, and full ReAct agent.
-- **Module 2 (State & Memory):** State schema options (`TypedDict`, `dataclass`, Pydantic), state reducers, conversation summarization, message trimming/filtering, and external memory. Studio includes a chatbot with auto-summarization.
-- **Module 3 (Human-in-the-Loop):** Static breakpoints (`interrupt_before`), dynamic interrupts (`NodeInterrupt`), state editing, streaming with interruptions, and time-travel via checkpoints.
-- **Module 4 (Multi-Agent & Parallelization):** Fan-out/fan-in parallel execution, sub-graphs for isolated agent states, the `Send` API for dynamic parallelization, map-reduce patterns, and a multi-agent research assistant.
-- **Module 5 (Long-Term Memory):** `BaseStore` for persistent key-value storage, user profile and collection memory schemas, `Trustcall` for structured memory extraction, and a full `task_mAIstro` ToDo agent.
-- **Module 6 (Deployment):** LangGraph CLI (`langgraph dev`, `langgraph deploy`), connecting via SDK, assistants (versioned/configurable agent instances), thread management, and streaming from deployed agents.
+- **Module 0:** Environment setup, chat models, message types, basic tool integration (TavilySearch).
+- **Module 1:** `StateGraph`, `MessagesState`, `ToolNode`, conditional edges, ReAct pattern, `MemorySaver`.
+- **Module 2:** State schemas (`TypedDict`, `dataclass`, Pydantic), reducers, conversation summarization, message trimming/filtering, external memory.
+- **Module 3:** Static breakpoints (`interrupt_before`), dynamic interrupts (`NodeInterrupt`), state editing, streaming, time-travel via checkpoints.
+- **Module 4:** Fan-out/fan-in parallel execution, sub-graphs, `Send` API, map-reduce, multi-agent research assistant.
+- **Module 5:** `BaseStore` for persistent key-value storage, user profile/collection memory schemas, `Trustcall` for structured extraction, full `task_mAIstro` ToDo agent.
+- **Module 6:** LangGraph CLI (`langgraph dev`, `langgraph deploy`), SDK, assistants, thread management, streaming from deployed agents.
 
 **Key dependencies:** `langgraph`, `langgraph-prebuilt`, `langgraph-sdk`, `langgraph-checkpoint-sqlite`, `langchain-core`, `langchain-openai`, `langchain-tavily`, `langsmith`, `trustcall`.
 
@@ -21,14 +25,16 @@ Official LangChain Academy course for LangGraph, organized into 7 modules (0–6
 
 ### `lca-lc-foundations` — LangChain Foundations (Python)
 
-Companion repo for the "Introduction to LangChain - Python" course. Teaches core LangChain primitives through three modules with practical projects, using `uv` as the preferred project manager.
+**Value for PinRAG:** `MultiServerMCPClient` integration (Module 2); middleware patterns, long-conversation management, HITL interrupts (Module 3); `env_utils.py` for environment verification.
+
+Companion repo for "Introduction to LangChain - Python". Three modules with practical projects; uses `uv`.
 
 **Module breakdown:**
-- **Module 1 (Create Agent):** Foundational models, tools (`@tool` decorator), short-term memory, multimodal messages. Project: Personal Chef agent.
-- **Module 2 (Advanced Agent):** Model Context Protocol (MCP) with `MultiServerMCPClient`, custom state management, runtime context, multi-agent systems. Project: Wedding Planner. Bonus notebooks on RAG and SQL.
-- **Module 3 (Production-Ready Agent):** Middleware patterns, managing long conversations (summarization), HITL with interrupts, dynamic models/prompts/tools. Project: Email Assistant with authentication. Bonus: Agent Chat UI (TypeScript/React).
+- **Module 1:** Models, `@tool` decorator, short-term memory, multimodal messages. Project: Personal Chef agent.
+- **Module 2:** `MultiServerMCPClient`, custom state, runtime context, multi-agent. Project: Wedding Planner. Bonus: RAG and SQL notebooks.
+- **Module 3:** Middleware, long-conversation summarization, HITL interrupts, dynamic models/prompts/tools. Project: Email Assistant. Bonus: Agent Chat UI (TypeScript/React).
 
-**Notable utilities:** `env_utils.py` — comprehensive environment verification script that checks Python version, venv activation, installed packages against `pyproject.toml`, API key configuration, and detects env var conflicts. Two `langgraph.json` configs expose the Personal Chef and Email Assistant agents for Studio.
+**Notable:** `env_utils.py` — checks Python version, venv, installed packages vs. `pyproject.toml`, API keys, env var conflicts.
 
 **Key dependencies:** `langchain>=1.1.3`, `langgraph>=1.0.3`, `langchain-openai`, `langchain-anthropic`, `langchain-google-vertexai`, `mcp>=1.21.1`, `langchain-mcp-adapters`, `langchain-tavily`, `pypdf`, `langsmith`. Python >=3.12, <3.14.
 
@@ -36,20 +42,20 @@ Companion repo for the "Introduction to LangChain - Python" course. Teaches core
 
 ### `lca-langchainV1-essentials` — LangChain v1 Essentials (Python & JS)
 
-Dual-language tutorial (Python + TypeScript) covering 9 lessons on the LangChain v1 API, centered around `create_agent` and building blocks for agent development. Both sides use a Chinook SQLite database for SQL agent examples.
+**Value for PinRAG:** `create_agent` patterns (L1); typed `@tool` / Zod schemas (L4); `MultiServerMCPClient` with external MCP servers (L5); checkpointing (L6); structured output (L7); dynamic prompts / middleware (L8); HITL interrupts (L9). Safety-hardened SQL agent (`sql_agent1.py`) as a reference for tool guardrails.
 
-**Lesson breakdown (same structure in both languages):**
-- **L1 (Fast Agent):** Build an SQL agent with `create_agent` in a few lines; runtime context via `RuntimeContext` dataclass.
-- **L2 (Messages):** Message types as the unit of context; message flow between components.
-- **L3 (Streaming):** `agent.stream()` with `stream_mode="values"` for reduced latency.
-- **L4 (Tools):** `@tool` decorator (Python) / `tool()` with Zod schemas (JS); typed arguments and descriptions.
-- **L5 (MCP Tools):** `MultiServerMCPClient` connecting to external MCP servers (e.g. `@theo.foobar/mcp-time`).
-- **L6 (Memory):** Checkpointing with `MemorySaver` for conversation persistence.
-- **L7 (Structured Output):** Producing validated, structured responses from agents.
-- **L8 (Dynamic Prompts):** Middleware for runtime prompt modification; `@dynamic_prompt` and `wrap_model_call`.
-- **L9 (HITL):** Interrupts for human approval workflows; middleware pattern.
+Dual-language tutorial (Python + TypeScript) covering 9 lessons on LangChain v1 API. Uses a Chinook SQLite database for SQL agent examples.
 
-**Studio files:** `sql_agent1.py` (safety-hardened: read-only, LIMIT enforcement, regex SQL validation) and `sql_agent2.py` (minimal checks). JS side mirrors with `sql_agent2.ts`.
+**Lesson breakdown:**
+- **L1:** `create_agent` fast-start; `RuntimeContext` for runtime config.
+- **L2:** Message types as unit of context.
+- **L3:** `agent.stream()` with `stream_mode="values"`.
+- **L4:** `@tool` (Python) / `tool()` with Zod schemas (JS); typed args.
+- **L5:** `MultiServerMCPClient` connecting to external MCP servers.
+- **L6:** `MemorySaver` checkpointing.
+- **L7:** Structured output from agents.
+- **L8:** Middleware for runtime prompt modification; `@dynamic_prompt`.
+- **L9:** Interrupts for human approval workflows.
 
 **Key dependencies (Python):** `langgraph>=1.0.0`, `langchain>=1.0.0`, `langchain-openai`, `langchain-anthropic`, `langchain-mcp-adapters`. **(JS):** `@langchain/langgraph`, `@langchain/openai`, `@langchain/mcp-adapters`, `zod`, `typeorm`, `better-sqlite3`.
 
@@ -57,20 +63,18 @@ Dual-language tutorial (Python + TypeScript) covering 9 lessons on the LangChain
 
 ### `lca-langgraph-essentials` — LangGraph v1 Essentials (Python & JS)
 
-Focused specifically on LangGraph v1 concepts in both Python and TypeScript, with 6 progressive lessons plus a complete email workflow project. Includes a companion PDF ("LangGraph V1 Essentials.pdf", ~3.2 MB) and visual assets showing graph structure diagrams.
+**Value for PinRAG:** `Command`-based routing, parallel node execution, `InMemorySaver` checkpointer (L3–L4); `interrupt()` for human review (L5); end-to-end email agent combining structured output, parallel paths, and HITL (L6 — good template for a doc-processing graph).
+
+6 progressive lessons plus a complete email workflow project in both Python and TypeScript. Includes a companion PDF and graph-structure visual assets.
 
 **Python notebooks:**
-- **L1 (Nodes):** State schemas with `TypedDict`, node functions, building graphs with `StateGraph`/`START`/`END`.
-- **L2 (Edges):** Parallel execution via multiple outgoing edges, state reducers (`operator.add`) for merging parallel results.
-- **L3–L4 (Conditional Edges & Memory):** `Command`-based routing from nodes, `add_conditional_edges` with router functions, `InMemorySaver` checkpointer, multi-threaded execution.
-- **L5 (Interrupts):** `interrupt()` to pause execution, human review workflows, resuming with `Command(resume=...)`.
-- **L6 (Email Agent):** End-to-end email processing: AI classification with structured output, documentation search, bug tracking, response generation, human review for high-urgency cases. Combines all previous concepts.
+- **L1:** `TypedDict` state, node functions, `StateGraph`/`START`/`END`.
+- **L2:** Parallel execution via multiple outgoing edges, `operator.add` reducers.
+- **L3–L4:** `Command`-based routing, `add_conditional_edges`, `InMemorySaver`, multi-threaded execution.
+- **L5:** `interrupt()`, human review workflows, `Command(resume=...)`.
+- **L6:** End-to-end email agent: AI classification, doc search, bug tracking, response generation, HITL for high-urgency cases.
 
-**JS/TypeScript side (`js/src/`):**
-- **L1:** 6 files implementing simple nodes, parallel execution, conditional edges (both Command-based and router-function approaches), memory/checkpointing, and interrupts.
-- **L2:** Complete email workflow with 7 nodes (readEmail → classifyIntent → searchDocumentation/bugTracking → writeResponse → humanReview → sendReply), parallel paths, and conditional routing.
-
-**Preview images** in `js/preview/` show rendered graph visualizations for each concept. **Assets** include diagrams for states/nodes, parallel execution, conditional routing, memory, HITL, and the email workflow.
+**JS side (`js/src/`):** mirrors Python; L2 implements the full 7-node email workflow. `js/preview/` has rendered graph visualizations.
 
 **Key dependencies (Python):** `langgraph>=1.0.0`, `langchain>=1.0.0`, `langchain-openai`, `langchain-anthropic`. **(JS):** `@langchain/langgraph`, `@langchain/openai`, `zod@^4`. Python >=3.11, JS Node >=20.
 
@@ -78,101 +82,91 @@ Focused specifically on LangGraph v1 concepts in both Python and TypeScript, wit
 
 ### `rag-from-scratch` — RAG From Scratch (Notebooks)
 
-Educational series that builds RAG from first principles across 18 parts in 5 Jupyter notebooks, accompanying a [YouTube playlist](https://youtube.com/playlist?list=PLfaIDFEXuae2LXbO1_PKyVJiQ23ZztA0x). Focuses on understanding core RAG mechanics without immediately relying on high-level abstractions.
+**Value for PinRAG:** Conceptual grounding for RAG trade-offs. Key topics: indexing strategies (Parts 1–4), retrieval quality (Parts 5–9), routing and query construction with metadata filters (Parts 10–11), advanced techniques (Parts 12–14), production patterns (Parts 15–18). Reference when evaluating hybrid search, re-ranking, query preprocessing, or chunk-size tuning.
+
+18-part educational series in 5 Jupyter notebooks, accompanying a [YouTube playlist](https://youtube.com/playlist?list=PLfaIDFEXuae2LXbO1_PKyVJiQ23ZztA0x). Builds RAG from first principles.
 
 **Notebook breakdown:**
-- **Parts 1–4 (`rag_from_scratch_1_to_4.ipynb`):** RAG overview, indexing fundamentals — token counting (~4 chars/token), text embedding models (OpenAI), cosine similarity, document loaders, text splitters (`RecursiveTextSplitter`), and the full document ingestion pipeline.
-- **Parts 5–9 (`rag_from_scratch_5_to_9.ipynb`):** Retrieval strategies and generation — different retrieval approaches and how to wire them into generation.
-- **Parts 10–11 (`rag_from_scratch_10_and_11.ipynb`):** Routing and query construction — logical routing (function calling for structured output) vs. semantic routing (embedding-based), branching based on datasource selection, and building structured queries with metadata filters.
-- **Parts 12–14 (`rag_from_scratch_12_to_14.ipynb`):** Advanced RAG techniques.
-- **Parts 15–18 (`rag_from_scratch_15_to_18.ipynb`):** Production patterns and considerations.
-
-**Value for PinRAG:** This project is a conceptual grounding for reasoning about RAG behavior and trade-offs. Especially relevant topics include: indexing strategies (Parts 1–4), retrieval quality and routing (Parts 10–11), metadata filtering and query construction (Part 11), and production patterns (Parts 15–18). Use it as a reference when evaluating new features like hybrid search, re-ranking, query preprocessing, or chunk size tuning.
+- **Parts 1–4:** RAG overview, indexing fundamentals — token counting, OpenAI embeddings, cosine similarity, document loaders, `RecursiveTextSplitter`, ingestion pipeline.
+- **Parts 5–9:** Retrieval strategies and generation.
+- **Parts 10–11:** Routing and query construction — logical routing (function calling) vs. semantic routing (embedding-based); structured queries with metadata filters.
+- **Parts 12–14:** Advanced RAG techniques.
+- **Parts 15–18:** Production patterns and considerations.
 
 ---
 
 ### `langsmith-cookbook` — LangSmith Cookbook (Observability, Evaluation, Feedback)
 
-Official [LangSmith Cookbook](https://github.com/langchain-ai/langsmith-cookbook) — practical recipes for debugging, evaluating, testing, and improving LLM applications with [LangSmith](https://smith.langchain.com/). The repo is **archived** (read-only as of Feb 2026) but remains a strong reference. Most content is Jupyter notebooks plus a few Streamlit/Next.js apps; each recipe is self-contained in a subfolder with optional `requirements.txt` and assets.
+**Value for PinRAG:** (1) **Tracing** — `@traceable` / callbacks to surface MCP and RAG runs in LangSmith. (2) **RAG evaluation** — Q&A correctness and RAGAS patterns (faithfulness, context relevancy/recall/precision) to run on a dataset before/after retrieval or prompt changes. (3) **Real-time RAG feedback** — `EvaluatorCallbackHandler` for live relevance + faithfulness checks against retrieved chunks. (4) **Backtesting** — turn production MCP traces into a dataset and compare chain versions. (5) **Prompt versioning** — versioned Hub fetches for stable deployments.
+
+Official [LangSmith Cookbook](https://github.com/langchain-ai/langsmith-cookbook). **Archived** (read-only as of Feb 2026) but still a strong reference. Self-contained recipes in subfolders.
 
 **Section breakdown:**
+- **Tracing** (`tracing-examples/`) — `@traceable`, REST API spans, custom run names, nested tool call tracing, Streamlit trace links.
+- **LangChain Hub** (`hub-examples/`) — Hub prompts in pipelines, prompt versioning, runnable prompt templates.
+- **Testing & Evaluation** (`testing-examples/`) — RAG: Q&A correctness (LLM-as-judge), dynamic data, RAGAS integration. Chat: simulated-user evals, single-turn evals in multi-turn datasets. Extraction/Agents/Multimodal: exact match, agent trajectory, tool selection, multimodal. Fundamentals: backtesting, metrics on existing projects, CSV export.
+- **TypeScript testing** (`typescript-testing-examples/`) — Vision-based evals (GPT-4V), traceable examples.
+- **Feedback** (`feedback-examples/`) — Streamlit/Next.js chat apps with tracing and feedback; algorithmic feedback pipeline; real-time RAG chatbot evaluation with `EvaluatorCallbackHandler`.
+- **Optimization** (`optimization/`) — Prompt bootstrapping from feedback, automated few-shot curation, iterative prompt optimization, online few-shot selection.
+- **Fine-tuning** (`fine-tuning-examples/`) — Export runs to OpenAI fine-tuning format; Lilac-based dataset curation.
+- **EDA** (`exploratory-data-analysis/`) — ETL for LLM runs and feedback; Lilac for enrichment and labeling.
 
-- **Tracing** (`tracing-examples/`) — Instrument apps for LangSmith without locking into LangChain: `@traceable` decorator (Python SDK), REST API for logging runs and nested spans, custom run names for chains/lambdas/agents, tracing nested tool calls via `run_manager.get_child()` and callbacks, and displaying trace links in Streamlit for quick jump-to-trace during development.
-- **LangChain Hub** (`hub-examples/`) — Use Hub prompts in pipelines: RetrievalQA chain with hub-loaded prompts, prompt versioning for deployment stability (pin specific versions vs. `latest`), and runnable prompt templates (edit in playground → save → integrate into runnable chains).
-- **Testing & Evaluation** (`testing-examples/`) — Dataset-driven evals and regression testing.
-  - **RAG:** Q&A correctness (labeled dataset + LLM-as-judge), dynamic data (evaluators that dereference labels), fixed-source RAG eval (evaluate generator with pre-supplied retrieved docs), and **RAGAS** integration (answer correctness, faithfulness, context relevancy, context recall, context precision — both generator and retriever, labeled and reference-free).
-  - **Chat:** Simulated-user evals (task-based scoring), single-turn evals within multi-turn conversation datasets.
-  - **Extraction / Agents / Multimodal:** Extraction chain (JSON similarity vs. labels), exact match, agent intermediate steps (expected trajectory), tool selection (precision + prompt writer for failures), multimodal (e.g. image classification).
-  - **Fundamentals:** Backtesting (production runs → dataset → compare new version), adding metrics to existing test projects (`compute_test_metrics`), naming test projects, exporting tests to CSV (`get_test_results`), downloading feedback and examples for reports.
-- **TypeScript testing** (`typescript-testing-examples/`) — Vision-based evals (e.g. GPT-4V for AI-generated UIs), traceable example; fewer examples than Python.
-- **Feedback** (`feedback-examples/`) — Capture and automate feedback on runs: Streamlit and Next.js chat apps with tracing and feedback; algorithmic feedback pipeline (batch evaluation of production runs); real-time automated feedback (async callback per run); **real-time RAG chatbot evaluation** (Streamlit) — relevance and faithfulness evaluators via `EvaluatorCallbackHandler`, non-blocking hallucination checks against retrieved docs; LangChain agent with web-search and human feedback.
-- **Optimization** (`optimization/`) — Use LangSmith to improve prompts and few-shot sets: prompt bootstrapping (rewrite system prompt from feedback + LLM optimizer), style-transfer example (Elvis-bot), automated few-shot bootstrapping (curate examples by performance, e.g. SCONE), iterative prompt optimization (Streamlit, few-shot + optimizer model), online few-shot (add good examples to dataset from evaluators).
-- **Fine-tuning** (`fine-tuning-examples/`) — Export run data for training: export to OpenAI fine-tuning format from LangSmith runs; Lilac-based dataset curation (near-duplicates, PII, etc.).
-- **Exploratory data analysis** (`exploratory-data-analysis/`) — ETL for LLM runs and feedback (export for analytics); Lilac to enrich, label, and organize datasets.
-- **Introduction** (`introduction/`) — High-level LangSmith intro, summarization, and online evaluation notebooks.
-
-**Key dependencies:** Per-recipe; commonly `langsmith`, `langchain`, `langchain-openai`, `langchain-anthropic`, Chroma (RAG examples), Streamlit/Next.js for apps; RAGAS recipes use `ragas`; fine-tuning/EDA use `lilac` where applicable.
-
-**Value for PinRAG:** Use the cookbook when adding observability and evaluation: (1) **Tracing** — add `@traceable` or LangChain callbacks so MCP and RAG runs appear in LangSmith. (2) **RAG evaluation** — adopt the Q&A correctness or RAGAS patterns (faithfulness, context relevancy/recall/precision) and run them on a small dataset before/after retrieval or prompt changes. (3) **Real-time RAG feedback** — adapt the Streamlit real-time feedback example (relevance + faithfulness evaluators, `EvaluatorCallbackHandler`) to monitor production pinrag answers against retrieved chunks. (4) **Backtesting** — turn production MCP traces into a dataset and compare new chain versions. (5) **Prompt versioning** — if prompts move to LangChain Hub, use versioned fetches for stable deployments.
+**Key dependencies:** `langsmith`, `langchain`, `langchain-openai`, `langchain-anthropic`, Chroma (RAG), Streamlit/Next.js (apps), `ragas`, `lilac` (where applicable).
 
 ---
 
 ### `cookbooks` — LangChain Cookbooks (LangGraph + LangSmith patterns)
 
-Official [LangChain Cookbooks](https://github.com/langchain-ai/cookbooks) repo: curated code snippets and examples for **LangGraph** and **LangSmith** — design patterns, persistence, streaming, observability, and auth. Structure is **python/** (and **javascript/** placeholder). MIT licensed; actively maintained.
+**Value for PinRAG:** (1) **RAG agent structure** — `basic-RAG` (minimal LangGraph + Chroma) as a template if pinrag moves into a graph. (2) **Fault tolerance** — pending-writes and retry+fallback patterns for retrieval or LLM steps. (3) **MCP auth** — `mcp-auth-demo` (Supabase + Vault + LangGraph auth middleware) for per-user or per-tenant MCP credentials. (4) **Trace privacy** — content redaction for prompts or PII in LangSmith. (5) **Hierarchical routing** — `ecommerce-hierarchical-system` as a reference for routing to multiple sub-graphs by document type or tag.
+
+Official [LangChain Cookbooks](https://github.com/langchain-ai/cookbooks). Curated patterns for LangGraph and LangSmith. Actively maintained; MIT licensed.
 
 **LangGraph (`python/langgraph/`):**
-
-- **Agents** — **basic-RAG**: stateless RAG agent with LangGraph + Chroma. **assistants-demo**: ReAct agent and supervisor/multi-agent with configuration, notebooks. **ecommerce-hierarchical-system**: top-level supervisor routing to BU supervisors (billing & payments, order management, promotions & loyalty), each with sub-agents and tools; `uv sync`, LangSmith tracing, `langgraph dev`; good reference for hierarchical routing. **arxiv-researcher**: multi-agent flow (high-level summary, detailed summary, application agent).
-- **Human-in-the-loop** — Examples for human interaction in graphs (folder present; see repo for current contents).
-- **MCP** — **mcp-auth-demo**: full user-auth flow for agents that call MCP with user credentials: Supabase auth → Supabase Vault for secrets → custom LangGraph auth middleware → MCP server authenticated with user-scoped GitHub PAT; tests for vault retrieval, MCP connection, middleware, and agent flow; aligns with [LangGraph Agent Authentication](https://langchain-ai.github.io/langgraph/how-tos/auth/). Relevant if pinrag or MCP servers ever need per-user or per-tenant credentials.
-- **Persistence** — **fault-tolerance**: two patterns — (1) **Partial failure / pending writes**: parallel nodes where some fail; successful node outputs saved as pending writes, only failed nodes retry, reducers merge state, checkpointing preserves work. (2) **Retry + fallbacks**: progressive retry (direct retry → simplified input → default result), graceful degradation. Uses SQLite checkpointer, `merge_dicts` and `add_messages` reducers. Useful for robust RAG/agent pipelines.
-- **Streaming** — **custom-streaming/log-analysis**: custom streaming example (log analysis).
+- **Agents** — `basic-RAG`: stateless RAG with LangGraph + Chroma. `assistants-demo`: ReAct + supervisor/multi-agent. `ecommerce-hierarchical-system`: top-level supervisor → BU supervisors (billing, orders, promotions) → sub-agents. `arxiv-researcher`: multi-agent flow.
+- **Human-in-the-loop** — Human interaction examples.
+- **MCP** — `mcp-auth-demo`: Supabase auth → Vault → LangGraph auth middleware → MCP server with user-scoped GitHub PAT.
+- **Persistence** — `fault-tolerance`: (1) partial failure/pending writes with parallel nodes; (2) retry + fallbacks with graceful degradation. SQLite checkpointer, `merge_dicts`/`add_messages` reducers.
+- **Streaming** — `custom-streaming/log-analysis`.
 
 **LangSmith (`python/langsmith/`):**
+- **Observability** — `tracing/data-privacy/trace-content-redaction`: redact system prompts for compliance. `tracing/otel`: OpenTelemetry with Bedrock agents.
+- **evaluation/** and **prompt-engineering/** — Placeholders; richer patterns in `langsmith-cookbook`.
 
-- **Observability** — **tracing/data-privacy/trace-content-redaction**: redact system prompts (or other content) in traces for privacy/compliance; notebook + `utils.py`. **tracing/otel**: OpenTelemetry tracing with Bedrock agents (`tracing_bedrock_agents_otel.ipynb`).
-- **evaluation/** and **prompt-engineering/** — Placeholders (`.gitkeep`); richer evaluation and prompt patterns live in `langsmith-cookbook`.
-
-**Key dependencies:** Per-example; commonly `langgraph`, `langchain`, `langchain-openai`, Chroma (basic-RAG), `uv` (ecommerce), Supabase (mcp-auth-demo). LangSmith/OTEL examples use `langsmith` and OpenTelemetry packages.
-
-**Value for PinRAG:** (1) **RAG agent structure** — basic-RAG shows a minimal LangGraph + Chroma RAG agent; use as a template if you move pinrag into a graph. (2) **Fault tolerance** — persistence/fault-tolerance patterns (pending writes, retries + fallbacks) for retrieval or LLM steps that can fail. (3) **MCP auth** — if you add per-user or per-tenant MCP access, mcp-auth-demo shows Supabase + Vault + LangGraph auth middleware. (4) **Trace privacy** — data-privacy redaction example if you need to redact prompts or PII in LangSmith traces. (5) **Hierarchical routing** — ecommerce-hierarchical-system as a reference for routing to multiple “BU”-style sub-graphs (e.g. by document type or tag).
+**Key dependencies:** `langgraph`, `langchain`, `langchain-openai`, Chroma (`basic-RAG`), `uv` (ecommerce), Supabase (`mcp-auth-demo`), `langsmith` + OpenTelemetry (OTEL examples).
 
 ---
 
-### `deep_research_from_scratch` — Deep Research From Scratch (LangChain / LangGraph)
+### `deep_research_from_scratch` — Deep Research From Scratch (LangGraph)
 
-Tutorial repo and **LangChain Academy course** (“Deep Research with LangGraph”) that builds a deep research agent from scratch: **Scope** (clarify intent, generate brief) → **Research** (search / MCP, single or multi-agent) → **Write** (report). The course emphasizes **design decisions and prompting philosophy** rather than a brute-force code walkthrough; it also covers **evaluation of each sub-component** (e.g. LangSmith datasets, LLM-as-judge) before moving on. Inspired by OpenAI/Anthropic/Perplexity/Google deep research products and the [open deep researcher](https://github.com/langchain-ai/open_deep_research) (best-performing open-source on [DeepResearch Bench](https://github.com/langchain-ai/open_deep_research)). Five Jupyter notebooks plus Python package; **uv** and **LangGraph** with state graphs, MCP adapters, and a multi-agent supervisor.
+**Value for PinRAG:** (1) **MCP integration** — `MultiServerMCPClient` / MCP adapters: client spawns server, gets tools, binds to model. (2) **Structured output** — Pydantic schemas for clarification and delegation; applicable to query analysis or tool routing. (3) **Supervisor / multi-step workflows** — context isolation and "sub-agent as tool" pattern for multi-step reasoning over docs. (4) **Per-component evaluation** — LangSmith datasets + LLM-as-judge + mock scenarios before composing stages; directly applicable when adding new RAG or agent steps. (5) **LangGraph Studio** — `langgraph.json` exposing multiple graphs as a model for multi-workflow repos.
 
-**Course transcript (local):** [Project Deep Research with LangGraph Course – Transcripts](Project%20Deep%20Research%20with%20LangGraphCourse-Transcripts.txt) — full lecture transcripts (M1 intro → M2 scoping → M3 research agent → M4 MCP → M5 supervisor → M6 full system).
+Tutorial repo and LangChain Academy course building a deep research agent: **Scope** → **Research** → **Write**. Five notebooks + Python package; uses `uv`, LangGraph state graphs, MCP adapters, multi-agent supervisor.
 
 **Notebook breakdown:**
-- **1. Scoping (`1_scoping.ipynb`)** — Two steps: (1) User clarification via structured output (`ClarifyWithUser`: need clarification? follow-up question? verification message) to direct the workflow; (2) Brief generation: convert conversation to a research brief, write to state and `supervisor_messages`. State (`AgentInputState`, `AgentState`), schemas, conditional routing, date-aware prompts. **Evaluation:** LangSmith dataset + LLM-as-judge evaluators (criteria captured? no hallucination?) to pressure-test scoping before building the agent.
-- **2. Research agent with tools (`2_research_agent.ipynb`)** — LLM + tools in a loop until termination, then compress research. **Prompting:** Think like the agent; concrete heuristics and budgets (e.g. 2–3 searches for simple queries, up to 5 for complex, hard stop at 5); **think tool** (Anthropic-style) to interleave reasoning and tool calls and avoid “spin out.” **Context engineering:** Webpage content summarization inside the tool; compress accumulated research at end; optional instruction reinforcement at end of long context. Tavily search with `parse_docstring` and `InjectedToolArg` for config-only args. **Evaluation:** Mock message scenarios (should continue vs stop); check correct next step to tune prompts.
-- **3. Research agent with MCP (`3_research_agent_mcp.ipynb`)** — MCP as a **protocol** (client–server): agent spawns server process (config: command, args, transport); client gets tools from server, adapter converts to LangChain tools and binds to model. JSON-RPC over stdio (or HTTP for remote); **async** tool execution. Filesystem MCP server example; requires Node.js/npx for the server used in the notebook.
-- **4. Research supervisor (`4_research_supervisor.ipynb`)** — **Why multi-agent:** Context isolation — avoid packing multiple subtopics into one context window (e.g. context clash). Delegate distinct subtopics to sub-agents with isolated context; run sub-agents in parallel via `asyncio.gather()`. **Prompting:** When to delegate (clear, non-overlapping subtopics); limit ConductResearch calls (e.g. 3); think tool; bias toward single agent when parallelization isn’t obvious. **Implementation:** Supervisor node + supervisor_tools node; `ConductResearch` invokes research agent as a tool, returns `compressed_research` as ToolMessage. **Evaluation:** Expect parallelization or not (e.g. “OpenAI vs Gemini” → parallel; open-ended single topic → single agent).
-- **5. Full system (`5_full_agent.ipynb`)** — Connect scope → supervisor → write. Report writer: fetch `notes` from state (aggregated compressed research), join, prompt with brief + findings + date; set `max_tokens` for long reports. `writefile` in notebooks populates deployable source; `langgraph dev` for local Studio; same flow as [open deep researcher](https://github.com/langchain-ai/open_deep_research).
+- **1. Scoping** — Structured output for user clarification; brief generation; state schemas; conditional routing; LangSmith eval (criteria captured? no hallucination?).
+- **2. Research agent with tools** — LLM + tools loop with termination; think tool (Anthropic-style) to avoid spin-out; search budgets (2–3 simple, up to 5 complex); webpage summarization inside tool; context compression at end; LangSmith eval (should continue vs. stop).
+- **3. Research agent with MCP** — MCP as protocol: agent spawns server (stdio/HTTP), adapter converts tools to LangChain; async execution; filesystem MCP server example.
+- **4. Research supervisor** — Multi-agent: context isolation across subtopics; `asyncio.gather()` for parallel sub-agents; `ConductResearch` as tool returning `compressed_research`; LangSmith eval (expect parallelization or not).
+- **5. Full system** — Connect scope → supervisor → write; report writer with `max_tokens`; `langgraph dev` for Studio.
 
-**Package layout:** `src/deep_research_from_scratch/` — state schemas (`state_scope`, `state_research`, `state_multi_agent_supervisor`), prompts, research agents (basic, MCP, full), `multi_agent_supervisor.py`, utils. **langgraph.json** exposes five graphs for LangGraph Studio: `scope_research`, `research_agent`, `research_agent_mcp`, `research_agent_supervisor`, `research_agent_full`.
+**Package layout:** `src/deep_research_from_scratch/` — state schemas, prompts, research agents (basic/MCP/full), `multi_agent_supervisor.py`, utils. **langgraph.json** exposes 5 graphs.
 
 **Key dependencies:** `langgraph>=1.0.0`, `langchain>=1.0.0`, `langchain-openai`, `langchain-anthropic`, `langchain_community`, `langchain_tavily`, `langchain_mcp_adapters`, `pydantic>=2`, `tavily-python`, `rich`, `jupyter`. Python >=3.11, <3.14.
-
-**Value for PinRAG:** (1) **MCP integration** — Same `MultiServerMCPClient` / MCP adapters pattern; client spawns server, gets tools, binds to model; useful if pinrag adds more MCP servers. (2) **Structured output** — Pydantic schemas for clarification and delegation; applicable to query analysis or tool routing in RAG. (3) **Supervisor / multi-step workflows** — Context isolation and “sub-agent as tool” pattern; reference for “research over docs” or multi-step reasoning. (4) **Evaluation** — Per-component LangSmith evaluation (datasets, LLM-as-judge, mock scenarios) before composing; applicable when adding new RAG or agent steps. (5) **LangGraph Studio** — `langgraph.json` with multiple graphs as a model for exposing several workflows from one repo.
 
 ---
 
 ### `intro-to-langsmith` — Intro to LangSmith (LangSmith Academy)
 
-Educational course for **LangSmith** fundamentals: observability, prompt engineering, evaluations, feedback, and production monitoring. Uses a single running example — a RAG app over LangSmith documentation — built with the LangSmith Python SDK and LangChain (SitemapLoader, SKLearnVectorStore, OpenAI). All notebooks use a shared `.env` (`LANGSMITH_API_KEY`, `OPENAI_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT`) and optional EU/self-hosted endpoint config.
+**Value for PinRAG:** (1) **Tracing** — `@traceable` on RAG steps with `run_type` (retriever/chain/llm); conversational thread tracking for multi-turn chat. (2) **Evaluation framework** — create a dataset (Q&A or relevance pairs), run experiments, use custom or LLM-as-judge evaluators; directly applicable before adding multi-query, re-ranking, or other retrieval changes. (3) **Prompt iteration** — Playground + dataset + experiments for RAG prompt tuning. (4) **Feedback and production** — publish feedback on runs from MCP clients; online evaluators and `list_runs` filtering for production monitoring.
+
+LangSmith fundamentals course: observability, prompt engineering, evaluation, feedback, production monitoring. Uses a single running RAG app over LangSmith docs (SitemapLoader, SKLearnVectorStore, OpenAI) throughout.
 
 **Module breakdown:**
-- **Module 0 (`rag_application.ipynb`)** — Set up the course's RAG app: index LangSmith docs via sitemap, split with `RecursiveCharacterTextSplitter`, store in SKLearnVectorStore (parquet), and answer questions with OpenAI. Establishes the traced application used in later modules.
-- **Module 1 (Tracing)** — **tracing_basics:** `@traceable` decorator to log runs (inputs, outputs, errors) to LangSmith without blocking. **types_of_runs:** Run types (LLM, Retriever, Tool, Chain, Prompt, Parser) and naming for clearer trace trees. **conversational_threads:** Track multi-turn chatbot conversations so RAG context is tied to threads. **alternative_tracing_methods:** Other ways to instrument code. Shared `utils.py` (e.g. `get_vector_db_retriever`).
-- **Module 2 (Evaluations)** — **evaluators:** Custom evaluators (e.g. compare output to reference) and **LLM-as-judge** (reference-free or reference-based, structured output). **dataset_upload:** Create and populate datasets via LangSmith SDK (e.g. Q&A pairs from RAG examples). **experiments:** Run the RAG app over a dataset and compare results. **summary_evaluators** and **pairwise_experiments:** Aggregate metrics and compare two experiment runs. Each module can have an `app.py` (e.g. runnable RAG) for that stage.
-- **Module 3 (Prompt engineering)** — **playground_experiments:** Create a small dataset (e.g. color Q&A), run experiments in the Playground. **prompt_engineering_lifecycle:** Log a trace, iterate on prompts using LangSmith. **prompt_hub:** Use prompts from LangChain Hub in the pipeline.
-- **Module 4 (Feedback)** — **publishing_feedback:** Add feedback to an existing run programmatically (e.g. by `run_id`) via the SDK; supports human or automated feedback for monitoring and tuning.
-- **Module 5 (Production monitoring)** — **online_evaluation:** Attach online evaluators so every production run is scored (e.g. correctness, relevance). **filtering:** Use `list_runs` (SDK) or `/runs/query` (API) with filters to analyze and export runs. **app.py:** Full RAG app with `@traceable`-decorated retrieve/generate steps, used to demonstrate online eval and filtering.
+- **Module 0:** Set up course RAG app: sitemap indexing, `RecursiveCharacterTextSplitter`, SKLearnVectorStore (parquet), OpenAI answers.
+- **Module 1 (Tracing):** `@traceable`, run types (LLM/Retriever/Tool/Chain), conversational threads, alternative tracing methods.
+- **Module 2 (Evaluations):** Custom evaluators, LLM-as-judge (reference-free and reference-based), dataset upload, experiments, summary evaluators, pairwise comparison.
+- **Module 3 (Prompt engineering):** Playground experiments, prompt engineering lifecycle, LangChain Hub integration.
+- **Module 4 (Feedback):** Programmatic feedback on runs via SDK (`run_id`).
+- **Module 5 (Production monitoring):** Online evaluators per production run; `list_runs` / `/runs/query` filtering and export.
 
-**Key dependencies:** `langsmith>=0.2.0`, `langchain`, `langgraph`, `langgraph-sdk`, `langgraph-checkpoint-sqlite`, `langchain-community`, `langchain-core`, `langchain-openai`, `langchain-text-splitters`, `python-dotenv`, `scikit-learn`, `pandas`, `pyarrow`, `lxml`. Python >=3.11.
-
-**Value for PinRAG:** (1) **Tracing** — Same pattern as pinrag: `@traceable` on RAG steps (and optionally `run_type` for retriever/chain/llm) so MCP and RAG runs appear in LangSmith; conversational threads if you add multi-turn chat. (2) **Evaluation framework** — Mirrors the implementation checklist "Evaluation framework": create a dataset (question/expected-answer or relevance pairs), run experiments over it, use custom or LLM-as-judge evaluators; directly applicable before adding multi-query, re-ranking, or other retrieval changes. (3) **Prompt iteration** — Playground + dataset + experiments for prompt and RAG tuning. (4) **Feedback and production** — Publish feedback on runs (e.g. from MCP clients); online evaluators and run filtering for monitoring and analyzing production query traffic.
+**Key dependencies:** `langsmith>=0.2.0`, `langchain`, `langgraph`, `langgraph-sdk`, `langchain-community`, `langchain-core`, `langchain-openai`, `langchain-text-splitters`, `scikit-learn`, `pandas`, `pyarrow`, `lxml`. Python >=3.11.

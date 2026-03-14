@@ -1,40 +1,23 @@
 ---
-description: Use MCP servers for LangChain/LangGraph documentation and resources
-alwaysApply: true
+description: LangChain/LangGraph docs, MCP server usage, and reference project lookup for pinrag
+alwaysApply: false
 ---
 
 # LangChain/LangGraph Resource Access
 
-**ALWAYS** use these MCP servers for LangChain/LangGraph documentation and code examples:
+MCP servers to use for LangChain/LangGraph docs and code examples:
 
-1. **`user-docs-langchain`** (primary) - Use `SearchDocsByLangChain` for LangChain-specific queries
-2. **`user-context7`** (fallback) - Use `resolve-library-id` then `query-docs` for general library docs or when docs-langchain doesn't have what you need
+1. **`user-docs-langchain`** (primary) — `SearchDocsByLangChain` for LangChain-specific queries
+2. **`user-context7`** (fallback) — `resolve-library-id` then `query-docs` for other libraries
+
+Check MCP servers **before** assuming any LangChain API. Use specific queries.
 
 ## Reference Projects
 
-**Do not list projects here.** Use the workspace overview for the canonical list of reference projects, their structure, and how they relate to this project (pinrag):
-
-- **`notes/workspace-projects-overview.md`** — Read this file for:
-  - All workspace projects (langchain-academy, lca-lc-foundations, lca-langchainV1-essentials, lca-langgraph-essentials, rag-from-scratch, langsmith-cookbook, cookbooks)
-  - Module/lesson breakdowns and key dependencies per project
-  - "Value for PinRAG" notes that explain which parts of each project are most relevant
-
-When you need example patterns, API usage, or RAG/agent references, consult the overview first to choose the right project and section, then use the paths and descriptions there to locate code.
+Read **`notes/workspace-projects-overview.md`** for the canonical list of reference projects, their structure, and "Value for PinRAG" notes. Consult it before searching for example patterns.
 
 ## Guidelines
 
-- **Git commits**: Do not commit until I explicitly tell you to. When committing, keep commit messages brief — one or two lines.
-- Prefer `user-docs-langchain` for LangChain-specific queries
-- Use `user-context7` as fallback or for related libraries
-- Check MCP servers BEFORE making assumptions about LangChain APIs
-- Use specific queries (avoid vague searches)
-
-## When Answering Questions
-
-- **Always cite sources**: Always cite the source documentation you're referencing, including URLs when available
-- **Search priority**: For reference projects and patterns, read `notes/workspace-projects-overview.md` first. Then search the MCP documentation resources above. If information is not found there, you may search the internet
-- **Internet search citation**: When using information from internet searches, you must list the specific resources (URLs, websites, articles) where you found the information
-- **Strictly avoid hallucinations**: Never make up or guess information
-- **Be honest about uncertainty**: If information cannot be found in the available documentation resources or through internet search, explicitly state \"I don't know\" or \"I cannot find this information\" rather than speculating or inventing details
-- **Verification**: Only provide information that can be verified from the listed documentation sources, workspace codebase, or cited internet resources
-    
+- **Do not commit** until explicitly asked. Keep commit messages to one or two lines.
+- **Search priority**: `notes/workspace-projects-overview.md` → MCP docs → internet search
+- **Always cite sources** (URLs when available). Say "I don't know" rather than guessing.

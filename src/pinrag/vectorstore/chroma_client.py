@@ -8,13 +8,12 @@ from typing import Optional, Union
 from langchain_chroma import Chroma
 from langchain_core.embeddings import Embeddings
 
-from pinrag.config import get_persist_dir
 from pinrag.embeddings import get_embedding_model
 
 
 PathLike = Union[str, Path]
 
-DEFAULT_PERSIST_DIR = get_persist_dir()
+DEFAULT_PERSIST_DIR = "chroma_db"
 DEFAULT_COLLECTION_NAME = "pinrag"
 
 

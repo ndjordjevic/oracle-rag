@@ -129,7 +129,6 @@ def _detect_file_format(path: Path) -> Literal["pdf", "discord", "plaintext"] | 
 @traceable(name="query", run_type="tool")
 def query(
     user_query: str = "",
-    query: str = "",
     document_id: str | None = None,
     page_min: int | None = None,
     page_max: int | None = None,
@@ -147,7 +146,7 @@ def query(
     PINRAG_PERSIST_DIR and PINRAG_COLLECTION_NAME when not provided.
 
     Args:
-    user_query: Natural language question to ask.
+        user_query: Natural language question to ask.
         document_id: Optional document ID to filter retrieval (e.g. from list_documents).
         page_min: Optional start of page range (inclusive). Use with page_max. PDF only.
         page_max: Optional end of page range (inclusive). Single page: page_min=64, page_max=64. PDF only.
@@ -165,8 +164,7 @@ def query(
         ValueError: If query is empty or invalid.
         FileNotFoundError: If persist dir doesn't exist.
     """
-    effective_query = user_query or query
-    if not effective_query or not effective_query.strip():
+    if not user_query or not user_query.strip():
         raise ValueError("Query cannot be empty")
     if (page_min is not None) != (page_max is not None):
         raise ValueError("page_min and page_max must be provided together for page range filter")
@@ -192,7 +190,7 @@ def query(
     doc_type_filter = document_type.strip() if document_type and str(document_type).strip() else None
     file_path_filter = file_path.strip() if file_path and str(file_path).strip() else None
     rag_result = run_rag(
-        effective_query,
+        user_query,
         llm,
         k=None,
         persist_directory=str(persist_path),

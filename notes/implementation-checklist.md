@@ -297,11 +297,11 @@
 **Goal:** Smarter document understanding — richer PDF parsing, better chunking strategies, and query-time document intelligence, and misc.
 
 ### Misc
-- [ ] Check OpenRouter AI for a free AI models.
+- [ ] Marketing strategies for the open-source version.
 - [ ] Add pinrag mcp to visual studio code extensions marketplace.
 - [ ] Add pinrag mcp to cursor mcp server list.
+- [ ] Check OpenRouter AI for a free AI models.
 - [ ] Check RAG accuracy (independent benchmark) for our RAG pipeline comparing to existing RAG pipelines.
-- [ ] Marketing strategies for the open-source version.
 
 ### Advanced PDF Processing
 - [ ] **OCR integration** — Detect image-only pages and run OCR automatically (or offer as option in `add_pdf`). Research done: ocrmypdf + Tesseract used externally.

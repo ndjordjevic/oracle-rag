@@ -44,7 +44,8 @@ from pinrag.mcp.tools import (
     remove_document,
 )
 
-# Load environment variables
+# Load .env so config/API-key check below sees env when run via `python -m pinrag.mcp.server`.
+# When run via pinrag-mcp (cli), cli already calls _load_env() before importing this module.
 load_dotenv()
 
 # Disable Chroma telemetry — avoids PostHog INFO messages in Cursor Output
@@ -90,18 +91,15 @@ logging.getLogger("pypdf").setLevel(logging.ERROR)
 # pypdf also uses warnings module for "Rotated text discovered"
 warnings.filterwarnings("ignore", message=".*Rotated text.*")
 
-# Verify required environment variables
-if not os.environ.get("OPENAI_API_KEY"):
-    _log.warning("OPENAI_API_KEY not set. MCP tools will fail without it.")
+# Verify required environment variables for selected embedding provider
+if get_embedding_provider() == "openai" and not os.environ.get("OPENAI_API_KEY"):
+    _log.warning(
+        "OPENAI_API_KEY not set while PINRAG_EMBEDDING_PROVIDER=openai. "
+        "Embedding calls will fail until the key is configured."
+    )
 
 # Create FastMCP server instance
 mcp = FastMCP("PinRAG", json_response=True)
-
-
-@mcp._mcp_server.set_logging_level()
-async def _handle_set_level(level: str) -> None:
-    _log.debug("Client requested log level: %s", level)
-
 
 def _user_friendly_api_error(exc: Exception) -> str | None:
     """Return a short, user-friendly message for API key / auth errors, or None."""
@@ -209,7 +207,7 @@ async def query_tool(
     tag: Annotated[str, Field(description="Optional tag to filter retrieval (from list_documents).")] = "",
     document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', 'discord', 'github', or 'plaintext'.")] = "",
     file_path: Annotated[str, Field(description="Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.")] = "",
-    response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "",
+    response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "thorough",
     ctx: Context | None = None,
 ) -> dict:
     """Query indexed documents and return an answer with citations.
@@ -218,16 +216,6 @@ async def query_tool(
     to provide an answer based on retrieved context, with source citations.
 
     Args:
-        query: Natural language question to ask.
-        document_id: Optional document ID to filter retrieval (from list_documents).
-        page_min: Optional start of page range (inclusive). PDF only.
-        page_max: Optional end of page range (inclusive). PDF only.
-        tag: Optional tag to filter retrieval (from list_documents).
-        document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
-        file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
-        response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
-
-    Parameters:
         query: Natural language question to ask.
         document_id: Optional document ID to filter retrieval (from list_documents).
         page_min: Optional start of page range (inclusive). PDF only.
@@ -290,13 +278,6 @@ async def add_document_tool(
         include_patterns: For GitHub URLs: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]).
         exclude_patterns: For GitHub URLs: glob patterns to exclude. Ignored for other formats.
 
-    Parameters:
-        paths: Paths to index: file, directory, YouTube URL, or GitHub URL.
-        tags: Optional list of tags, one per path (same order as paths).
-        branch: For GitHub URLs: override branch (default: main). Ignored for other formats.
-        include_patterns: For GitHub URLs: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]).
-        exclude_patterns: For GitHub URLs: glob patterns to exclude. Ignored for other formats.
-
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
     """
@@ -330,9 +311,6 @@ async def list_documents_tool(
     Args:
         tag: Optional tag to filter: only list documents that have this tag.
 
-    Parameters:
-        tag: Optional tag to filter: only list documents that have this tag.
-
     Returns:
         Dictionary containing documents, total_chunks, persist_directory,
         collection_name, document_details.
@@ -361,9 +339,6 @@ async def remove_document_tool(
     Uses server config for vector store location and collection.
 
     Args:
-        document_id: Document identifier to remove (from list_documents_tool).
-
-    Parameters:
         document_id: Document identifier to remove (from list_documents_tool).
 
     Returns:
@@ -527,16 +502,10 @@ def ask_about_documents(question: str) -> str:
     )
 
 
-def create_mcp_server() -> FastMCP:
-    """Create and return the configured MCP server instance.
-
-    Returns:
-        FastMCP server instance with all tools registered.
-    """
-    return mcp
-
-
 if __name__ == "__main__":
     # Entry point for running the server directly
     # Use stdio transport for MCP clients
+    from pinrag.cli import _load_env
+
+    _load_env()
     mcp.run(transport="stdio")

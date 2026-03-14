@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from youtube_transcript_api.proxies import GenericProxyConfig
 
 from pinrag.chunking.splitter import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 
@@ -388,8 +389,6 @@ def get_yt_proxy_config():
     When PINRAG_YT_PROXY_HTTP_URL or PINRAG_YT_PROXY_HTTPS_URL is set, uses
     GenericProxyConfig. Otherwise returns None (no proxy).
     """
-    from youtube_transcript_api.proxies import GenericProxyConfig
-
     http_url = os.environ.get("PINRAG_YT_PROXY_HTTP_URL", "").strip()
     https_url = os.environ.get("PINRAG_YT_PROXY_HTTPS_URL", "").strip()
     if http_url or https_url:
