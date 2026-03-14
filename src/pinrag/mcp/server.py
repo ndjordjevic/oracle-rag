@@ -101,6 +101,12 @@ if get_embedding_provider() == "openai" and not os.environ.get("OPENAI_API_KEY")
 # Create FastMCP server instance
 mcp = FastMCP("PinRAG", json_response=True)
 
+
+def _is_url(s: str) -> bool:
+    """Return True if string is an HTTP(S) URL."""
+    return (s or "").strip().startswith(("http://", "https://"))
+
+
 def _user_friendly_api_error(exc: Exception) -> str | None:
     """Return a short, user-friendly message for API key / auth errors, or None."""
     msg = str(exc).lower()
@@ -121,7 +127,7 @@ def _log_tool_errors(fn):
     """
 
     def _summary(name: str, args: tuple, kwargs: dict) -> str:
-        if name == "add_document_tool":
+        if name in ("add_document_tool", "add_url_tool"):
             paths = kwargs.get("paths", [])
             n = len(paths)
             preview = paths[0][:60] + "..." if n == 1 and len(paths[0]) > 60 else (f"{n} paths" if n > 1 else (paths[0] if paths else ""))
@@ -285,6 +291,54 @@ async def add_document_tool(
     def _run() -> dict:
         return add_files(
             paths=paths,
+            persist_dir=get_persist_dir(),
+            collection=get_collection_name(),
+            tags=tags,
+            branch=branch,
+            include_patterns=include_patterns,
+            exclude_patterns=exclude_patterns,
+        )
+
+    return await anyio.to_thread.run_sync(_run)
+
+
+@mcp.tool()
+@_log_tool_errors
+async def add_url_tool(
+    paths: Annotated[
+        list[str],
+        Field(description="URLs to index: YouTube video/playlist or GitHub repo."),
+    ],
+    tags: Annotated[
+        list[str] | None, Field(description="Optional list of tags, one per URL.")
+    ] = None,
+    branch: Annotated[str | None, Field(description="For GitHub: override branch (default: main).")] = None,
+    include_patterns: Annotated[
+        list[str] | None, Field(description="For GitHub: glob patterns for files to include.")
+    ] = None,
+    exclude_patterns: Annotated[
+        list[str] | None, Field(description="For GitHub: glob patterns to exclude.")
+    ] = None,
+    ctx: Context | None = None,
+) -> dict:
+    """Add YouTube videos/playlists or GitHub repos to the index via URL.
+
+    For local files or directories, use add_document_tool instead.
+    """
+    input_paths = list(paths or [])
+    if not input_paths:
+        raise ValueError("paths cannot be empty")
+    for i, p in enumerate(input_paths):
+        if not _is_url(p):
+            raise ValueError(
+                f"path[{i}] is not a URL. Use add_document_tool for local files or directories."
+            )
+    if tags is not None and len(tags) != len(input_paths):
+        raise ValueError("tags must have same length as paths when provided")
+
+    def _run() -> dict:
+        return add_files(
+            paths=input_paths,
             persist_dir=get_persist_dir(),
             collection=get_collection_name(),
             tags=tags,
@@ -489,7 +543,7 @@ def use_pinrag(request: str = "") -> str:
 
     Routes to the correct tool based on the request:
     - Query / question  → query_tool
-    - Index / add       → add_document_tool
+    - Index / add       → add_url_tool (URLs) or add_document_tool (files/dirs)
     - List / show       → list_documents_tool
     - Remove / delete   → remove_document_tool
     """
@@ -503,10 +557,14 @@ def use_pinrag(request: str = "") -> str:
         "document_type ('pdf', 'youtube', 'discord', 'github', 'plaintext'), "
         "file_path (filter to a file within a doc, e.g. src/foo.c for GitHub), "
         "response_style ('thorough' or 'concise').\n\n"
-        "add_document_tool — index files, directories, YouTube URLs, or GitHub repos.\n"
-        "  Required: paths (list of str). "
+        "add_url_tool — index YouTube videos/playlists or GitHub repos via URL only.\n"
+        "  Required: paths (list of URLs). "
+        "  Optional: tags (list, one per URL), branch (GitHub only), "
+        "include_patterns / exclude_patterns (GitHub only).\n\n"
+        "add_document_tool — index local files, directories, or URLs (all-in-one).\n"
+        "  Required: paths (list of str: file paths, dir paths, YouTube URLs, GitHub URLs). "
         "  Optional: tags (list, one per path), branch (GitHub only), "
-        "include_patterns / exclude_patterns (GitHub only, e.g. ['*.md', 'src/**/*.py']).\n\n"
+        "include_patterns / exclude_patterns (GitHub only).\n\n"
         "list_documents_tool — list all indexed documents and chunk counts.\n"
         "  Optional: tag (filter by tag).\n\n"
         "remove_document_tool — remove a document and all its chunks.\n"
