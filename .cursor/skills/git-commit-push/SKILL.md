@@ -1,3 +1,9 @@
+---
+name: git-commit-push
+description: Commit all changes with a short 1-2 sentence message and push to the remote
+disable-model-invocation: true
+---
+
 # Git commit and push
 
 Commit all changes with a short 1-2 sentence message and push to the remote.

@@ -1,6 +1,6 @@
 ---
+name: langchain-resources
 description: LangChain/LangGraph docs, MCP server usage, and reference project lookup for pinrag
-alwaysApply: false
 ---
 
 # LangChain/LangGraph Resource Access
