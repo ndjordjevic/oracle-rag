@@ -148,10 +148,6 @@ Environment variables:
 | `PINRAG_LLM_MODEL` | *(provider default)* | e.g. `claude-haiku-4-5`, `claude-sonnet-4-6`, `gpt-4o-mini` |
 | `OPENAI_API_KEY` | *(required for OpenAI)* | OpenAI API key (LLM or embeddings) |
 | `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`) |
-| **Evaluators (LLM-as-judge)** | | |
-| `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai` or `anthropic` — which LLM grades correctness/relevance/groundedness/retrieval |
-| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for correctness/relevance (e.g. `gpt-4o`, `claude-sonnet-4-6`) |
-| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for groundedness/retrieval (context-heavy; e.g. `gpt-4o-mini`, `claude-haiku-4-5`) |
 | **Embeddings** | | |
 | `PINRAG_EMBEDDING_PROVIDER` | `openai` | `openai` or `cohere` |
 | `PINRAG_EMBEDDING_MODEL` | *(provider default)* | e.g. `text-embedding-3-small`, `embed-english-v3.0` |
@@ -162,12 +158,12 @@ Environment variables:
 | `PINRAG_CHUNK_OVERLAP` | `200` | Chunk overlap (chars) |
 | `PINRAG_STRUCTURE_AWARE_CHUNKING` | `true` | Apply structure-aware chunking heuristics for code/table boundaries |
 | `PINRAG_COLLECTION_NAME` | `pinrag` | Chroma collection name. Single shared collection by default. |
+| **Retrieval** | | |
+| `PINRAG_RETRIEVE_K` | `20` | Number of chunks to retrieve. When rerank is on, this is the fallback for the pre-rerank fetch if `PINRAG_RERANK_RETRIEVE_K` is unset. |
 | **Parent-child retrieval** | | |
 | `PINRAG_USE_PARENT_CHILD` | `false` | Set to `true` to embed small chunks (precise matching) and return larger parent chunks (rich context). Requires re-indexing. |
 | `PINRAG_PARENT_CHUNK_SIZE` | `2000` | Parent chunk size (chars) when `PINRAG_USE_PARENT_CHILD=true`. |
 | `PINRAG_CHILD_CHUNK_SIZE` | `800` | Child chunk size (chars) when `PINRAG_USE_PARENT_CHILD=true`. |
-| **Retrieval** | | |
-| `PINRAG_RETRIEVE_K` | `20` | Number of chunks to retrieve. When rerank is on, this is the fallback for the pre-rerank fetch if `PINRAG_RERANK_RETRIEVE_K` is unset. |
 | **Re-ranking** | | |
 | `PINRAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: fetch more chunks, re-score with Cohere, pass top N to the LLM. Requires `pip install pinrag[cohere]` and `COHERE_API_KEY`. |
 | `PINRAG_RERANK_RETRIEVE_K` | `20` | Chunks to fetch before reranking when `PINRAG_USE_RERANK=true`. If unset, uses `PINRAG_RETRIEVE_K`. |
@@ -189,6 +185,10 @@ Environment variables:
 | **Logging (MCP output)** | | |
 | `PINRAG_LOG_TO_STDERR` | `false` | Set to `true` to send PinRAG logs (tool calls, completion timing, indexing messages) to stderr so they appear in the MCP server output in VS Code or Cursor. Default is off to avoid noisy or misleading badges in the editor. |
 | `PINRAG_LOG_LEVEL` | `INFO` | Log level when `PINRAG_LOG_TO_STDERR=true`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. |
+| **Evaluators (LLM-as-judge)** | | |
+| `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai` or `anthropic` — which LLM grades correctness/relevance/groundedness/retrieval. Used only during evaluation runs (LangSmith experiments). |
+| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for correctness/relevance (e.g. `gpt-4o`, `claude-sonnet-4-6`) |
+| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for groundedness/retrieval (context-heavy; e.g. `gpt-4o-mini`, `claude-haiku-4-5`) |
 
 > **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 >
@@ -196,7 +196,7 @@ Environment variables:
 
 ### Monitoring & Observability
 
-For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in `.env`; traces are sent automatically. See `notes/langsmith-setup.md` for setup. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
+For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in `.env`; traces are sent automatically. For EU region, add `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`. See `notes/langsmith-setup.md` for setup. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
 
 ### Multiple providers and collections
 
