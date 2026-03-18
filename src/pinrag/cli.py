@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -25,15 +23,9 @@ def _load_env() -> None:
 def main() -> None:
     """Run the MCP server with stdio transport."""
     _load_env()
-    from pinrag.config import get_embedding_provider
+    from pinrag.env_validation import require_api_keys_for_server
 
-    if get_embedding_provider() == "openai" and not os.environ.get("OPENAI_API_KEY"):
-        print(
-            "ERROR: OPENAI_API_KEY not set. It is required when PINRAG_EMBEDDING_PROVIDER=openai. "
-            "Set it in .env (cwd or ~/.config/pinrag/) or in the environment.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    require_api_keys_for_server()
 
     from pinrag.mcp.server import mcp
 

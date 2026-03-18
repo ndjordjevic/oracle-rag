@@ -9,7 +9,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pinrag.mcp.tools import add_file, add_files, list_documents, query, remove_document
-from pinrag.mcp import server as mcp_server
+
+# Patch validation before importing server (server runs require_api_keys_for_server at import)
+with patch("pinrag.env_validation.require_api_keys_for_server", lambda: None):
+    from pinrag.mcp import server as mcp_server
 
 
 # --- list_documents ---

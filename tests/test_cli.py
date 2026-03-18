@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -43,8 +42,10 @@ def test_main_exits_without_openai_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_main_runs_mcp_server(monkeypatch: pytest.MonkeyPatch) -> None:
-    """main() imports and runs MCP server when OPENAI_API_KEY is set."""
+    """main() imports and runs MCP server when required API keys are set."""
+    # Default config: embedding=openai, LLM=anthropic — need both keys
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
     mock_mcp = MagicMock()
     mock_module = MagicMock(mcp=mock_mcp)
     with patch("pinrag.cli._load_env"):

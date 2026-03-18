@@ -51,9 +51,11 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/.pinrag/.env
 # Optional: Cohere for re-ranking (COHERE_API_KEY + PINRAG_USE_RERANK=true); see Configuration below
 ```
 
-**Minimum required env vars:**
+**Minimum required env vars (validated at startup):**
 
-- **Default setup** (Anthropic LLM + OpenAI embeddings): set both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in `~/.pinrag/.env` (or `~/.config/pinrag/.env`). The server checks for `OPENAI_API_KEY` at startup; the LLM needs `ANTHROPIC_API_KEY` when you run a query.
+The server validates required API keys at startup and exits with a clear error if any are missing. Set keys in `~/.pinrag/.env`, `~/.config/pinrag/.env`, or `{cwd}/.env`.
+
+- **Default setup** (Anthropic LLM + OpenAI embeddings): set both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. Embeddings use OpenAI; queries use Anthropic.
 - **OpenAI only:** set `PINRAG_LLM_PROVIDER=openai` and only `OPENAI_API_KEY` (one key for both embeddings and chat).
 - **Cohere embeddings:** set `PINRAG_EMBEDDING_PROVIDER=cohere` and `COHERE_API_KEY`; you still need an LLM key (OpenAI or Anthropic) per above.
 

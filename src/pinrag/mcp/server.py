@@ -91,12 +91,10 @@ logging.getLogger("pypdf").setLevel(logging.ERROR)
 # pypdf also uses warnings module for "Rotated text discovered"
 warnings.filterwarnings("ignore", message=".*Rotated text.*")
 
-# Verify required environment variables for selected embedding provider
-if get_embedding_provider() == "openai" and not os.environ.get("OPENAI_API_KEY"):
-    _log.warning(
-        "OPENAI_API_KEY not set while PINRAG_EMBEDDING_PROVIDER=openai. "
-        "Embedding calls will fail until the key is configured."
-    )
+# Verify required API keys for configured providers (exits if missing)
+from pinrag.env_validation import require_api_keys_for_server
+
+require_api_keys_for_server()
 
 # Create FastMCP server instance
 mcp = FastMCP("PinRAG", json_response=True)
