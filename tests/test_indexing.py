@@ -6,35 +6,20 @@ from pathlib import Path
 
 import pytest
 from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
 
 from pinrag.indexing import IndexResult, index_pdf, query_index
 from pinrag.vectorstore import get_chroma_store
+from tests.helpers.embeddings import MockEmbeddings1536
 
 
-class _MockEmbeddings(Embeddings):
-    """Returns fixed-dim vectors (1536) for testing without API key."""
-
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return [[0.1] * 1536 for _ in texts]
-
-    def embed_query(self, text: str) -> list[float]:
-        return [0.1] * 1536
-
-
-def test_index_pdf_smoke(tmp_path: Path) -> None:
+def test_index_pdf_smoke(tmp_path: Path, sample_pdf_path: Path) -> None:
     """Index a sample PDF into a temp Chroma dir and verify chunks are stored."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     persist_dir = tmp_path / "chroma_idx"
     result = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_index",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     assert isinstance(result, IndexResult)
@@ -46,7 +31,7 @@ def test_index_pdf_smoke(tmp_path: Path) -> None:
     store = get_chroma_store(
         persist_directory=str(persist_dir),
         collection_name="test_index",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("test", k=2)
     assert len(docs) > 0
@@ -58,45 +43,37 @@ def test_index_pdf_smoke(tmp_path: Path) -> None:
     assert "doc_total_chunks" in meta
 
 
-def test_index_pdf_with_tag(tmp_path: Path) -> None:
+def test_index_pdf_with_tag(tmp_path: Path, sample_pdf_path: Path) -> None:
     """Index with tag; chunks have tag in metadata."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     persist_dir = tmp_path / "chroma_idx"
     index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_tag",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         tag="amiga",
     )
 
     store = get_chroma_store(
         persist_directory=str(persist_dir),
         collection_name="test_tag",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("test", k=2)
     assert len(docs) > 0
     assert docs[0].metadata.get("tag") == "amiga"
 
 
-def test_query_index_filter_by_page_range(tmp_path: Path) -> None:
+def test_query_index_filter_by_page_range(
+    tmp_path: Path, sample_pdf_path: Path
+) -> None:
     """query_index with page_min/page_max returns only chunks in that page range."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     persist_dir = tmp_path / "chroma_idx"
     index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_page_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     # Filter to single page (e.g. page 1 only)
@@ -105,7 +82,7 @@ def test_query_index_filter_by_page_range(tmp_path: Path) -> None:
         k=10,
         persist_directory=str(persist_dir),
         collection_name="test_page_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         page_min=1,
         page_max=1,
     )
@@ -119,26 +96,21 @@ def test_query_index_filter_by_page_range(tmp_path: Path) -> None:
         k=5,
         persist_directory=str(persist_dir),
         collection_name="test_page_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         page_min=999,
         page_max=999,
     )
     assert len(empty) == 0
 
 
-def test_query_index_filter_by_tag(tmp_path: Path) -> None:
+def test_query_index_filter_by_tag(tmp_path: Path, sample_pdf_path: Path) -> None:
     """query_index with tag filter returns only chunks from documents with that tag."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     persist_dir = tmp_path / "chroma_idx"
     index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_tag_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         tag="PI_PICO",
     )
 
@@ -147,7 +119,7 @@ def test_query_index_filter_by_tag(tmp_path: Path) -> None:
         k=10,
         persist_directory=str(persist_dir),
         collection_name="test_tag_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         tag="PI_PICO",
     )
     assert len(docs) > 0
@@ -160,25 +132,22 @@ def test_query_index_filter_by_tag(tmp_path: Path) -> None:
         k=5,
         persist_directory=str(persist_dir),
         collection_name="test_tag_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         tag="nonexistent",
     )
     assert len(empty) == 0
 
 
-def test_query_index_filter_by_document(tmp_path: Path) -> None:
+def test_query_index_filter_by_document(
+    tmp_path: Path, sample_pdf_path: Path
+) -> None:
     """query_index with document_id filter returns only chunks from that document."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     persist_dir = tmp_path / "chroma_idx"
     index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     # Filter by actual document_id — all results should be from that doc
@@ -187,7 +156,7 @@ def test_query_index_filter_by_document(tmp_path: Path) -> None:
         k=10,
         persist_directory=str(persist_dir),
         collection_name="test_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         document_id="sample-text.pdf",
     )
     assert len(docs) > 0
@@ -200,25 +169,22 @@ def test_query_index_filter_by_document(tmp_path: Path) -> None:
         k=5,
         persist_directory=str(persist_dir),
         collection_name="test_filter",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         document_id="nonexistent.pdf",
     )
     assert len(empty) == 0
 
 
-def test_query_index_uses_existing_store(tmp_path: Path) -> None:
+def test_query_index_uses_existing_store(
+    tmp_path: Path, sample_pdf_path: Path
+) -> None:
     """query_index returns results from an already-indexed Chroma store."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     persist_dir = tmp_path / "chroma_idx"
     result = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_query_index",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     docs = query_index(
@@ -226,25 +192,22 @@ def test_query_index_uses_existing_store(tmp_path: Path) -> None:
         k=2,
         persist_directory=result.persist_directory,
         collection_name=result.collection_name,
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     assert len(docs) > 0
     assert isinstance(docs[0], Document)
 
 
-def test_index_pdf_replaces_duplicate(tmp_path: Path) -> None:
+def test_index_pdf_replaces_duplicate(
+    tmp_path: Path, sample_pdf_path: Path
+) -> None:
     """Indexing the same PDF twice replaces old chunks; no duplicates."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     persist_dir = tmp_path / "chroma_idx"
     coll = "test_replace"
-    emb = _MockEmbeddings()
+    emb = MockEmbeddings1536()
 
     result1 = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name=coll,
         embedding=emb,
@@ -259,7 +222,7 @@ def test_index_pdf_replaces_duplicate(tmp_path: Path) -> None:
 
     # Index same PDF again — should replace, not add
     result2 = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name=coll,
         embedding=emb,
@@ -272,25 +235,22 @@ def test_index_pdf_replaces_duplicate(tmp_path: Path) -> None:
 
 
 def test_index_pdf_uses_config_chunk_size_from_env(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    sample_pdf_path: Path,
 ) -> None:
     """index_pdf uses PINRAG_CHUNK_SIZE / PINRAG_CHUNK_OVERLAP when not passed."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     monkeypatch.setenv(
         "PINRAG_USE_PARENT_CHILD", "false"
     )  # use flat mode for chunk_size test
     persist_dir = tmp_path / "chroma_idx"
-    emb = _MockEmbeddings()
+    emb = MockEmbeddings1536()
 
     # Default config (no env set) → default chunk size
     monkeypatch.delenv("PINRAG_CHUNK_SIZE", raising=False)
     monkeypatch.delenv("PINRAG_CHUNK_OVERLAP", raising=False)
     result_default = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_config_default",
         embedding=emb,
@@ -300,7 +260,7 @@ def test_index_pdf_uses_config_chunk_size_from_env(
     monkeypatch.setenv("PINRAG_CHUNK_SIZE", "200")
     monkeypatch.setenv("PINRAG_CHUNK_OVERLAP", "0")
     result_from_env = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_config_env",
         embedding=emb,
@@ -309,29 +269,26 @@ def test_index_pdf_uses_config_chunk_size_from_env(
 
 
 def test_index_pdf_respects_chunk_size_override(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    sample_pdf_path: Path,
 ) -> None:
     """index_pdf uses explicit chunk_size/chunk_overlap when passed."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping indexing test")
-
     monkeypatch.setenv(
         "PINRAG_USE_PARENT_CHILD", "false"
     )  # use flat mode for chunk_size test
     persist_dir = tmp_path / "chroma_idx"
     result_default = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_default",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     result_small = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="test_small",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         chunk_size=200,
         chunk_overlap=0,
     )

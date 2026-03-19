@@ -30,15 +30,10 @@ def test_openai_explicit_api_key_skips_env(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_get_chat_model_returns_client(monkeypatch: pytest.MonkeyPatch) -> None:
     """get_chat_model returns ChatOpenAI when PINRAG_LLM_PROVIDER=openai."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openai")
-    monkeypatch.setenv("PINRAG_LLM_MODEL", DEFAULT_MODEL)  # override .env
-    try:
-        llm = get_chat_model()
-    except Exception:
-        pytest.skip("OPENAI_API_KEY not set or invalid; skipping")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    monkeypatch.setenv("PINRAG_LLM_MODEL", DEFAULT_MODEL)
+    llm = get_chat_model()
     assert isinstance(llm, ChatOpenAI)
     assert llm.model_name == DEFAULT_MODEL
 
@@ -47,18 +42,15 @@ def test_get_chat_model_returns_anthropic_when_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """get_chat_model returns ChatAnthropic when PINRAG_LLM_PROVIDER=anthropic."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "anthropic")
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        pytest.skip("ANTHROPIC_API_KEY not set; skipping")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
     llm = get_chat_model()
     assert isinstance(llm, ChatAnthropic)
 
 
+@pytest.mark.integration
 def test_chat_model_invoke() -> None:
-    """Invoke with a simple prompt returns a non-empty response."""
+    """Live invoke against the configured provider (requires API keys)."""
     from dotenv import load_dotenv
 
     load_dotenv()

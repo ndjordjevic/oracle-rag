@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -295,13 +297,14 @@ def test_run_evaluation_main_valid_metadata(monkeypatch: pytest.MonkeyPatch) -> 
 # ---------------------------------------------------------------------------
 
 
-def test_evaluation_main_module_invokes_main(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Python -m pinrag.evaluation calls run_evaluation.main."""
-    mock_main = MagicMock()
-    monkeypatch.setattr("pinrag.evaluation.run_evaluation.main", mock_main)
-
-    import pinrag.evaluation.__main__ as main_mod
-
-    # __main__ is just: if __name__ == "__main__": main()
-    # We can't easily re-trigger __name__ == "__main__", so just verify the import works
-    assert hasattr(main_mod, "__name__")
+def test_evaluation_main_module_help_exits_zero() -> None:
+    """``python -m pinrag.evaluation --help`` exits 0 and prints usage."""
+    result = subprocess.run(
+        [sys.executable, "-m", "pinrag.evaluation", "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    out = (result.stdout or "") + (result.stderr or "")
+    assert "--dataset" in out or "usage" in out.lower()

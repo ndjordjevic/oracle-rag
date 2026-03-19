@@ -8,21 +8,11 @@ from pathlib import Path
 import pytest
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
 
 from pinrag.vectorstore.chroma_client import (
     get_chroma_store,
 )
-
-
-class _MockEmbeddings(Embeddings):
-    """Returns fixed-dim vectors (1536) for testing without API key."""
-
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return [[0.1] * 1536 for _ in texts]
-
-    def embed_query(self, text: str) -> list[float]:
-        return [0.1] * 1536
+from tests.helpers.embeddings import MockEmbeddings1536
 
 
 def test_get_chroma_store_returns_chroma(tmp_path: Path) -> None:
@@ -30,9 +20,10 @@ def test_get_chroma_store_returns_chroma(tmp_path: Path) -> None:
     store = get_chroma_store(
         persist_directory=str(tmp_path),
         collection_name="test_collection",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     assert isinstance(store, Chroma)
+    # Chroma exposes collection name on the underlying client only (internal API).
     assert store._collection.name == "test_collection"
 
 
@@ -42,7 +33,7 @@ def test_get_chroma_store_creates_persist_dir(tmp_path: Path) -> None:
     assert not persist_dir.exists()
     get_chroma_store(
         persist_directory=str(persist_dir),
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     assert persist_dir.exists()
     assert persist_dir.is_dir()
@@ -53,7 +44,7 @@ def test_chroma_add_documents_and_similarity_search(tmp_path: Path) -> None:
     store = get_chroma_store(
         persist_directory=str(tmp_path),
         collection_name="test_add_search",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = [
         Document(page_content="The Amiga had custom chips.", metadata={"page": 1}),
@@ -69,6 +60,7 @@ def test_chroma_add_documents_and_similarity_search(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.integration
 def test_chroma_add_and_search_with_real_embedding(tmp_path: Path) -> None:
     """Add documents and similarity_search using real OpenAI embeddings (skip if no API key)."""
     from dotenv import load_dotenv

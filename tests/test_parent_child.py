@@ -97,6 +97,7 @@ def test_create_retriever_returns_chroma_when_parent_child_off(
     mock.return_value.as_retriever.assert_called_once()
 
 
+@pytest.mark.integration
 def test_create_retriever_returns_parent_document_retriever_when_on(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -169,6 +170,7 @@ def test_index_pdf_parent_child_adds_to_chroma_and_docstore(
     assert len(ids) > 0
 
 
+@pytest.mark.integration
 def test_index_discord_parent_child_adds_to_chroma_and_docstore(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -217,9 +219,11 @@ def test_index_discord_parent_child_adds_to_chroma_and_docstore(
     assert len(list(docstore.yield_keys())) > 0
 
 
+@pytest.mark.integration
 def test_index_pdf_flat_mode_unchanged_when_parent_child_off(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    sample_pdf_path: Path,
 ) -> None:
     """When PINRAG_USE_PARENT_CHILD=false, index_pdf uses original single-level flow (no _parents dir)."""
     from dotenv import load_dotenv
@@ -229,17 +233,12 @@ def test_index_pdf_flat_mode_unchanged_when_parent_child_off(
         pytest.skip("OPENAI_API_KEY not set; skipping flat index test")
 
     monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "false")
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping flat index test")
-
     persist_dir = tmp_path / "chroma_flat"
     from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
 
     result = index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="flat_test",
         embedding=get_embedding_model(),

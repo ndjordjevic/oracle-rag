@@ -4,20 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from langchain_core.embeddings import Embeddings
-
 from pinrag.indexing.plaintext_indexer import (
     PlaintextIndexResult,
     index_plaintext,
 )
-
-
-class _MockEmbeddings(Embeddings):
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return [[0.1] * 1536 for _ in texts]
-
-    def embed_query(self, text: str) -> list[float]:
-        return [0.1] * 1536
+from tests.helpers.embeddings import MockEmbeddings1536
 
 
 def test_index_plaintext_smoke(tmp_path: Path) -> None:
@@ -32,7 +23,7 @@ def test_index_plaintext_smoke(tmp_path: Path) -> None:
         txt_file,
         persist_directory=persist,
         collection_name="test_plain",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     assert isinstance(result, PlaintextIndexResult)
@@ -46,7 +37,7 @@ def test_index_plaintext_smoke(tmp_path: Path) -> None:
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_plain",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("Hello", k=5)
     assert len(docs) > 0
@@ -59,7 +50,7 @@ def test_index_plaintext_replaces_on_reindex(tmp_path: Path) -> None:
     txt_file = tmp_path / "notes.txt"
     txt_file.write_text("Hello world. This is a test.", encoding="utf-8")
     persist = str(tmp_path / "chroma")
-    emb = _MockEmbeddings()
+    emb = MockEmbeddings1536()
 
     r1 = index_plaintext(
         txt_file,
@@ -82,7 +73,7 @@ def test_index_plaintext_file_over_cap_clears_old(tmp_path: Path) -> None:
     txt_file = tmp_path / "large.txt"
     txt_file.write_text("x" * 2000, encoding="utf-8")
     persist = str(tmp_path / "chroma")
-    emb = _MockEmbeddings()
+    emb = MockEmbeddings1536()
 
     # First index with small content
     small_file = tmp_path / "small.txt"
@@ -112,7 +103,7 @@ def test_index_plaintext_file_over_cap_clears_old(tmp_path: Path) -> None:
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_cap",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.get(where={"document_id": "large.txt"})
     assert docs is not None
@@ -129,7 +120,7 @@ def test_index_plaintext_metadata_fields(tmp_path: Path) -> None:
         txt_file,
         persist_directory=persist,
         collection_name="test_meta",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     from pinrag.vectorstore import get_chroma_store
@@ -137,7 +128,7 @@ def test_index_plaintext_metadata_fields(tmp_path: Path) -> None:
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_meta",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("Hello", k=1)
     meta = docs[0].metadata
@@ -158,7 +149,7 @@ def test_index_plaintext_with_tag(tmp_path: Path) -> None:
         txt_file,
         persist_directory=persist,
         collection_name="test_tag",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         tag="NOTES",
     )
 
@@ -167,7 +158,7 @@ def test_index_plaintext_with_tag(tmp_path: Path) -> None:
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_tag",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("Hello", k=5)
     assert all(d.metadata.get("tag") == "NOTES" for d in docs)

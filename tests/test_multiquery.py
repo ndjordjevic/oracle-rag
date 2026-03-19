@@ -19,6 +19,7 @@ def test_get_multiquery_prompt_has_question_variable() -> None:
     assert "question" in prompt.template
 
 
+@pytest.mark.integration
 def test_wrap_retriever_with_multiquery_returns_retriever() -> None:
     """wrap_retriever_with_multiquery returns a retriever that produces docs."""
 

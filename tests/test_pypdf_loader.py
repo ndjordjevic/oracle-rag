@@ -15,13 +15,11 @@ def test_load_pdf_as_documents_missing_file() -> None:
         load_pdf_as_documents("does-not-exist.pdf")
 
 
-def test_load_pdf_as_documents_invalid_extraction_mode() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present")
+def test_load_pdf_as_documents_invalid_extraction_mode(
+    sample_pdf_path: Path,
+) -> None:
     with pytest.raises(ValueError, match="extraction_mode"):
-        load_pdf_as_documents(sample_pdf, extraction_mode="bogus")
+        load_pdf_as_documents(sample_pdf_path, extraction_mode="bogus")
 
 
 def test_load_pdf_as_documents_smoke() -> None:
@@ -38,19 +36,14 @@ def test_load_pdf_as_documents_smoke() -> None:
     assert any(d.page_content.strip() for d in result.documents)
 
 
-def test_load_pdf_as_documents_metadata_keys() -> None:
+def test_load_pdf_as_documents_metadata_keys(sample_pdf_path: Path) -> None:
     """Each document has required metadata; document_title/author when present in PDF."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping metadata test")
-
-    result = load_pdf_as_documents(sample_pdf)
+    result = load_pdf_as_documents(sample_pdf_path)
     assert len(result.documents) >= 1
     doc = result.documents[0]
     required = {"source", "file_name", "page", "total_pages"}
     assert required.issubset(doc.metadata.keys())
-    assert doc.metadata["file_name"] == sample_pdf.name
+    assert doc.metadata["file_name"] == sample_pdf_path.name
     assert doc.metadata["page"] >= 1
     assert doc.metadata["total_pages"] == result.total_pages
     # document_title / document_author only if present in PDF
@@ -60,43 +53,30 @@ def test_load_pdf_as_documents_metadata_keys() -> None:
             assert len(doc.metadata[key]) > 0
 
 
-def test_load_pdf_as_documents_corrupted_pdf_raises() -> None:
+def test_load_pdf_as_documents_corrupted_pdf_raises(
+    sample_pdf_path: Path,
+) -> None:
     """Raises ValueError with user-facing message when PDF is corrupted or unreadable."""
     from pypdf.errors import PyPdfError
-
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping corrupted-PDF test")
 
     with patch("pinrag.pdf.pypdf_loader.PdfReader") as mock_reader:
         mock_reader.side_effect = PyPdfError("Invalid PDF structure")
         with pytest.raises(ValueError, match="PDF appears corrupted or unreadable"):
-            load_pdf_as_documents(sample_pdf)
+            load_pdf_as_documents(sample_pdf_path)
 
 
-def test_load_pdf_as_documents_no_text_raises() -> None:
+def test_load_pdf_as_documents_no_text_raises(sample_pdf_path: Path) -> None:
     """Raises ValueError when no text is extracted (e.g. image-only PDF)."""
     from pypdf import PageObject
 
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping no-text test")
-
     with patch.object(PageObject, "extract_text", return_value=""):
         with pytest.raises(ValueError, match="No text extracted"):
-            load_pdf_as_documents(sample_pdf, skip_empty_pages=True)
+            load_pdf_as_documents(sample_pdf_path, skip_empty_pages=True)
 
 
-def test_iter_pdf_page_text() -> None:
+def test_iter_pdf_page_text(sample_pdf_path: Path) -> None:
     """Test iter_pdf_page_text and print page results to console (run with pytest -s)."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping test")
-
-    pages = list(iter_pdf_page_text(sample_pdf))
+    pages = list(iter_pdf_page_text(sample_pdf_path))
     assert len(pages) > 0
     for page_number, text in pages:
         assert isinstance(page_number, int)
@@ -106,7 +86,7 @@ def test_iter_pdf_page_text() -> None:
         print(f"Page {page_number}: {preview!r}")
 
     # Consistency with load_pdf_as_documents (same doc count, same content per page)
-    result = load_pdf_as_documents(sample_pdf, skip_empty_pages=False)
+    result = load_pdf_as_documents(sample_pdf_path, skip_empty_pages=False)
     assert len(pages) == len(result.documents)
     for (page_num, text), doc in zip(pages, result.documents):
         assert page_num == doc.metadata["page"]

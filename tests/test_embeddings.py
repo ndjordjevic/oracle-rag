@@ -74,7 +74,7 @@ def test_embed_query_generates_vector(monkeypatch) -> None:
     assert all(isinstance(x, float) for x in result)
 
 
-def test_embed_pdf_chunks(monkeypatch) -> None:
+def test_embed_pdf_chunks(monkeypatch, sample_pdf_path: Path) -> None:
     """Load a PDF, chunk it, and create mocked embeddings for a few chunks."""
     monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
@@ -83,9 +83,7 @@ def test_embed_pdf_chunks(monkeypatch) -> None:
         "embed_documents",
         lambda _self, texts: [[0.0] * 1536 for _ in texts],
     )
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    result = load_pdf_as_documents(sample_pdf)
+    result = load_pdf_as_documents(sample_pdf_path)
     chunks = chunk_documents(result.documents, chunk_size=400, chunk_overlap=50)
     assert len(chunks) >= 2
 

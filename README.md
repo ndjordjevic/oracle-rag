@@ -262,6 +262,13 @@ Read-only resources; click in Cursor’s MCP panel to view:
 | `pinrag://documents` | Indexed documents (IDs, chunk counts, tags, metadata) |
 | `pinrag://server-config` | Env vars and config (LLM, embeddings, chunking, retrieval, logging; API key status) |
 
+## Running tests
+
+From the repo root (with dev dependencies, e.g. `uv sync --extra dev`):
+
+- **Fast (no integration tests):** `uv run pytest tests/ -q -m "not integration"` — skips tests that need API keys, network, or the bundled sample PDF at `data/pdfs/sample-text.pdf`.
+- **Full suite:** `uv run pytest tests/ -q` — set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` as needed and ensure the sample PDF exists where tests expect it.
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.

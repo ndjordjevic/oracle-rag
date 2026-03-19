@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
 
 from pinrag.indexing.youtube_indexer import (
     YouTubeIndexResult,
@@ -16,14 +15,7 @@ from pinrag.indexing.youtube_indexer import (
     index_youtube_playlist,
 )
 from pinrag.indexing.youtube_loader import YouTubeLoadResult
-
-
-class _MockEmbeddings(Embeddings):
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return [[0.1] * 1536 for _ in texts]
-
-    def embed_query(self, text: str) -> list[float]:
-        return [0.1] * 1536
+from tests.helpers.embeddings import MockEmbeddings1536
 
 
 def _make_load_result(
@@ -69,7 +61,7 @@ def test_index_youtube_smoke(
         "https://youtu.be/dQw4w9WgXcQ",
         persist_directory=persist,
         collection_name="test_yt",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     assert isinstance(result, YouTubeIndexResult)
@@ -83,7 +75,7 @@ def test_index_youtube_smoke(
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_yt",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("Segment", k=5)
     assert len(docs) > 0
@@ -98,7 +90,7 @@ def test_index_youtube_replaces_on_reindex(
     """Indexing same video twice replaces chunks (no duplicates)."""
     mock_load.return_value = _make_load_result()
     persist = str(tmp_path / "chroma")
-    emb = _MockEmbeddings()
+    emb = MockEmbeddings1536()
 
     r1 = index_youtube(
         "dQw4w9WgXcQ",
@@ -136,7 +128,7 @@ def test_index_youtube_empty_transcript(
         "xyz12345678",
         persist_directory=persist,
         collection_name="test_empty",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     assert result.total_segments == 0
@@ -156,7 +148,7 @@ def test_index_youtube_with_tag(
         "dQw4w9WgXcQ",
         persist_directory=persist,
         collection_name="test_tag",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
         tag="LECTURES",
     )
 
@@ -165,7 +157,7 @@ def test_index_youtube_with_tag(
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_tag",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("Segment", k=5)
     assert all(d.metadata.get("tag") == "LECTURES" for d in docs)
@@ -184,7 +176,7 @@ def test_index_youtube_metadata_fields(
         "dQw4w9WgXcQ",
         persist_directory=persist,
         collection_name="test_meta",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     from pinrag.vectorstore import get_chroma_store
@@ -192,7 +184,7 @@ def test_index_youtube_metadata_fields(
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_meta",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
     docs = store.similarity_search("Segment", k=1)
     meta = docs[0].metadata
@@ -243,7 +235,7 @@ def test_index_youtube_playlist_smoke(
         "https://www.youtube.com/playlist?list=PLtest",
         persist_directory=str(tmp_path / "chroma"),
         collection_name="test",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     assert isinstance(result, YouTubePlaylistIndexResult)
@@ -294,7 +286,7 @@ def test_index_youtube_playlist_partial_failure(
         "https://www.youtube.com/playlist?list=PLx",
         persist_directory=str(tmp_path / "chroma"),
         collection_name="test",
-        embedding=_MockEmbeddings(),
+        embedding=MockEmbeddings1536(),
     )
 
     assert result.total_indexed == 1

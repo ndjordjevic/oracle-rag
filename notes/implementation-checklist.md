@@ -289,8 +289,11 @@
 - [x] Polish README.md
 - [x] **Investigate** to add pinrag mcp to visual studio code extensions marketplace — see `notes/vscode-marketplace-investigation.md`. Summary: (A) VS Code extension wrapping `uvx pinrag` for Extensions view; (B) one-click install URL (`vscode:mcp/install?…`) for README; (C) curated list (process TBD). Recommend B first, then A.
 - [x] **Investigate** how to add pinrag mcp to cursor mcp server list — see `notes/cursor-mcp-list-investigation.md`. Summary: Submit via (1) cursor/mcp-servers GitHub issue (Server Request Template), (2) cursor.store/mcp/new, (3) mcp-marketplace.io/submit. One-click install: `cursor.com/en/install-mcp?name=pinrag&config=...`
-- [ ] Code review of the src folder.
+- [ ] Code review of the src and tests folders.
 - [ ] Fix code review findings.
+- [ ] Test two modes of running the stdio pinrag mcp server: one via `uv run --project pinrag pinrag-mcp` and one via `uvx pinrag`. Test basic functionalities of running tools and resources via the two modes.
+- [ ] Check README.md for the pinrag mcp server and update it if needed.
+- [ ] Investigate the ways how to advertise the pinrag mcp server to the users and advertise the pinrag mcp server to the users.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 
 ---

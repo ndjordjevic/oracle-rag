@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import shutil
-from pathlib import Path
 
 import pytest
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
@@ -105,7 +104,8 @@ def test_prompt_includes_internal_reasoning_instruction() -> None:
     assert "Think step-by-step internally" in text
 
 
-def test_rag_chain_invoke(tmp_path: Path) -> None:
+@pytest.mark.integration
+def test_rag_chain_invoke(tmp_path, sample_pdf_path) -> None:
     """Full RAG pipeline: index a PDF, run a query, get answer and sources."""
     from dotenv import load_dotenv
 
@@ -113,17 +113,12 @@ def test_rag_chain_invoke(tmp_path: Path) -> None:
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping RAG chain test")
 
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present")
-
     from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
 
     persist_dir = tmp_path / "chroma_rag"
     index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="rag_test",
         embedding=get_embedding_model(),
@@ -144,7 +139,8 @@ def test_rag_chain_invoke(tmp_path: Path) -> None:
     assert isinstance(result.sources, list)
 
 
-def test_run_rag_with_retriever(tmp_path: Path) -> None:
+@pytest.mark.integration
+def test_run_rag_with_retriever(tmp_path, sample_pdf_path) -> None:
     """run_rag accepts a retriever directly (uses create_retriever under the hood)."""
     from dotenv import load_dotenv
 
@@ -152,17 +148,12 @@ def test_run_rag_with_retriever(tmp_path: Path) -> None:
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping RAG test")
 
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present")
-
     from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
 
     persist_dir = tmp_path / "chroma_rag"
     index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="rag_test",
         embedding=get_embedding_model(),
@@ -185,6 +176,7 @@ def test_run_rag_with_retriever(tmp_path: Path) -> None:
     assert len(result.answer.strip()) > 0
 
 
+@pytest.mark.integration
 def test_run_rag_zero_retrieval_returns_clear_message() -> None:
     """When retrieval returns 0 docs, run_rag returns a clear message without calling LLM."""
 
@@ -204,8 +196,9 @@ def test_run_rag_zero_retrieval_returns_clear_message() -> None:
     assert result.sources == []
 
 
+@pytest.mark.integration
 def test_run_rag_with_multi_query(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path, monkeypatch: pytest.MonkeyPatch, sample_pdf_path
 ) -> None:
     """run_rag with PINRAG_USE_MULTI_QUERY=true returns valid RAGResult."""
     from dotenv import load_dotenv
@@ -213,11 +206,6 @@ def test_run_rag_with_multi_query(
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("No LLM API key; skipping multi-query integration test")
-
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present")
 
     from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
@@ -227,7 +215,7 @@ def test_run_rag_with_multi_query(
 
     persist_dir = tmp_path / "chroma_mq"
     index_pdf(
-        sample_pdf,
+        sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="rag_mq_test",
         embedding=get_embedding_model(),
@@ -248,6 +236,7 @@ def test_run_rag_with_multi_query(
     assert isinstance(result.sources, list)
 
 
+@pytest.mark.integration
 def test_run_rag_use_rerank_false_uses_normal_retrieval(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -280,8 +269,9 @@ def test_run_rag_use_rerank_false_uses_normal_retrieval(
     assert len(result.sources) == 1
 
 
+@pytest.mark.integration
 def test_run_rag_use_rerank_true_no_cohere_falls_back(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """With use_rerank=True but COHERE_API_KEY missing, rerank is disabled and normal retrieval is used (no crash)."""
     monkeypatch.setenv("PINRAG_USE_RERANK", "true")
@@ -301,6 +291,7 @@ def test_run_rag_use_rerank_true_no_cohere_falls_back(
     assert result.sources == []
 
 
+@pytest.mark.integration
 def test_run_rag_use_rerank_override_false(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -415,7 +406,10 @@ def test_run_rag_llm_context_overflow_message() -> None:
     assert "too large" in result.answer.lower() or "context" in result.answer.lower()
 
 
-def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> None:
+@pytest.mark.integration
+def test_run_rag_multiple_pdfs_document_id_and_tag_filters(
+    tmp_path, sample_pdf_path
+) -> None:
     """Integration: index 2 PDFs (different tags), query with document_id and tag; verify cross-document retrieval."""
     from dotenv import load_dotenv
 
@@ -423,19 +417,14 @@ def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> No
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping multi-PDF integration test")
 
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping multi-PDF integration test")
-
     from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
 
     # Two "documents" from same content so we have distinct document_ids and tags
     doc_a = tmp_path / "doc_alpha.pdf"
     doc_b = tmp_path / "doc_beta.pdf"
-    shutil.copy(sample_pdf, doc_a)
-    shutil.copy(sample_pdf, doc_b)
+    shutil.copy(sample_pdf_path, doc_a)
+    shutil.copy(sample_pdf_path, doc_b)
 
     persist_dir = tmp_path / "chroma_multi"
     embedding = get_embedding_model()

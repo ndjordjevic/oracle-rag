@@ -23,14 +23,9 @@ def test_chunk_documents_overlap_must_be_less_than_size() -> None:
         chunk_documents([doc], chunk_size=100, chunk_overlap=150)
 
 
-def test_chunk_documents_preserves_metadata() -> None:
+def test_chunk_documents_preserves_metadata(sample_pdf_path: Path) -> None:
     """Chunks keep source metadata and get chunk_index, document_id, and start_index."""
-    repo_root = Path(__file__).resolve().parents[1]
-    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping chunking test")
-
-    result = load_pdf_as_documents(sample_pdf)
+    result = load_pdf_as_documents(sample_pdf_path)
     docs = result.documents
     chunks = chunk_documents(docs, chunk_size=500, chunk_overlap=50)
 
@@ -42,8 +37,8 @@ def test_chunk_documents_preserves_metadata() -> None:
         assert "chunk_index" in chunk.metadata
         assert "section" in chunk.metadata
         assert "start_index" in chunk.metadata
-        assert chunk.metadata["file_name"] == sample_pdf.name
-        assert chunk.metadata["document_id"] == sample_pdf.name
+        assert chunk.metadata["file_name"] == sample_pdf_path.name
+        assert chunk.metadata["document_id"] == sample_pdf_path.name
         assert chunk.metadata["chunk_index"] >= 0
         assert isinstance(chunk.metadata["section"], str)
         assert isinstance(chunk.metadata["start_index"], int)
