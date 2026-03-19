@@ -77,7 +77,7 @@ def fetch_playlist_info(playlist_id: str) -> dict:
     playlist_id = str(playlist_id).strip()
     url = f"https://www.youtube.com/playlist?list={playlist_id}"
 
-    import yt_dlp
+    import yt_dlp  # type: ignore[import-untyped]
 
     opts = {
         "flat_playlist": True,

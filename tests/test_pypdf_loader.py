@@ -15,6 +15,15 @@ def test_load_pdf_as_documents_missing_file() -> None:
         load_pdf_as_documents("does-not-exist.pdf")
 
 
+def test_load_pdf_as_documents_invalid_extraction_mode() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present")
+    with pytest.raises(ValueError, match="extraction_mode"):
+        load_pdf_as_documents(sample_pdf, extraction_mode="bogus")
+
+
 def test_load_pdf_as_documents_smoke() -> None:
     # Uses the sample PDF we downloaded during setup. Skip if not present.
     repo_root = Path(__file__).resolve().parents[1]

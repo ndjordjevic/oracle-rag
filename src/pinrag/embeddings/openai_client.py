@@ -1,4 +1,9 @@
-"""Embedding client for RAG. Supports OpenAI and Cohere via config."""
+"""Embedding clients for RAG (OpenAI default, optional Cohere).
+
+Implementation lives in this module for historical import paths
+(`pinrag.embeddings.openai_client`); `get_embedding_model` dispatches by
+``PINRAG_EMBEDDING_PROVIDER``.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +11,7 @@ import os
 
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
+from pydantic import SecretStr
 
 from pinrag.config import (
     DEFAULT_EMBEDDING_MODEL_OPENAI,
@@ -24,8 +30,8 @@ def get_openai_embedding_model(
 ) -> OpenAIEmbeddings:
     """Return an OpenAI embedding model client.
 
-    Loads .env so OPENAI_API_KEY can be set there. If api_key is passed, it
-    overrides the environment variable.
+    Uses ``OPENAI_API_KEY`` from the process environment unless ``api_key`` is
+    passed (callers such as the MCP server may load ``.env`` before invoking this).
 
     Args:
         model: OpenAI embedding model name; if None, uses config.
@@ -39,7 +45,7 @@ def get_openai_embedding_model(
     if not key:
         raise ValueError("OPENAI_API_KEY is required for OpenAI embeddings.")
     model_name = model if model is not None else get_embedding_model_name()
-    return OpenAIEmbeddings(model=model_name, api_key=key)
+    return OpenAIEmbeddings(model=model_name, api_key=SecretStr(key))
 
 
 def get_embedding_model(
@@ -70,6 +76,7 @@ def get_embedding_model(
         key = api_key if api_key is not None else os.environ.get("COHERE_API_KEY")
         if not key:
             raise ValueError("COHERE_API_KEY is required for Cohere embeddings.")
-        return CohereEmbeddings(model=model_name, cohere_api_key=key)
+        # client/async_client are injected by CohereEmbeddings' model_validator (mypy unaware).
+        return CohereEmbeddings(model=model_name, cohere_api_key=SecretStr(key))  # type: ignore[call-arg]
 
     return get_openai_embedding_model(model=model_name, api_key=api_key)

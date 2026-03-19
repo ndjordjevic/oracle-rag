@@ -8,7 +8,7 @@ Code evaluators have no LLM cost.
 
 from __future__ import annotations
 
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, TypedDict, cast
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage
@@ -51,15 +51,19 @@ class _GroundednessGrade(TypedDict):
     grounded: Annotated[bool, "True if no hallucination beyond the facts"]
 
 
-def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> BaseChatModel:
-    """Return a grader LLM with structured output (OpenAI or Anthropic per config)."""
+def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> Any:
+    """Return a grader runnable with structured output (OpenAI or Anthropic per config)."""
     provider = get_evaluator_provider()
     model = get_evaluator_model(context_heavy=context_heavy)
 
+    llm: BaseChatModel
     if provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
 
-        llm = ChatAnthropic(model=model, temperature=0)
+        llm = ChatAnthropic(  # type: ignore[call-arg]
+            model_name=model,
+            temperature=0,
+        )
     else:
         from langchain_openai import ChatOpenAI
 
@@ -70,14 +74,14 @@ def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> BaseChatMod
 
 def _get_page_content(doc: object) -> str:
     """Extract page_content from Document or serialized dict."""
-    if hasattr(doc, "page_content"):
-        return doc.page_content
     if isinstance(doc, dict):
-        return doc.get("page_content", "")
-    return ""
+        v = doc.get("page_content", "")
+        return v if isinstance(v, str) else ""
+    v = getattr(doc, "page_content", "")
+    return v if isinstance(v, str) else ""
 
 
-def _documents_to_context(documents: list) -> str:
+def _documents_to_context(documents: list[Any] | None) -> str:
     """Join document page_content for grader prompts."""
     return "\n\n".join(_get_page_content(d) for d in (documents or []))
 
@@ -95,7 +99,7 @@ def correctness(inputs: dict, outputs: dict, reference_outputs: dict) -> dict:
         reference=reference_outputs.get("answer", ""),
         answer=outputs.get("answer", ""),
     )
-    grade = grader.invoke([HumanMessage(content=content)])
+    grade = cast(dict[str, Any], grader.invoke([HumanMessage(content=content)]))
     return {"key": "correctness", "score": int(grade["correct"])}
 
 
@@ -107,7 +111,7 @@ def groundedness(inputs: dict, outputs: dict) -> dict:
         context=context or "(No retrieved documents)",
         answer=outputs.get("answer", ""),
     )
-    grade = grader.invoke([HumanMessage(content=content)])
+    grade = cast(dict[str, Any], grader.invoke([HumanMessage(content=content)]))
     return {"key": "groundedness", "score": int(grade["grounded"])}
 
 

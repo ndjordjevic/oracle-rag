@@ -15,6 +15,14 @@ def test_chunk_documents_empty() -> None:
     assert chunk_documents([]) == []
 
 
+def test_chunk_documents_overlap_must_be_less_than_size() -> None:
+    doc = Document(page_content="x", metadata={"file_name": "f.pdf"})
+    with pytest.raises(ValueError, match="chunk_overlap"):
+        chunk_documents([doc], chunk_size=100, chunk_overlap=100)
+    with pytest.raises(ValueError, match="chunk_overlap"):
+        chunk_documents([doc], chunk_size=100, chunk_overlap=150)
+
+
 def test_chunk_documents_preserves_metadata() -> None:
     """Chunks keep source metadata and get chunk_index, document_id, and start_index."""
     repo_root = Path(__file__).resolve().parents[1]

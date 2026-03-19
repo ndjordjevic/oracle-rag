@@ -223,6 +223,20 @@ def test_run_evaluation_check_env_missing_evaluator_key(
         _check_env()
 
 
+def test_run_evaluation_check_env_missing_anthropic_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_check_env exits when evaluator is anthropic but ANTHROPIC_API_KEY is missing."""
+    from pinrag.evaluation.run_evaluation import _check_env
+
+    monkeypatch.setenv("LANGSMITH_API_KEY", "test-langsmith")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("PINRAG_EVALUATOR_PROVIDER", "anthropic")
+    with pytest.raises(SystemExit):
+        _check_env()
+
+
 def test_run_evaluation_main_parses_args(monkeypatch: pytest.MonkeyPatch) -> None:
     """main() parses --dataset and --prefix."""
     from pinrag.evaluation import run_evaluation

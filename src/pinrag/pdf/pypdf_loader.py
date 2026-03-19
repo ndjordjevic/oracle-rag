@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal, cast
 
 from langchain_core.documents import Document
 from pypdf import PdfReader
@@ -20,7 +21,7 @@ def _extract_with_mode(
     reader: PdfReader,
     pdf_path: Path,
     total_pages: int,
-    extraction_mode: str,
+    extraction_mode: Literal["plain", "layout"],
     skip_empty_pages: bool,
     document_title: str | None,
     document_author: str | None,
@@ -69,16 +70,10 @@ def load_pdf_as_documents(
       if no text is extracted from any page.
     - Metadata uses 1-indexed page numbers. Each document gets: source, file_name,
       page, total_pages; and document_title / document_author when present in the PDF.
-    By default, tries layout first; if layout yields very little text (fewer than
-    2 pages with text or fewer than 500 total characters), retries with plain
-    and uses whichever mode extracted more text. Pass extraction_mode="layout"
-    or "plain" to force a single mode with no fallback.
-
-    Notes:
-    - Phase 1 assumes text-based PDFs (digitally-born, no OCR). Raises ValueError
-      if no text is extracted from any page.
-    - Metadata uses 1-indexed page numbers. Each document gets: source, file_name,
-      page, total_pages; and document_title / document_author when present in the PDF.
+    - By default, tries layout first; if layout yields very little text (fewer than
+      2 pages with text or fewer than 500 total characters), retries with plain
+      and uses whichever mode extracted more text. Pass extraction_mode="layout"
+      or "plain" to force a single mode with no fallback.
 
     Sources:
     - pypdf extract_text docs: https://pypdf.readthedocs.io/en/stable/user/extract-text.html
@@ -105,7 +100,12 @@ def load_pdf_as_documents(
             if meta.author is not None:
                 document_author = str(meta.author).strip() or None
 
-        mode = extraction_mode or "layout"
+        mode_raw = extraction_mode or "layout"
+        if mode_raw not in ("plain", "layout"):
+            raise ValueError(
+                f"extraction_mode must be 'plain', 'layout', or None; got {mode_raw!r}"
+            )
+        mode = cast(Literal["plain", "layout"], mode_raw)
         docs = _extract_with_mode(
             reader,
             pdf_path,
@@ -133,7 +133,7 @@ def load_pdf_as_documents(
                 if len(docs_plain) > len(docs) or total_chars_plain > total_chars:
                     docs = docs_plain
 
-        if total_pages > 0 and len(docs) == 0:
+        if total_pages > 0 and not docs:
             raise ValueError(
                 f"No text extracted from {pdf_path.name} ({total_pages} page(s)). "
                 "File may be image-only (scan) or empty; Phase 1 supports text-based PDFs only."

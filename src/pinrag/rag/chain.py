@@ -9,6 +9,7 @@ from typing import Literal
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from langchain_core.exceptions import ContextOverflowError
 from langchain_core.language_models import BaseChatModel
 from langchain_core.retrievers import BaseRetriever
 from langsmith import traceable
@@ -33,6 +34,59 @@ from pinrag.vectorstore.retriever import create_retriever
 PathLike = str | Path
 logger = logging.getLogger(__name__)
 
+_MSG_LLM_RATE = "Answer generation failed: rate limit exceeded. Please try again later."
+_MSG_LLM_TIMEOUT = "Answer generation failed: request timed out. Please try again."
+_MSG_LLM_CONTEXT = (
+    "Answer generation failed: the prompt or retrieved context is too large "
+    "for the model. Try a narrower query or fewer documents."
+)
+_MSG_LLM_GENERIC = "Answer generation failed. Please try again."
+
+
+def _user_facing_llm_error_message(exc: BaseException) -> str:
+    """Map provider/transport errors to stable user-facing strings."""
+    if isinstance(exc, ContextOverflowError):
+        return _MSG_LLM_CONTEXT
+    if isinstance(exc, TimeoutError):
+        return _MSG_LLM_TIMEOUT
+
+    try:
+        import httpx
+    except ImportError:
+        pass
+    else:
+        if isinstance(exc, httpx.TimeoutException):
+            return _MSG_LLM_TIMEOUT
+
+    try:
+        import openai as openai_sdk
+    except ImportError:
+        pass
+    else:
+        if isinstance(exc, openai_sdk.RateLimitError):
+            return _MSG_LLM_RATE
+        if isinstance(exc, openai_sdk.APITimeoutError):
+            return _MSG_LLM_TIMEOUT
+
+    try:
+        import anthropic as anthropic_sdk
+    except ImportError:
+        pass
+    else:
+        if isinstance(exc, anthropic_sdk.RateLimitError):
+            return _MSG_LLM_RATE
+        if isinstance(exc, anthropic_sdk.APITimeoutError):
+            return _MSG_LLM_TIMEOUT
+
+    err = str(exc).lower()
+    if "rate" in err and "limit" in err:
+        return _MSG_LLM_RATE
+    if "timeout" in err:
+        return _MSG_LLM_TIMEOUT
+    if "context" in err and ("length" in err or "token" in err or "maximum" in err):
+        return _MSG_LLM_CONTEXT
+    return _MSG_LLM_GENERIC
+
 
 @dataclass
 class RAGResult:
@@ -55,7 +109,7 @@ def _docs_to_langsmith_output(docs: list[Document]) -> list[dict]:
     name="retrieve",
     run_type="retriever",
     process_outputs=lambda out: _docs_to_langsmith_output(out) if out else [],
-)
+)  # type: ignore[call-overload]
 def _retrieve(retriever: BaseRetriever, query: str) -> list[Document]:
     """Retrieve documents; LangSmith logs output in retriever format for special rendering."""
     return retriever.invoke(query)
@@ -246,21 +300,15 @@ def run_rag(
         )
 
     prompt = get_rag_prompt(response_style)
-    messages = prompt.invoke({"context": format_docs(docs), "question": query}).messages
+    messages = prompt.invoke(
+        {"context": format_docs(docs), "question": query}
+    ).to_messages()
     try:
         response = llm.invoke(messages)
-        content = response.content if hasattr(response, "content") else str(response)
-        answer = content if isinstance(content, str) else str(content)
+        raw = getattr(response, "content", response)
+        answer = raw if isinstance(raw, str) else str(raw)
         return RAGResult(answer=answer, sources=format_sources(docs), documents=docs)
     except Exception as e:
         logger.exception("LLM invocation failed in run_rag")
-        err = str(e).lower()
-        if "rate" in err or "limit" in err:
-            msg = (
-                "Answer generation failed: rate limit exceeded. Please try again later."
-            )
-        elif "timeout" in err:
-            msg = "Answer generation failed: request timed out. Please try again."
-        else:
-            msg = "Answer generation failed. Please try again."
+        msg = _user_facing_llm_error_message(e)
         return RAGResult(answer=msg, sources=[], documents=docs)

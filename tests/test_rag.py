@@ -359,6 +359,62 @@ def test_run_rag_llm_failure_returns_graceful_message() -> None:
     assert result.sources == []
 
 
+def test_run_rag_llm_openai_rate_limit_typed() -> None:
+    """OpenAI RateLimitError maps to the rate-limit user message (not string heuristics only)."""
+    from unittest.mock import MagicMock
+
+    from openai import RateLimitError
+
+    class FakeRetriever(BaseRetriever):
+        def _get_relevant_documents(
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun | None = None,
+        ) -> list[Document]:
+            return [
+                Document(
+                    page_content="ctx",
+                    metadata={"document_id": "a.pdf", "page": 1},
+                )
+            ]
+
+    llm = MagicMock()
+    llm.invoke.side_effect = RateLimitError(
+        "throttled",
+        response=MagicMock(status_code=429),
+        body=None,
+    )
+    result = run_rag("q", llm, retriever=FakeRetriever())
+    assert "rate limit" in result.answer.lower()
+
+
+def test_run_rag_llm_context_overflow_message() -> None:
+    """LangChain ContextOverflowError maps to context-too-large guidance."""
+    from unittest.mock import MagicMock
+
+    from langchain_core.exceptions import ContextOverflowError
+
+    class FakeRetriever(BaseRetriever):
+        def _get_relevant_documents(
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun | None = None,
+        ) -> list[Document]:
+            return [
+                Document(
+                    page_content="ctx",
+                    metadata={"document_id": "a.pdf", "page": 1},
+                )
+            ]
+
+    llm = MagicMock()
+    llm.invoke.side_effect = ContextOverflowError("too long")
+    result = run_rag("q", llm, retriever=FakeRetriever())
+    assert "too large" in result.answer.lower() or "context" in result.answer.lower()
+
+
 def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> None:
     """Integration: index 2 PDFs (different tags), query with document_id and tag; verify cross-document retrieval."""
     from dotenv import load_dotenv

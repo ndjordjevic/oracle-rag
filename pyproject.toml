@@ -54,6 +54,9 @@ lint.ignore = [
     "E501",  # ignore line length
     "D101",  # ignore docstring for private modules
     "D103",  # ignore docstring for private modules
+    # pydocstyle pairs that conflict when "D" is selected; Ruff otherwise warns each run
+    "D203",  # use D211 (no blank line before class)
+    "D213",  # use D212 (summary on first line)
 ]
 
 [build-system]

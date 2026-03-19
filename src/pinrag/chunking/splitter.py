@@ -55,11 +55,11 @@ def _extract_heading_from_chunk(content: str) -> str | None:
 
 
 def _ensure_heading_paragraph_breaks(text: str) -> str:
-    r"""Insert \\n\\n before lines that look like section headings so they start a new segment.
+    """Insert a blank line before heading-like lines so they start a new paragraph segment.
 
-    RecursiveCharacterTextSplitter splits on \\n\\n first. So a short title line like
+    RecursiveCharacterTextSplitter splits on double newlines first. So a short title line like
     "The system memory" that appears after a paragraph will stay with that paragraph
-    unless we put a break before the title. This function adds \\n\\n before lines that:
+    unless we put a break before the title. This function adds an extra newline (blank line) before lines that:
     - are short (<= HEADING_LINE_MAX_LEN chars),
     - do not end with sentence punctuation (. ! ?),
     - are not empty.
@@ -85,9 +85,9 @@ def _ensure_heading_paragraph_breaks(text: str) -> str:
 
 def _is_code_line(line: str) -> bool:
     """Return True when a line looks like C or 68k assembly code."""
-    if not line.strip():
-        return False
     stripped = line.strip()
+    if not stripped:
+        return False
     left = line.lstrip()
 
     # Avoid treating bullets/summaries as code unless there's strong evidence.
@@ -213,7 +213,8 @@ def chunk_documents(
     - chunk_index: 0-based index of this chunk within the same page
     - document_id: stable document identifier (from document_id_key, default file_name)
     - section: explicit section/heading label when the chunk starts with or follows a heading-like line
-    - start_index: character offset in the page content where this chunk begins (for source traceability)
+    - start_index: character offset in the text passed to the splitter (after any heading/code/table
+      preprocessing) where this chunk begins (for source traceability)
 
     Args:
         documents: LangChain Documents (e.g. from load_pdf_as_documents).

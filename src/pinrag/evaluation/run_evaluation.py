@@ -23,6 +23,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 from dotenv import load_dotenv
 from langsmith import Client
@@ -45,7 +46,7 @@ def _check_env() -> None:
     """Require LANGSMITH_API_KEY and API key for evaluator provider (OPENAI or ANTHROPIC)."""
     from pinrag.config import get_evaluator_provider
 
-    missing = []
+    missing: list[str] = []
     if not os.environ.get("LANGSMITH_API_KEY"):
         missing.append("LANGSMITH_API_KEY")
     provider = get_evaluator_provider()
@@ -82,7 +83,7 @@ def run_baseline(
     metadata = metadata or {}
 
     if limit is not None:
-        data = list(client.list_examples(dataset_name=dataset, limit=limit))
+        data: Any = list(client.list_examples(dataset_name=dataset, limit=limit))
         print(f"Loaded {len(data)} examples from dataset {dataset!r} (limit={limit}).")
     else:
         data = dataset
@@ -90,7 +91,7 @@ def run_baseline(
     results = client.evaluate(
         pinrag_target,
         data=data,
-        evaluators=EVALUATORS,
+        evaluators=cast(Any, EVALUATORS),
         experiment_prefix=experiment_prefix,
         metadata=metadata,
     )

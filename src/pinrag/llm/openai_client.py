@@ -7,6 +7,7 @@ from importlib.util import find_spec
 
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from pinrag.config import DEFAULT_LLM_MODEL_OPENAI, get_llm_model, get_llm_provider
 
@@ -22,8 +23,8 @@ def get_openai_chat_model(
 ) -> ChatOpenAI:
     """Return an OpenAI chat model client.
 
-    Loads .env so OPENAI_API_KEY can be set there. If api_key is passed, it
-    overrides the environment variable.
+    Uses ``OPENAI_API_KEY`` from the process environment unless ``api_key`` is
+    passed (callers may load ``.env`` first).
 
     Args:
         model: OpenAI chat model name; if None, uses config (PINRAG_LLM_MODEL or gpt-4o-mini).
@@ -38,7 +39,7 @@ def get_openai_chat_model(
     if not key:
         raise ValueError("OPENAI_API_KEY is required for OpenAI chat models.")
     model_name = model if model is not None else get_llm_model()
-    return ChatOpenAI(model=model_name, api_key=key, temperature=temperature)
+    return ChatOpenAI(model=model_name, api_key=SecretStr(key), temperature=temperature)
 
 
 def get_chat_model(
@@ -66,7 +67,11 @@ def get_chat_model(
         key = api_key if api_key is not None else os.environ.get("ANTHROPIC_API_KEY")
         if not key:
             raise ValueError("ANTHROPIC_API_KEY is required for Anthropic chat models.")
-        return ChatAnthropic(model=model_name, api_key=key, temperature=temperature)
+        return ChatAnthropic(  # type: ignore[call-arg]
+            model_name=model_name,
+            api_key=SecretStr(key),
+            temperature=temperature,
+        )
 
     return get_openai_chat_model(
         model=model_name, api_key=api_key, temperature=temperature
