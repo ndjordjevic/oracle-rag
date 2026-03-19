@@ -738,6 +738,33 @@ def test_server_config_resource_unset_var_in_defaults_section() -> None:
     assert "PINRAG_COLLECTION_NAME:" in out
 
 
+def test_server_config_resource_includes_langsmith_section() -> None:
+    """server_config_resource shows LangSmith vars when set in runtime env."""
+    extra = {
+        "LANGSMITH_TRACING": "true",
+        "LANGSMITH_ENDPOINT": "https://eu.api.smith.langchain.com",
+        "LANGSMITH_API_KEY": "lsv2_test_key",
+        "LANGSMITH_PROJECT": "pinrag",
+    }
+    with patch.dict("os.environ", extra, clear=False):
+        out = asyncio.run(mcp_server.server_config_resource())
+    assert "--- LangSmith observability ---" in out
+    assert "LANGSMITH_TRACING: true" in out
+    assert "LANGSMITH_ENDPOINT: https://eu.api.smith.langchain.com" in out
+    assert "LANGSMITH_PROJECT: pinrag" in out
+    assert "LANGSMITH_API_KEY: set" in out
+    assert "lsv2_test_key" not in out
+
+
+def test_server_config_resource_langsmith_not_set() -> None:
+    """server_config_resource shows 'not set' for LangSmith vars when absent."""
+    env_no_ls = {k: v for k, v in __import__("os").environ.items() if not k.startswith("LANGSMITH_")}
+    with patch.dict("os.environ", env_no_ls, clear=True):
+        out = asyncio.run(mcp_server.server_config_resource())
+    assert "LANGSMITH_TRACING: not set" in out
+    assert "LANGSMITH_API_KEY: not set" in out
+
+
 # --- configure_logging (PINRAG_LOG_TO_STDERR, PINRAG_LOG_LEVEL) ---
 
 

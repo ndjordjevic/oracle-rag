@@ -156,6 +156,12 @@ def _format_server_config() -> str:
         f"  GITHUB_TOKEN: {'set' if _env_set('GITHUB_TOKEN') else 'not set'}",
         f"  PINRAG_YT_PROXY_HTTP_URL: {'set' if _env_set('PINRAG_YT_PROXY_HTTP_URL') else 'not set'}",
         f"  PINRAG_YT_PROXY_HTTPS_URL: {'set' if _env_set('PINRAG_YT_PROXY_HTTPS_URL') else 'not set'}",
+        "",
+        "--- LangSmith observability ---",
+        f"  LANGSMITH_TRACING: {os.environ.get('LANGSMITH_TRACING', 'not set')}",
+        f"  LANGSMITH_ENDPOINT: {os.environ.get('LANGSMITH_ENDPOINT', 'not set')}",
+        f"  LANGSMITH_PROJECT: {os.environ.get('LANGSMITH_PROJECT', 'not set')}",
+        f"  LANGSMITH_API_KEY: {'set' if _env_set('LANGSMITH_API_KEY') else 'not set'}",
     ]
     return "\n".join(lines)
 
