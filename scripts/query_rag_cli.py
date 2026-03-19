@@ -5,7 +5,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from pinrag.indexing import query_index
+import _script_env
+
+_script_env.load_project_dotenv()
+
+from pinrag.config import get_collection_name, get_persist_dir  # noqa: E402
+from pinrag.indexing import query_index  # noqa: E402
 
 
 def main() -> None:
@@ -21,13 +26,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--persist-dir",
-        default="chroma_db",
-        help="Directory for Chroma persistence (default: chroma_db)",
+        default=None,
+        help="Directory for Chroma persistence (default: PINRAG_PERSIST_DIR or chroma_db)",
     )
     parser.add_argument(
         "--collection",
-        default="pinrag",
-        help="Chroma collection name (default: pinrag)",
+        default=None,
+        help="Chroma collection name (default: PINRAG_COLLECTION_NAME or pinrag)",
     )
     parser.add_argument(
         "--preview",
@@ -37,12 +42,15 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    persist_dir = Path(args.persist_dir).expanduser().resolve()
+    persist_dir = Path(
+        (args.persist_dir or "").strip() or get_persist_dir()
+    ).expanduser().resolve()
+    collection = (args.collection or "").strip() or get_collection_name()
     docs = query_index(
         args.query,
         k=args.k,
         persist_directory=persist_dir,
-        collection_name=args.collection,
+        collection_name=collection,
     )
 
     if not docs:
@@ -71,4 +79,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

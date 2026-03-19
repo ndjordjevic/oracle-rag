@@ -12,7 +12,7 @@ _project_root = Path(__file__).resolve().parent.parent
 load_dotenv(_project_root / ".env")
 
 # Validation runs when server module is imported
-from pinrag.mcp.server import mcp
+from pinrag.mcp.server import mcp  # noqa: E402
 
 
 def main() -> None:

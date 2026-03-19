@@ -33,9 +33,13 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from pinrag.config import get_collection_name, get_persist_dir, get_use_parent_child
-from pinrag.indexing import index_discord, index_pdf
-from pinrag.vectorstore import get_chroma_store
+from pinrag.config import (  # noqa: E402
+    get_collection_name,
+    get_persist_dir,
+    get_use_parent_child,
+)
+from pinrag.indexing import index_discord, index_pdf  # noqa: E402
+from pinrag.vectorstore import get_chroma_store  # noqa: E402
 
 
 def _detect_format(path: Path) -> Literal["pdf", "discord"] | None:
@@ -48,9 +52,9 @@ def _detect_format(path: Path) -> Literal["pdf", "discord"] | None:
         try:
             head = path.read_text(encoding="utf-8", errors="replace")[:2048]
             lines = head.split("\n")[:30]
-            if any(l.strip().startswith("Guild:") for l in lines) and any(
-                l.strip().startswith("Channel:") for l in lines
-            ):
+            if any(
+                line.strip().startswith("Guild:") for line in lines
+            ) and any(line.strip().startswith("Channel:") for line in lines):
                 return "discord"
         except OSError:
             pass

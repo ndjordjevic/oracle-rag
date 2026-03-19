@@ -3,21 +3,23 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
+import _script_env
 
-from pinrag.embeddings import get_embedding_model
-from pinrag.llm import get_chat_model
-from pinrag.rag import run_rag
+_script_env.load_project_dotenv()
+
+from pinrag.config import get_collection_name, get_persist_dir  # noqa: E402
+from pinrag.embeddings import get_embedding_model  # noqa: E402
+from pinrag.llm import get_chat_model  # noqa: E402
+from pinrag.rag import run_rag  # noqa: E402
 
 
 def main() -> None:
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY not set. Set it in .env or the environment.", file=sys.stderr)
+    err = _script_env.rag_keys_error_message()
+    if err:
+        print(err, file=sys.stderr)
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
@@ -32,13 +34,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--persist-dir",
-        default="chroma_db",
-        help="Chroma persistence directory (default: chroma_db)",
+        default=None,
+        help="Chroma persistence directory (default: PINRAG_PERSIST_DIR or chroma_db)",
     )
     parser.add_argument(
         "--collection",
-        default="pinrag",
-        help="Chroma collection name (default: pinrag)",
+        default=None,
+        help="Chroma collection name (default: PINRAG_COLLECTION_NAME or pinrag)",
     )
     parser.add_argument(
         "--document",
@@ -69,7 +71,10 @@ def main() -> None:
     if args.page_min is not None and args.page_max is not None and args.page_min > args.page_max:
         parser.error("--page-min must be <= --page-max")
 
-    persist_dir = Path(args.persist_dir).expanduser().resolve()
+    persist_dir = Path(
+        (args.persist_dir or "").strip() or get_persist_dir()
+    ).expanduser().resolve()
+    collection = (args.collection or "").strip() or get_collection_name()
     embedding = get_embedding_model()
     llm = get_chat_model()
 
@@ -78,7 +83,7 @@ def main() -> None:
         llm,
         k=args.k,
         persist_directory=persist_dir,
-        collection_name=args.collection,
+        collection_name=collection,
         embedding=embedding,
         document_id=args.document,
         page_min=args.page_min,

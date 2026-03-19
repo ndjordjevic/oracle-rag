@@ -90,7 +90,7 @@ uv run python scripts/print_pdf_chunks.py data/pdfs/sample.pdf --page 7 --limit 
 
 ## index_cli.py
 
-Unified CLI to index PDFs and Discord exports into Chroma. Replaces existing chunks per document. Uses  from  when set (parent-child retrieval).
+Unified CLI to index PDFs and Discord exports into Chroma. Replaces existing chunks per document. When `PINRAG_USE_PARENT_CHILD=true` in `.env`, indexing uses parent–child chunking (see project README).
 
 **Arguments**
 
@@ -102,6 +102,8 @@ Unified CLI to index PDFs and Discord exports into Chroma. Replaces existing chu
 | `--collection` | Chroma collection name (default: from config). |
 | `--tag` | Optional tag for indexed documents. |
 | `--dry-run` | List documents that would be indexed without indexing. |
+| `--wipe-only` | Clear the collection and parent docstore; no reindex. |
+| `--wipe-and-reindex` | Wipe then reindex from Chroma paths (requires `--from-chroma` and parent-child enabled). |
 
 **Examples**
 
@@ -155,8 +157,8 @@ List which documents are currently indexed in the local Chroma store.
 
 | Argument | Description |
 |----------|-------------|
-| `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
-| `--collection` | Chroma collection name (default: `pinrag`). |
+| `--persist-dir` | Directory for Chroma persistence (default: `PINRAG_PERSIST_DIR` or `chroma_db`). |
+| `--collection` | Chroma collection name (default: `PINRAG_COLLECTION_NAME` or `pinrag`). |
 
 **Examples**
 
@@ -172,7 +174,7 @@ uv run python scripts/list_indexed_docs_cli.py --persist-dir my_chroma --collect
 
 ## test_llm_cli.py
 
-Call the OpenAI chat model with a test prompt (requires `OPENAI_API_KEY` in `.env` or environment).
+Call the configured chat model (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic) with a test prompt. Requires the matching API key in `.env` or the environment (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`).
 
 **Arguments**
 
@@ -191,7 +193,7 @@ uv run python scripts/test_llm_cli.py "What is 2+2? Reply with one number."
 
 ## rag_cli.py
 
-Run the full RAG chain: ask a question over indexed PDFs and get an answer with source citations (requires `OPENAI_API_KEY`).
+Run the full RAG chain: ask a question over indexed documents and get an answer with source citations. Requires API keys for the configured **embedding** provider (`PINRAG_EMBEDDING_PROVIDER`: OpenAI or Cohere) and **LLM** provider (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic).
 
 **Arguments**
 
@@ -199,8 +201,8 @@ Run the full RAG chain: ask a question over indexed PDFs and get an answer with 
 |----------|-------------|
 | `query` | Natural language question (positional). |
 | `--k` | Number of chunks to retrieve (default: `5`). |
-| `--persist-dir` | Chroma persistence directory (default: `chroma_db`). |
-| `--collection` | Chroma collection name (default: `pinrag`). |
+| `--persist-dir` | Chroma persistence directory (default: from `PINRAG_PERSIST_DIR` or `chroma_db`). |
+| `--collection` | Chroma collection name (default: from `PINRAG_COLLECTION_NAME` or `pinrag`). |
 
 **Examples**
 
@@ -214,48 +216,45 @@ uv run python scripts/rag_cli.py "Summarize the main points." --k 8
 
 ## mcp_server.py
 
-Run the PinRAG MCP (Model Context Protocol) server, exposing RAG tools (`query_pdf`, `add_pdf`) to MCP-compatible clients like Claude Desktop, Cursor, or the MCP Inspector.
+Dev entry point to run the PinRAG MCP server over **stdio** for MCP-compatible clients (Cursor, Claude Desktop, MCP Inspector). Packaged installs typically use the **`pinrag-mcp`** console script instead (`pyproject` `[project.scripts]`); both load `.env` from the repo/install context.
 
 **Requirements**
 
-- `OPENAI_API_KEY` must be set in `.env` or environment variables
-- PDFs can be indexed using either:
-  - The `add_pdf` MCP tool (via MCP client)
-  - The `index_cli.py` CLI script
+- Same API keys as running the app: embeddings (OpenAI or Cohere) plus LLM (OpenAI or Anthropic), per your `.env`. See the main project README.
+- Index documents via **`add_document_tool`** / **`add_files`** from the client, or use `index_cli.py` locally.
 
 **Transport**
 
-The server uses `stdio` transport (standard for MCP), reading from stdin and writing to stdout. Logs are written to stderr to avoid corrupting JSON-RPC messages.
+Stdio: JSON-RPC on stdout; **logs go to stderr** so the pipe stays valid.
 
-**Available Tools**
+**Available tools** (names match the MCP surface in `pinrag.mcp.server`)
 
-- `query_pdf`: Query indexed PDFs and return answers with citations
-- `add_pdf`: Index a new PDF into the vector store
-- `list_pdfs`: List all indexed PDFs (document names and total chunk count)
-- `remove_pdf`: Remove a PDF and all its chunks and embeddings from the index (by document_id, e.g. file name from list_pdfs)
-- `list_pdfs`: List all indexed PDFs (books) in the PinRAG index
+- `query_tool` — RAG question with citations
+- `add_document_tool` — Index paths (PDF, Discord export, YouTube URL, GitHub URL, etc.)
+- `list_documents_tool` — List indexed documents and chunk stats
+- `remove_document_tool` — Remove a document by `document_id`
 
 **Examples**
 
 ```bash
-# Run the MCP server (will run until interrupted)
+# Run from repo (until interrupted)
 uv run python scripts/mcp_server.py
 
-# Test with MCP Inspector (one command: Inspector spawns the server)
+# Inspector spawns the server
 cd /path/to/pinrag
 npx -y @modelcontextprotocol/inspector uv run python scripts/mcp_server.py
-# The terminal prints a URL like: http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=<token>
-# Open that full URL in your browser (the token is required). Use the Tools tab to call query_pdf and add_pdf.
-# Note: OPENAI_API_KEY is required when you run the tools (for embeddings/LLM), not for the Inspector URL.
+# Open the printed URL (token required). Use the Tools tab to invoke tools.
 ```
 
 **Integration**
 
-To use with MCP clients (e.g., Claude Desktop, Cursor), configure the client to run:
+Point your MCP client at **`pinrag-mcp`** (recommended when installed) or:
+
 ```bash
 uv run python scripts/mcp_server.py
 ```
-as the server command with stdio transport.
+
+with stdio transport.
 
 ---
 
@@ -269,8 +268,8 @@ Query the indexed chunks in Chroma and print matching chunks with metadata.
 |----------|-------------|
 | `query` | Natural language query string (positional). |
 | `--k` | Number of top chunks to return (default: `5`). |
-| `--persist-dir` | Directory for Chroma persistence (default: `chroma_db`). |
-| `--collection` | Chroma collection name (default: `pinrag`). |
+| `--persist-dir` | Directory for Chroma persistence (default: from `PINRAG_PERSIST_DIR` or `chroma_db`). |
+| `--collection` | Chroma collection name (default: from `PINRAG_COLLECTION_NAME` or `pinrag`). |
 | `--preview` | Max characters of chunk text to show (`0` = full, default: `240`). |
 
 **Examples**

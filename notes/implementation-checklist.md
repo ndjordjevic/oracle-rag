@@ -291,8 +291,9 @@
 - [x] **Investigate** how to add pinrag mcp to cursor mcp server list — see `notes/cursor-mcp-list-investigation.md`. Summary: Submit via (1) cursor/mcp-servers GitHub issue (Server Request Template), (2) cursor.store/mcp/new, (3) mcp-marketplace.io/submit. One-click install: `cursor.com/en/install-mcp?name=pinrag&config=...`
 - [ ] Code review of the src and tests folders.
 - [ ] Fix code review findings.
-- [ ] Test two modes of running the stdio pinrag mcp server: one via `uv run --project pinrag pinrag-mcp` and one via `uvx pinrag`. Test basic functionalities of running tools and resources via the two modes.
+- [ ] Test two modes of running the stdio pinrag mcp server: one via `uv run --project pinrag pinrag-mcp` and one via `uvx pinrag` (a new release should be published first).
 - [ ] Check README.md for the pinrag mcp server and update it if needed.
+- [ ] Check pinrag repo and what's been pushed there and should we expose it to the users?
 - [ ] Investigate the ways how to advertise the pinrag mcp server to the users and advertise the pinrag mcp server to the users.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 

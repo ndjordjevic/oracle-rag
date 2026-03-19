@@ -17,11 +17,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from pinrag.config import DEFAULT_PERSIST_DIR, get_collection_name
-from pinrag.mcp.tools import add_file
-
-# Load .env from project root
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+from pinrag.config import DEFAULT_PERSIST_DIR, get_collection_name  # noqa: E402
+from pinrag.mcp.tools import add_file  # noqa: E402
 
 
 def main() -> int:
@@ -59,6 +58,8 @@ def main() -> int:
         print(f"Base path is not a directory: {base}", file=sys.stderr)
         return 1
 
+    collection = (args.collection or "").strip() or get_collection_name()
+
     # Index base dir first (files at root), then each channel subdirectory
     dirs_to_scan = [base] + sorted([d for d in base.iterdir() if d.is_dir()])
     # Dedupe: if base has no subdirs, we only have [base]
@@ -71,7 +72,7 @@ def main() -> int:
         result = add_file(
             path=str(channel_dir),
             persist_dir=args.persist_dir,
-            collection=args.collection,
+            collection=collection,
             tag=args.tag,
         )
         n_ok = result["total_indexed"]

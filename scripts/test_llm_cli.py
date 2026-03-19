@@ -3,23 +3,25 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 
-from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
+import _script_env
 
-from pinrag.llm import get_chat_model
+_script_env.load_project_dotenv()
+
+from langchain_core.messages import HumanMessage  # noqa: E402
+
+from pinrag.llm import get_chat_model  # noqa: E402
 
 
 def main() -> None:
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY not set. Set it in .env or the environment.", file=sys.stderr)
+    err = _script_env.llm_keys_error_message()
+    if err:
+        print(err, file=sys.stderr)
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
-        description="Call the OpenAI chat model with a test prompt."
+        description="Call the configured chat model (PINRAG_LLM_PROVIDER) with a test prompt."
     )
     parser.add_argument(
         "prompt",
