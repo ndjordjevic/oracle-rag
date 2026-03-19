@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 from importlib.util import find_spec
-from typing import Optional
 
 from langchain_core.retrievers import BaseRetriever
 
@@ -15,7 +14,7 @@ DEFAULT_RERANK_MODEL = "rerank-english-v3.0"
 COHERE_INSTALL_HINT = "pip install pinrag[cohere]"
 
 
-def _cohere_dependencies_available() -> tuple[bool, Optional[str]]:
+def _cohere_dependencies_available() -> tuple[bool, str | None]:
     """Check optional deps needed for Cohere reranking."""
     if find_spec("langchain_cohere") is None:
         return False, f"langchain-cohere is not installed ({COHERE_INSTALL_HINT})"
@@ -40,6 +39,7 @@ def wrap_retriever_with_cohere_rerank(
 
     Returns:
         ContextualCompressionRetriever wrapping base_retriever with CohereRerank.
+
     """
     available, err = _cohere_dependencies_available()
     if not available:
@@ -57,11 +57,12 @@ def wrap_retriever_with_cohere_rerank(
     )
 
 
-def is_rerank_available() -> tuple[bool, Optional[str]]:
+def is_rerank_available() -> tuple[bool, str | None]:
     """Check if Cohere rerank can be used (package installed and API key set).
 
     Returns:
         (available, error_message). If available is True, error_message is None.
+
     """
     available, err = _cohere_dependencies_available()
     if not available:

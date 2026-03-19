@@ -5,12 +5,11 @@ from __future__ import annotations
 import os
 
 import pytest
-
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
 
-from pinrag.rag.multiquery import wrap_retriever_with_multiquery, _get_multiquery_prompt
+from pinrag.rag.multiquery import _get_multiquery_prompt, wrap_retriever_with_multiquery
 
 
 def test_get_multiquery_prompt_has_question_variable() -> None:
@@ -36,6 +35,7 @@ def test_wrap_retriever_with_multiquery_returns_retriever() -> None:
             ]
 
     from dotenv import load_dotenv
+
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("No LLM API key; skipping multi-query test")

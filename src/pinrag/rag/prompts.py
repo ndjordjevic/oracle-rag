@@ -32,6 +32,7 @@ RAG_HUMAN = """Context:
 
 Question: {question}"""
 
+
 def get_rag_prompt(
     response_style: Literal["thorough", "concise"] = "thorough",
 ) -> ChatPromptTemplate:

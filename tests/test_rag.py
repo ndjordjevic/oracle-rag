@@ -7,15 +7,13 @@ import shutil
 from pathlib import Path
 
 import pytest
-
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
-
-from pinrag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
-from pinrag.rag.prompts import get_rag_prompt
 
 from pinrag.llm import get_chat_model
+from pinrag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
+from pinrag.rag.prompts import get_rag_prompt
 from pinrag.vectorstore import create_retriever
 
 
@@ -27,8 +25,12 @@ def test_format_docs_empty() -> None:
 def test_format_docs_numbered() -> None:
     """format_docs with number_chunks=True adds [N] and doc/page labels."""
     docs = [
-        Document(page_content="First chunk.", metadata={"document_id": "a.pdf", "page": 1}),
-        Document(page_content="Second chunk.", metadata={"document_id": "a.pdf", "page": 2}),
+        Document(
+            page_content="First chunk.", metadata={"document_id": "a.pdf", "page": 1}
+        ),
+        Document(
+            page_content="Second chunk.", metadata={"document_id": "a.pdf", "page": 2}
+        ),
     ]
     out = format_docs(docs, number_chunks=True)
     assert "[1]" in out and "[2]" in out
@@ -83,9 +85,7 @@ def test_rag_prompt_has_context_and_question() -> None:
 
 def test_concise_prompt_style_includes_concise_instruction() -> None:
     """Concise prompt mode includes concise-response guidance."""
-    prompt_value = get_rag_prompt("concise").invoke(
-        {"context": "ctx", "question": "q"}
-    )
+    prompt_value = get_rag_prompt("concise").invoke({"context": "ctx", "question": "q"})
     text = " ".join(
         str(m.content) if hasattr(m, "content") else str(m)
         for m in prompt_value.messages
@@ -108,6 +108,7 @@ def test_prompt_includes_internal_reasoning_instruction() -> None:
 def test_rag_chain_invoke(tmp_path: Path) -> None:
     """Full RAG pipeline: index a PDF, run a query, get answer and sources."""
     from dotenv import load_dotenv
+
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping RAG chain test")
@@ -117,8 +118,8 @@ def test_rag_chain_invoke(tmp_path: Path) -> None:
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present")
 
-    from pinrag.indexing import index_pdf
     from pinrag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
 
     persist_dir = tmp_path / "chroma_rag"
     index_pdf(
@@ -146,6 +147,7 @@ def test_rag_chain_invoke(tmp_path: Path) -> None:
 def test_run_rag_with_retriever(tmp_path: Path) -> None:
     """run_rag accepts a retriever directly (uses create_retriever under the hood)."""
     from dotenv import load_dotenv
+
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping RAG test")
@@ -155,8 +157,8 @@ def test_run_rag_with_retriever(tmp_path: Path) -> None:
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present")
 
-    from pinrag.indexing import index_pdf
     from pinrag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
 
     persist_dir = tmp_path / "chroma_rag"
     index_pdf(
@@ -185,9 +187,13 @@ def test_run_rag_with_retriever(tmp_path: Path) -> None:
 
 def test_run_rag_zero_retrieval_returns_clear_message() -> None:
     """When retrieval returns 0 docs, run_rag returns a clear message without calling LLM."""
+
     class EmptyRetriever(BaseRetriever):
         def _get_relevant_documents(
-            self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun | None = None,
         ) -> list[Document]:
             return []
 
@@ -198,9 +204,12 @@ def test_run_rag_zero_retrieval_returns_clear_message() -> None:
     assert result.sources == []
 
 
-def test_run_rag_with_multi_query(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_rag_with_multi_query(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """run_rag with PINRAG_USE_MULTI_QUERY=true returns valid RAGResult."""
     from dotenv import load_dotenv
+
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("No LLM API key; skipping multi-query integration test")
@@ -210,8 +219,8 @@ def test_run_rag_with_multi_query(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present")
 
-    from pinrag.indexing import index_pdf
     from pinrag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
 
     monkeypatch.setenv("PINRAG_USE_MULTI_QUERY", "true")
     monkeypatch.delenv("PINRAG_USE_RERANK", raising=False)
@@ -248,7 +257,10 @@ def test_run_rag_use_rerank_false_uses_normal_retrieval(
 
     class FakeRetriever(BaseRetriever):
         def _get_relevant_documents(
-            self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun | None = None,
         ) -> list[Document]:
             return [
                 Document(
@@ -298,7 +310,10 @@ def test_run_rag_use_rerank_override_false(
 
     class FakeRetriever(BaseRetriever):
         def _get_relevant_documents(
-            self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun | None = None,
         ) -> list[Document]:
             return [
                 Document(
@@ -324,10 +339,16 @@ def test_run_rag_llm_failure_returns_graceful_message() -> None:
 
     class FakeRetriever(BaseRetriever):
         def _get_relevant_documents(
-            self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun | None = None,
         ) -> list[Document]:
             return [
-                Document(page_content="Some context.", metadata={"document_id": "a.pdf", "page": 1})
+                Document(
+                    page_content="Some context.",
+                    metadata={"document_id": "a.pdf", "page": 1},
+                )
             ]
 
     llm = MagicMock()
@@ -341,6 +362,7 @@ def test_run_rag_llm_failure_returns_graceful_message() -> None:
 def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> None:
     """Integration: index 2 PDFs (different tags), query with document_id and tag; verify cross-document retrieval."""
     from dotenv import load_dotenv
+
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping multi-PDF integration test")
@@ -350,8 +372,8 @@ def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> No
     if not sample_pdf.exists():
         pytest.skip("sample PDF not present; skipping multi-PDF integration test")
 
-    from pinrag.indexing import index_pdf
     from pinrag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
 
     # Two "documents" from same content so we have distinct document_ids and tags
     doc_a = tmp_path / "doc_alpha.pdf"
@@ -361,8 +383,20 @@ def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> No
 
     persist_dir = tmp_path / "chroma_multi"
     embedding = get_embedding_model()
-    index_pdf(doc_a, persist_directory=str(persist_dir), collection_name="multi_test", embedding=embedding, tag="alpha")
-    index_pdf(doc_b, persist_directory=str(persist_dir), collection_name="multi_test", embedding=embedding, tag="beta")
+    index_pdf(
+        doc_a,
+        persist_directory=str(persist_dir),
+        collection_name="multi_test",
+        embedding=embedding,
+        tag="alpha",
+    )
+    index_pdf(
+        doc_b,
+        persist_directory=str(persist_dir),
+        collection_name="multi_test",
+        embedding=embedding,
+        tag="beta",
+    )
 
     llm = get_chat_model()
 
@@ -379,7 +413,9 @@ def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> No
     assert result_a.answer
     assert result_a.sources
     for s in result_a.sources:
-        assert s.get("document_id") == "doc_alpha.pdf", f"Expected only doc_alpha.pdf, got {s}"
+        assert s.get("document_id") == "doc_alpha.pdf", (
+            f"Expected only doc_alpha.pdf, got {s}"
+        )
 
     # Query restricted to tag beta — all sources must be from doc_beta.pdf
     result_beta = run_rag(
@@ -394,7 +430,9 @@ def test_run_rag_multiple_pdfs_document_id_and_tag_filters(tmp_path: Path) -> No
     assert result_beta.answer
     assert result_beta.sources
     for s in result_beta.sources:
-        assert s.get("document_id") == "doc_beta.pdf", f"Expected only doc_beta.pdf, got {s}"
+        assert s.get("document_id") == "doc_beta.pdf", (
+            f"Expected only doc_beta.pdf, got {s}"
+        )
 
     # Unfiltered query — should return answer and sources from either doc
     result_any = run_rag(

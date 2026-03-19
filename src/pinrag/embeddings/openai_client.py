@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
@@ -20,8 +19,8 @@ DEFAULT_MODEL = DEFAULT_EMBEDDING_MODEL_OPENAI
 
 def get_openai_embedding_model(
     *,
-    model: Optional[str] = None,
-    api_key: Optional[str] = None,
+    model: str | None = None,
+    api_key: str | None = None,
 ) -> OpenAIEmbeddings:
     """Return an OpenAI embedding model client.
 
@@ -34,6 +33,7 @@ def get_openai_embedding_model(
 
     Returns:
         LangChain OpenAIEmbeddings instance.
+
     """
     key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
     if not key:
@@ -44,8 +44,8 @@ def get_openai_embedding_model(
 
 def get_embedding_model(
     *,
-    model: Optional[str] = None,
-    api_key: Optional[str] = None,
+    model: str | None = None,
+    api_key: str | None = None,
 ) -> Embeddings:
     """Return an embedding model based on PINRAG_EMBEDDING_PROVIDER (openai | cohere).
 

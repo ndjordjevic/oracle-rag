@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Union
 
-from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
 from pinrag.chunking import chunk_documents
@@ -27,8 +25,7 @@ from pinrag.vectorstore.chroma_client import (
     get_chroma_store,
 )
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 @dataclass(frozen=True)
@@ -46,11 +43,11 @@ def index_plaintext(
     path: PathLike,
     *,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    tag: Optional[str] = None,
-    document_id: Optional[str] = None,
-    max_file_bytes: Optional[int] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    tag: str | None = None,
+    document_id: str | None = None,
+    max_file_bytes: int | None = None,
 ) -> PlaintextIndexResult:
     """Load, chunk, and index a plain text file into Chroma.
 
@@ -70,12 +67,15 @@ def index_plaintext(
 
     Returns:
         PlaintextIndexResult with indexing stats.
+
     """
     if collection_name is None:
         collection_name = get_collection_name()
     respect_structure = get_structure_aware_chunking()
     txt_path = Path(path).expanduser().resolve()
-    max_bytes = max_file_bytes if max_file_bytes is not None else get_plaintext_max_file_bytes()
+    max_bytes = (
+        max_file_bytes if max_file_bytes is not None else get_plaintext_max_file_bytes()
+    )
 
     load_result: PlaintextLoadResult = load_plaintext_as_documents(
         txt_path,
@@ -119,7 +119,7 @@ def index_plaintext(
     )
 
     doc_bytes = txt_path.stat().st_size
-    upload_ts = datetime.now(timezone.utc).isoformat()
+    upload_ts = datetime.now(UTC).isoformat()
     doc_total_chunks = len(chunk_docs)
     for doc in chunk_docs:
         doc.metadata["document_type"] = "plaintext"

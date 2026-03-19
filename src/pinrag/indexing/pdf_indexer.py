@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Union
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -29,8 +28,7 @@ from pinrag.vectorstore.chroma_client import (
 from pinrag.vectorstore.docstore import get_parent_docstore
 from pinrag.vectorstore.retriever import build_retrieval_filter
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 @dataclass(frozen=True)
@@ -48,11 +46,11 @@ def index_pdf(
     path: PathLike,
     *,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    chunk_size: Optional[int] = None,
-    chunk_overlap: Optional[int] = None,
-    tag: Optional[str] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    chunk_size: int | None = None,
+    chunk_overlap: int | None = None,
+    tag: str | None = None,
 ) -> IndexResult:
     """Load, chunk, and index a single PDF into Chroma.
 
@@ -74,6 +72,7 @@ def index_pdf(
 
     Returns:
         IndexResult with basic stats about the indexed PDF.
+
     """
     if collection_name is None:
         collection_name = get_collection_name()
@@ -112,7 +111,7 @@ def index_pdf(
 
         # Add document-level metadata to each chunk (upload time, size stats).
         doc_bytes = pdf_path.stat().st_size
-        upload_ts = datetime.now(timezone.utc).isoformat()
+        upload_ts = datetime.now(UTC).isoformat()
         doc_pages = pdf_result.total_pages
         doc_total_chunks = len(chunk_docs)
         for doc in chunk_docs:
@@ -150,8 +149,8 @@ def _index_pdf_parent_child(
     pdf_path: Path,
     persist_directory: PathLike,
     collection_name: str,
-    embedding: Optional[Embeddings],
-    tag: Optional[str],
+    embedding: Embeddings | None,
+    tag: str | None,
     respect_structure: bool,
 ) -> tuple[list[Document], int]:
     """Index PDF using parent-child retrieval: embed small chunks, store large parents in docstore."""
@@ -176,7 +175,7 @@ def _index_pdf_parent_child(
     docstore = get_parent_docstore(persist_directory, collection_name)
 
     doc_bytes = pdf_path.stat().st_size
-    upload_ts = datetime.now(timezone.utc).isoformat()
+    upload_ts = datetime.now(UTC).isoformat()
     doc_pages = pdf_result.total_pages
     document_id = pdf_path.name
 
@@ -237,12 +236,12 @@ def query_index(
     *,
     k: int = 5,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    document_id: Optional[str] = None,
-    page_min: Optional[int] = None,
-    page_max: Optional[int] = None,
-    tag: Optional[str] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    document_id: str | None = None,
+    page_min: int | None = None,
+    page_max: int | None = None,
+    tag: str | None = None,
 ) -> list[Document]:
     """Run a similarity search over the indexed chunks in Chroma.
 
@@ -262,6 +261,7 @@ def query_index(
 
     Returns:
         List of matching chunk `Document`s from the vector store.
+
     """
     if collection_name is None:
         collection_name = get_collection_name()
@@ -277,4 +277,3 @@ def query_index(
         tag=tag,
     )
     return store.similarity_search(query, k=k, filter=filter_dict)
-

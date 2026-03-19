@@ -19,6 +19,7 @@ def pinrag_target(inputs: dict) -> dict:
     Returns:
         dict with keys: answer, sources, documents.
         documents are the retrieved chunks (for groundedness).
+
     """
     question = inputs["question"]
     document_id = inputs.get("document_id")

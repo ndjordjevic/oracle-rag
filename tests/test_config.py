@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
-
 from youtube_transcript_api.proxies import GenericProxyConfig
 
 from pinrag.config import (
+    DEFAULT_MAX_INDEX_FILE_BYTES,
     get_chunk_overlap,
     get_chunk_size,
     get_collection_name,
+    get_persist_dir,
     get_plaintext_max_file_bytes,
     get_rerank_retrieve_k,
     get_rerank_top_n,
@@ -68,6 +67,34 @@ def test_get_chunk_overlap_invalid_falls_back(monkeypatch: pytest.MonkeyPatch) -
     assert get_chunk_overlap() == 200
 
 
+def test_get_chunk_overlap_clamped_below_chunk_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When overlap >= chunk size, returns chunk_size - 1."""
+    monkeypatch.setenv("PINRAG_CHUNK_SIZE", "500")
+    monkeypatch.setenv("PINRAG_CHUNK_OVERLAP", "600")
+    assert get_chunk_overlap() == 499
+
+
+def test_get_chunk_overlap_clamped_chunk_size_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Chunk size 1 forces overlap 0 when user asks for more."""
+    monkeypatch.setenv("PINRAG_CHUNK_SIZE", "1")
+    monkeypatch.setenv("PINRAG_CHUNK_OVERLAP", "5")
+    assert get_chunk_overlap() == 0
+
+
+def test_get_persist_dir_default_and_strip(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unset uses default; blank/whitespace falls back; values are stripped."""
+    monkeypatch.delenv("PINRAG_PERSIST_DIR", raising=False)
+    assert get_persist_dir() == "chroma_db"
+    monkeypatch.setenv("PINRAG_PERSIST_DIR", "   ")
+    assert get_persist_dir() == "chroma_db"
+    monkeypatch.setenv("PINRAG_PERSIST_DIR", "  /tmp/pin  ")
+    assert get_persist_dir() == "/tmp/pin"
+
+
 def test_get_collection_name_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """With PINRAG_COLLECTION_NAME set, returns that value."""
     monkeypatch.setenv("PINRAG_COLLECTION_NAME", "my_custom_collection")
@@ -84,7 +111,7 @@ def test_get_collection_name_default(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_plaintext_max_file_bytes_default(monkeypatch: pytest.MonkeyPatch) -> None:
     """Without env var, returns default 524288 (512 KB)."""
     monkeypatch.delenv("PINRAG_PLAINTEXT_MAX_FILE_BYTES", raising=False)
-    assert get_plaintext_max_file_bytes() == 524288
+    assert get_plaintext_max_file_bytes() == DEFAULT_MAX_INDEX_FILE_BYTES
 
 
 def test_get_plaintext_max_file_bytes_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -93,16 +120,20 @@ def test_get_plaintext_max_file_bytes_from_env(monkeypatch: pytest.MonkeyPatch) 
     assert get_plaintext_max_file_bytes() == 262144
 
 
-def test_get_plaintext_max_file_bytes_invalid_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_plaintext_max_file_bytes_invalid_falls_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """With invalid env var, returns default."""
     monkeypatch.setenv("PINRAG_PLAINTEXT_MAX_FILE_BYTES", "not_a_number")
-    assert get_plaintext_max_file_bytes() == 524288
+    assert get_plaintext_max_file_bytes() == DEFAULT_MAX_INDEX_FILE_BYTES
 
 
-def test_get_plaintext_max_file_bytes_negative_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_plaintext_max_file_bytes_negative_falls_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """With negative value, returns default."""
     monkeypatch.setenv("PINRAG_PLAINTEXT_MAX_FILE_BYTES", "-1")
-    assert get_plaintext_max_file_bytes() == 524288
+    assert get_plaintext_max_file_bytes() == DEFAULT_MAX_INDEX_FILE_BYTES
 
 
 # Re-ranking config
@@ -139,7 +170,9 @@ def test_get_rerank_retrieve_k_from_env(monkeypatch: pytest.MonkeyPatch) -> None
     assert get_rerank_retrieve_k() == 20
 
 
-def test_get_rerank_retrieve_k_invalid_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_rerank_retrieve_k_invalid_falls_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """With invalid env var, falls back to get_retrieve_k() (default 20)."""
     monkeypatch.delenv("PINRAG_RETRIEVE_K", raising=False)
     monkeypatch.setenv("PINRAG_RERANK_RETRIEVE_K", "x")
@@ -156,6 +189,27 @@ def test_get_rerank_top_n_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """With valid env var, returns parsed int."""
     monkeypatch.setenv("PINRAG_RERANK_TOP_N", "3")
     assert get_rerank_top_n() == 3
+
+
+def test_get_rerank_top_n_capped_by_rerank_retrieve_k(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """top_n cannot exceed rerank retrieve pool size."""
+    monkeypatch.delenv("PINRAG_RETRIEVE_K", raising=False)
+    monkeypatch.setenv("PINRAG_RERANK_RETRIEVE_K", "15")
+    monkeypatch.setenv("PINRAG_RERANK_TOP_N", "100")
+    assert get_rerank_top_n() == 15
+
+
+def test_get_rerank_top_n_default_respects_small_retrieve_k(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default top_n is capped when retrieve k is below default top_n."""
+    monkeypatch.delenv("PINRAG_RERANK_TOP_N", raising=False)
+    monkeypatch.delenv("PINRAG_RERANK_RETRIEVE_K", raising=False)
+    monkeypatch.setenv("PINRAG_RETRIEVE_K", "5")
+    assert get_rerank_retrieve_k() == 5
+    assert get_rerank_top_n() == 5
 
 
 # YouTube transcript proxy config
@@ -192,5 +246,3 @@ def test_get_yt_proxy_config_generic_when_https_url(
     monkeypatch.setenv("PINRAG_YT_PROXY_HTTPS_URL", "https://proxy.example.com:8443")
     cfg = get_yt_proxy_config()
     assert isinstance(cfg, GenericProxyConfig)
-
-

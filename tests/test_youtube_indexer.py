@@ -58,7 +58,9 @@ def _make_load_result(
 
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
-def test_index_youtube_smoke(mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path) -> None:
+def test_index_youtube_smoke(
+    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+) -> None:
     """Index mocked transcript; verify result and Chroma contents."""
     mock_load.return_value = _make_load_result()
     persist = str(tmp_path / "chroma")
@@ -77,6 +79,7 @@ def test_index_youtube_smoke(mock_load: MagicMock, mock_pc: MagicMock, tmp_path:
     assert result.total_chunks > 0
 
     from pinrag.vectorstore import get_chroma_store
+
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_yt",
@@ -89,7 +92,9 @@ def test_index_youtube_smoke(mock_load: MagicMock, mock_pc: MagicMock, tmp_path:
 
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
-def test_index_youtube_replaces_on_reindex(mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path) -> None:
+def test_index_youtube_replaces_on_reindex(
+    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+) -> None:
     """Indexing same video twice replaces chunks (no duplicates)."""
     mock_load.return_value = _make_load_result()
     persist = str(tmp_path / "chroma")
@@ -113,7 +118,9 @@ def test_index_youtube_replaces_on_reindex(mock_load: MagicMock, mock_pc: MagicM
 
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
-def test_index_youtube_empty_transcript(mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path) -> None:
+def test_index_youtube_empty_transcript(
+    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+) -> None:
     """Empty transcript results in 0 chunks and deletes old data."""
     empty_result = YouTubeLoadResult(
         video_id="xyz12345678",
@@ -138,7 +145,9 @@ def test_index_youtube_empty_transcript(mock_load: MagicMock, mock_pc: MagicMock
 
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
-def test_index_youtube_with_tag(mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path) -> None:
+def test_index_youtube_with_tag(
+    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+) -> None:
     """Tag is propagated to chunk metadata."""
     mock_load.return_value = _make_load_result()
     persist = str(tmp_path / "chroma")
@@ -152,6 +161,7 @@ def test_index_youtube_with_tag(mock_load: MagicMock, mock_pc: MagicMock, tmp_pa
     )
 
     from pinrag.vectorstore import get_chroma_store
+
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_tag",
@@ -163,7 +173,9 @@ def test_index_youtube_with_tag(mock_load: MagicMock, mock_pc: MagicMock, tmp_pa
 
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
-def test_index_youtube_metadata_fields(mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path) -> None:
+def test_index_youtube_metadata_fields(
+    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+) -> None:
     """Indexed chunks have expected metadata fields."""
     mock_load.return_value = _make_load_result()
     persist = str(tmp_path / "chroma")
@@ -176,6 +188,7 @@ def test_index_youtube_metadata_fields(mock_load: MagicMock, mock_pc: MagicMock,
     )
 
     from pinrag.vectorstore import get_chroma_store
+
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_meta",
@@ -245,7 +258,10 @@ def test_index_youtube_playlist_smoke(
     calls = mock_index.call_args_list
     assert calls[0][0][0] == "abc12345678"
     assert calls[1][0][0] == "xyz98765432"
-    assert calls[0][1]["extra_metadata"] == {"playlist_id": "PLtest", "playlist_title": "Test Playlist"}
+    assert calls[0][1]["extra_metadata"] == {
+        "playlist_id": "PLtest",
+        "playlist_title": "Test Playlist",
+    }
 
 
 @patch("pinrag.indexing.youtube_indexer.index_youtube")

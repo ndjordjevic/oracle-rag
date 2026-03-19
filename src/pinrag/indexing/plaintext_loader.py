@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
 
 from langchain_core.documents import Document
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 @dataclass(frozen=True)
@@ -24,7 +22,7 @@ class PlaintextLoadResult:
 def load_plaintext_as_documents(
     path: PathLike,
     *,
-    document_id: Optional[str] = None,
+    document_id: str | None = None,
     max_file_bytes: int = 524288,
 ) -> PlaintextLoadResult:
     """Load a plain text file into a single LangChain Document.
@@ -41,6 +39,7 @@ def load_plaintext_as_documents(
     Returns:
         PlaintextLoadResult with documents (one Document with full text, or empty
         if file too large), source_path, and total_chars.
+
     """
     txt_path = Path(path).expanduser().resolve()
     if not txt_path.is_file():

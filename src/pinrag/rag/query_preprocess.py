@@ -35,6 +35,7 @@ def preprocess_query(query: str) -> str:
     Returns:
         Cleaned query string. For empty input, returns an empty string. For non-empty input,
         if stripping boilerplate yields empty, returns the normalized original query.
+
     """
     if not isinstance(query, str):
         return ""

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Union
 
 from langchain_core.embeddings import Embeddings
 from langchain_core.retrievers import BaseRetriever
@@ -20,18 +19,17 @@ from pinrag.vectorstore.chroma_client import (
 )
 from pinrag.vectorstore.docstore import get_parent_docstore
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 def build_retrieval_filter(
-    document_id: Optional[str] = None,
-    page_min: Optional[int] = None,
-    page_max: Optional[int] = None,
-    tag: Optional[str] = None,
-    document_type: Optional[str] = None,
-    file_path: Optional[str] = None,
-) -> Optional[dict]:
+    document_id: str | None = None,
+    page_min: int | None = None,
+    page_max: int | None = None,
+    tag: str | None = None,
+    document_type: str | None = None,
+    file_path: str | None = None,
+) -> dict | None:
     """Build Chroma where filter from document_id, page range, tag, document_type, and/or file_path.
 
     Single page: page_min=64, page_max=64 filters to page 64 only.
@@ -63,14 +61,14 @@ def create_retriever(
     *,
     k: int = 5,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    document_id: Optional[str] = None,
-    page_min: Optional[int] = None,
-    page_max: Optional[int] = None,
-    tag: Optional[str] = None,
-    document_type: Optional[str] = None,
-    file_path: Optional[str] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    document_id: str | None = None,
+    page_min: int | None = None,
+    page_max: int | None = None,
+    tag: str | None = None,
+    document_type: str | None = None,
+    file_path: str | None = None,
 ) -> BaseRetriever:
     """Create a LangChain retriever from the Chroma vector store.
 
@@ -91,6 +89,7 @@ def create_retriever(
 
     Returns:
         BaseRetriever (Chroma retriever with configured search_kwargs).
+
     """
     if collection_name is None:
         collection_name = get_collection_name()

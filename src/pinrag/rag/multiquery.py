@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 def _get_multiquery_prompt(num_queries: int) -> PromptTemplate:
     """Build a prompt that requests exactly num_queries alternative questions."""
     return PromptTemplate(
@@ -53,6 +54,7 @@ def wrap_retriever_with_multiquery(
 
     Returns:
         BaseRetriever that invokes base_retriever for each query variant and merges results.
+
     """
     from langchain_classic.retrievers.multi_query import MultiQueryRetriever
 

@@ -56,4 +56,3 @@ __all__ = [
     "load_youtube_transcript_as_documents",
     "query_index",
 ]
-

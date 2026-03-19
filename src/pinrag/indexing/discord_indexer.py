@@ -5,9 +5,8 @@ from __future__ import annotations
 import re
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Union
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -30,8 +29,7 @@ from pinrag.vectorstore.chroma_client import (
 )
 from pinrag.vectorstore.docstore import get_parent_docstore
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 def _derive_document_id_from_channel_and_path(channel: str, path: Path) -> str:
@@ -67,10 +65,10 @@ def index_discord(
     path: PathLike,
     *,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    tag: Optional[str] = None,
-    document_id: Optional[str] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    tag: str | None = None,
+    document_id: str | None = None,
 ) -> DiscordIndexResult:
     """Load and index a DiscordChatExporter .txt file into Chroma.
 
@@ -87,6 +85,7 @@ def index_discord(
 
     Returns:
         DiscordIndexResult with indexing stats.
+
     """
     if collection_name is None:
         collection_name = get_collection_name()
@@ -132,7 +131,7 @@ def index_discord(
             respect_structure=respect_structure,
         )
     else:
-        upload_ts = datetime.now(timezone.utc).isoformat()
+        upload_ts = datetime.now(UTC).isoformat()
         doc_bytes = txt_path.stat().st_size
         doc_total_chunks = len(load_result.documents)
 
@@ -172,12 +171,12 @@ def index_discord(
 
 def _index_discord_parent_child(
     *,
-    load_result: "DiscordLoadResult",
+    load_result: DiscordLoadResult,
     txt_path: Path,
     persist_directory: PathLike,
     collection_name: str,
-    embedding: Optional[Embeddings],
-    tag: Optional[str],
+    embedding: Embeddings | None,
+    tag: str | None,
     respect_structure: bool,
 ) -> int:
     """Index Discord using parent-child retrieval: embed small chunks, store large parents in docstore."""
@@ -193,7 +192,7 @@ def _index_discord_parent_child(
     )
     docstore = get_parent_docstore(persist_directory, collection_name)
 
-    upload_ts = datetime.now(timezone.utc).isoformat()
+    upload_ts = datetime.now(UTC).isoformat()
     doc_bytes = txt_path.stat().st_size
     document_id = load_result.documents[0].metadata["document_id"]
     source_path_str = str(txt_path)
@@ -259,5 +258,3 @@ def _index_discord_parent_child(
         store.add_documents(batch)
 
     return total_chunks
-
-

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from importlib.util import find_spec
-from typing import Optional
 
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
@@ -17,8 +16,8 @@ DEFAULT_MODEL = DEFAULT_LLM_MODEL_OPENAI
 
 def get_openai_chat_model(
     *,
-    model: Optional[str] = None,
-    api_key: Optional[str] = None,
+    model: str | None = None,
+    api_key: str | None = None,
     temperature: float = 0,
 ) -> ChatOpenAI:
     """Return an OpenAI chat model client.
@@ -33,6 +32,7 @@ def get_openai_chat_model(
 
     Returns:
         LangChain ChatOpenAI instance (invoke, stream, etc.).
+
     """
     key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
     if not key:
@@ -43,8 +43,8 @@ def get_openai_chat_model(
 
 def get_chat_model(
     *,
-    model: Optional[str] = None,
-    api_key: Optional[str] = None,
+    model: str | None = None,
+    api_key: str | None = None,
     temperature: float = 0,
 ) -> BaseChatModel:
     """Return a chat model based on PINRAG_LLM_PROVIDER (openai | anthropic).
@@ -62,9 +62,12 @@ def get_chat_model(
                 "Install with: pip install langchain-anthropic"
             )
         from langchain_anthropic import ChatAnthropic
+
         key = api_key if api_key is not None else os.environ.get("ANTHROPIC_API_KEY")
         if not key:
             raise ValueError("ANTHROPIC_API_KEY is required for Anthropic chat models.")
         return ChatAnthropic(model=model_name, api_key=key, temperature=temperature)
 
-    return get_openai_chat_model(model=model_name, api_key=api_key, temperature=temperature)
+    return get_openai_chat_model(
+        model=model_name, api_key=api_key, temperature=temperature
+    )

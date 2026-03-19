@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
 
 from langchain_classic.storage import LocalFileStore, create_kv_docstore
 from langchain_core.documents import Document
 from langchain_core.stores import BaseStore
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 def get_parent_docstore(
@@ -27,6 +26,7 @@ def get_parent_docstore(
 
     Returns:
         A key-value store that persists Document objects by ID.
+
     """
     path = Path(persist_directory).expanduser().resolve() / f"{collection_name}_parents"
     path.mkdir(parents=True, exist_ok=True)

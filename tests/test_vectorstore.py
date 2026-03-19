@@ -6,13 +6,11 @@ import os
 from pathlib import Path
 
 import pytest
-
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
 from pinrag.vectorstore.chroma_client import (
-    DEFAULT_COLLECTION_NAME,
     get_chroma_store,
 )
 
@@ -59,29 +57,38 @@ def test_chroma_add_documents_and_similarity_search(tmp_path: Path) -> None:
     )
     docs = [
         Document(page_content="The Amiga had custom chips.", metadata={"page": 1}),
-        Document(page_content="Chip memory is used by the processor.", metadata={"page": 2}),
+        Document(
+            page_content="Chip memory is used by the processor.", metadata={"page": 2}
+        ),
     ]
     store.add_documents(docs)
     results = store.similarity_search("Amiga chips", k=2)
     assert len(results) >= 1
-    assert any("Amiga" in d.page_content or "chip" in d.page_content.lower() for d in results)
+    assert any(
+        "Amiga" in d.page_content or "chip" in d.page_content.lower() for d in results
+    )
 
 
 def test_chroma_add_and_search_with_real_embedding(tmp_path: Path) -> None:
     """Add documents and similarity_search using real OpenAI embeddings (skip if no API key)."""
     from dotenv import load_dotenv
+
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping real-embedding Chroma test")
 
     from pinrag.embeddings import get_embedding_model
+
     store = get_chroma_store(
         persist_directory=str(tmp_path),
         collection_name="test_real_embed",
         embedding=get_embedding_model(),
     )
     docs = [
-        Document(page_content="The MC68000 is a 16-bit processor.", metadata={"page": 1, "file_name": "doc.pdf"}),
+        Document(
+            page_content="The MC68000 is a 16-bit processor.",
+            metadata={"page": 1, "file_name": "doc.pdf"},
+        ),
     ]
     store.add_documents(docs)
     results = store.similarity_search("68000 processor", k=1)

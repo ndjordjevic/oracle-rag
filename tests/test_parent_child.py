@@ -61,10 +61,18 @@ def test_get_child_chunk_size_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert get_child_chunk_size() == 256
 
 
+def test_get_child_chunk_size_capped_by_parent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Child size cannot exceed parent chunk size."""
+    monkeypatch.setenv("PINRAG_PARENT_CHUNK_SIZE", "500")
+    monkeypatch.setenv("PINRAG_CHILD_CHUNK_SIZE", "2000")
+    assert get_parent_chunk_size() == 500
+    assert get_child_chunk_size() == 500
+
+
 def test_get_parent_docstore_creates_path(tmp_path: Path) -> None:
     """Docstore creates directory at persist_dir/collection_name_parents."""
     persist = tmp_path / "chroma_foo"
-    docstore = get_parent_docstore(str(persist), "my_collection")
+    get_parent_docstore(str(persist), "my_collection")
     parent_dir = persist / "my_collection_parents"
     assert parent_dir.exists()
     assert parent_dir.is_dir()
@@ -133,8 +141,8 @@ def test_index_pdf_parent_child_adds_to_chroma_and_docstore(
 
     monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "true")
     persist_dir = tmp_path / "chroma_pc"
-    from pinrag.indexing import index_pdf
     from pinrag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
 
     result = index_pdf(
         sample_pdf,
@@ -184,8 +192,8 @@ def test_index_discord_parent_child_adds_to_chroma_and_docstore(
         encoding="utf-8",
     )
 
-    from pinrag.indexing import index_discord
     from pinrag.embeddings import get_embedding_model
+    from pinrag.indexing import index_discord
 
     result = index_discord(
         discord_txt,
@@ -227,8 +235,8 @@ def test_index_pdf_flat_mode_unchanged_when_parent_child_off(
         pytest.skip("sample PDF not present; skipping flat index test")
 
     persist_dir = tmp_path / "chroma_flat"
-    from pinrag.indexing import index_pdf
     from pinrag.embeddings import get_embedding_model
+    from pinrag.indexing import index_pdf
 
     result = index_pdf(
         sample_pdf,

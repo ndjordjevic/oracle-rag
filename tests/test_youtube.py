@@ -27,7 +27,9 @@ def test_extract_video_id_bare_id() -> None:
 
 def test_extract_video_id_youtube_watch() -> None:
     """extract_video_id extracts from youtube.com/watch?v=ID."""
-    assert extract_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+    assert (
+        extract_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+    )
     assert extract_video_id("https://youtube.com/watch?v=xyz12345678") == "xyz12345678"
 
 
@@ -38,7 +40,9 @@ def test_extract_video_id_youtu_be() -> None:
 
 def test_extract_video_id_embed() -> None:
     """extract_video_id extracts from youtube.com/embed/ID."""
-    assert extract_video_id("https://www.youtube.com/embed/abc12345678") == "abc12345678"
+    assert (
+        extract_video_id("https://www.youtube.com/embed/abc12345678") == "abc12345678"
+    )
 
 
 def test_extract_video_id_invalid_returns_none() -> None:
@@ -55,7 +59,12 @@ def test_extract_video_id_invalid_returns_none() -> None:
 
 def test_extract_playlist_id_playlist_url() -> None:
     """extract_playlist_id extracts from playlist URL."""
-    assert extract_playlist_id("https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg") == "PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg"
+    assert (
+        extract_playlist_id(
+            "https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg"
+        )
+        == "PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg"
+    )
 
 
 def test_extract_playlist_id_watch_with_list() -> None:
@@ -79,14 +88,31 @@ def test_extract_playlist_id_invalid_returns_none() -> None:
 def test_detect_source_format_youtube_playlist() -> None:
     """_detect_source_format returns 'youtube_playlist' only for dedicated playlist URLs."""
     from pinrag.mcp.tools import _detect_source_format
-    assert _detect_source_format("https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg") == "youtube_playlist"
+
+    assert (
+        _detect_source_format(
+            "https://www.youtube.com/playlist?list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdfg"
+        )
+        == "youtube_playlist"
+    )
 
 
 def test_detect_source_format_watch_url_with_list_is_single_video() -> None:
     """_detect_source_format returns 'youtube' for watch URLs with both v= and list= (single video)."""
     from pinrag.mcp.tools import _detect_source_format
-    assert _detect_source_format("https://www.youtube.com/watch?v=abc12345678&list=PLtest123") == "youtube"
-    assert _detect_source_format("https://www.youtube.com/watch?v=wxV6x5BUMH4&list=PLvCRDUYedILfHDoD57Yj8BAXNmNJLVM2r&index=3") == "youtube"
+
+    assert (
+        _detect_source_format(
+            "https://www.youtube.com/watch?v=abc12345678&list=PLtest123"
+        )
+        == "youtube"
+    )
+    assert (
+        _detect_source_format(
+            "https://www.youtube.com/watch?v=wxV6x5BUMH4&list=PLvCRDUYedILfHDoD57Yj8BAXNmNJLVM2r&index=3"
+        )
+        == "youtube"
+    )
 
 
 # --- fetch_playlist_info ---
@@ -153,14 +179,20 @@ def test_fetch_video_title_success() -> None:
         def __exit__(self, *a):
             pass
 
-    with patch("pinrag.indexing.youtube_loader.urllib.request.urlopen", return_value=FakeResponse()):
+    with patch(
+        "pinrag.indexing.youtube_loader.urllib.request.urlopen",
+        return_value=FakeResponse(),
+    ):
         title = _fetch_video_title("dQw4w9WgXcQ")
     assert title == "Rick Astley - Never Gonna Give You Up"
 
 
 def test_fetch_video_title_returns_none_on_error() -> None:
     """_fetch_video_title returns None when fetch fails."""
-    with patch("pinrag.indexing.youtube_loader.urllib.request.urlopen", side_effect=Exception("network error")):
+    with patch(
+        "pinrag.indexing.youtube_loader.urllib.request.urlopen",
+        side_effect=Exception("network error"),
+    ):
         title = _fetch_video_title("dQw4w9WgXcQ")
     assert title is None
 
@@ -185,8 +217,13 @@ def test_load_youtube_transcript_success() -> None:
         mock_instance = MagicMock()
         mock_instance.fetch.return_value = [mock_segment]
         mock_api.return_value = mock_instance
-        with patch("pinrag.indexing.youtube_loader._fetch_video_title", return_value="Test Video Title"):
-            result = load_youtube_transcript_as_documents("https://youtu.be/dQw4w9WgXcQ")
+        with patch(
+            "pinrag.indexing.youtube_loader._fetch_video_title",
+            return_value="Test Video Title",
+        ):
+            result = load_youtube_transcript_as_documents(
+                "https://youtu.be/dQw4w9WgXcQ"
+            )
 
     assert result.video_id == "dQw4w9WgXcQ"
     assert result.source_url == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -251,8 +288,12 @@ def test_load_youtube_transcript_none_without_error_raises() -> None:
         mock_instance.list.return_value = transcript_list
         mock_api.return_value = mock_instance
 
-        with pytest.raises(RuntimeError, match="No transcript available and no error was captured"):
-            load_youtube_transcript_as_documents("https://youtu.be/xyz12345678", languages=())
+        with pytest.raises(
+            RuntimeError, match="No transcript available and no error was captured"
+        ):
+            load_youtube_transcript_as_documents(
+                "https://youtu.be/xyz12345678", languages=()
+            )
 
 
 # --- format_sources (timestamp citations) ---
@@ -261,7 +302,10 @@ def test_load_youtube_transcript_none_without_error_raises() -> None:
 def test_format_sources_includes_start_for_youtube() -> None:
     """format_sources returns start when present (YouTube chunks)."""
     docs = [
-        Document(page_content="Hello", metadata={"document_id": "vid1", "start": 83, "page": 1}),
+        Document(
+            page_content="Hello",
+            metadata={"document_id": "vid1", "start": 83, "page": 1},
+        ),
         Document(page_content="World", metadata={"document_id": "vid1", "start": 120}),
     ]
     sources = format_sources(docs)
@@ -294,7 +338,9 @@ def test_format_docs_citation_label_timestamp() -> None:
 def test_format_docs_citation_label_page() -> None:
     """format_docs uses p. N for chunks with page (PDF)."""
     docs = [
-        Document(page_content="Page 16", metadata={"document_id": "doc.pdf", "page": 16}),
+        Document(
+            page_content="Page 16", metadata={"document_id": "doc.pdf", "page": 16}
+        ),
     ]
     out = format_docs(docs, number_chunks=True)
     assert "p. 16" in out

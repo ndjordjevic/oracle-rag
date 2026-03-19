@@ -1,3 +1,5 @@
+"""Tests for pinrag.pdf.pypdf_loader."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -5,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pinrag.pdf.pypdf_loader import load_pdf_as_documents, iter_pdf_page_text
+from pinrag.pdf.pypdf_loader import iter_pdf_page_text, load_pdf_as_documents
 
 
 def test_load_pdf_as_documents_missing_file() -> None:
@@ -100,4 +102,3 @@ def test_iter_pdf_page_text() -> None:
     for (page_num, text), doc in zip(pages, result.documents):
         assert page_num == doc.metadata["page"]
         assert text == doc.page_content
-

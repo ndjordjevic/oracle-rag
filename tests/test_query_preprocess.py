@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pinrag.rag.query_preprocess import preprocess_query
 
 
@@ -18,8 +16,14 @@ def test_strip_boilerplate() -> None:
     """Common MCP/agent prefixes are stripped."""
     assert preprocess_query("User question: What is DMA?") == "What is DMA?"
     assert preprocess_query("Query: blitter minterms") == "blitter minterms"
-    assert preprocess_query("Question: How does the Copper work?") == "How does the Copper work?"
-    assert preprocess_query("Answer the following: cookie cut blitter") == "cookie cut blitter"
+    assert (
+        preprocess_query("Question: How does the Copper work?")
+        == "How does the Copper work?"
+    )
+    assert (
+        preprocess_query("Answer the following: cookie cut blitter")
+        == "cookie cut blitter"
+    )
     assert preprocess_query("Search the documents for: CDANG") == "CDANG"
 
 
@@ -31,7 +35,10 @@ def test_strip_boilerplate_case_insensitive() -> None:
 
 def test_no_change_when_no_boilerplate() -> None:
     """Query unchanged when no boilerplate matches."""
-    assert preprocess_query("What is the Copper danger bit?") == "What is the Copper danger bit?"
+    assert (
+        preprocess_query("What is the Copper danger bit?")
+        == "What is the Copper danger bit?"
+    )
     assert preprocess_query("blitter minterm logic") == "blitter minterm logic"
 
 

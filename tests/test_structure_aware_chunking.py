@@ -23,7 +23,7 @@ def test_c_code_block_kept_together() -> None:
     text = (
         "Blinky using the onboard LED\n"
         "Create blinky.c containing:\n"
-        "#include \"pico/stdlib.h\"\n"
+        '#include "pico/stdlib.h"\n'
         "\n"
         "int main() {\n"
         "    gpio_init(25);\n"
@@ -60,7 +60,9 @@ def test_spi_table_not_split_mid_table() -> None:
     chunks = chunk_documents([_mkdoc(text)], chunk_size=520, chunk_overlap=0)
 
     table_chunks = [
-        c.page_content for c in chunks if "Clock Polarity" in c.page_content or "Mode*" in c.page_content
+        c.page_content
+        for c in chunks
+        if "Clock Polarity" in c.page_content or "Mode*" in c.page_content
     ]
     assert len(table_chunks) == 1
     assert "0                 0                   0" in table_chunks[0]
@@ -78,7 +80,9 @@ def test_register_table_not_split() -> None:
     )
     chunks = chunk_documents([_mkdoc(text)], chunk_size=280, chunk_overlap=0)
 
-    reg_chunks = [c.page_content for c in chunks if "Bit |Name Function" in c.page_content]
+    reg_chunks = [
+        c.page_content for c in chunks if "Bit |Name Function" in c.page_content
+    ]
     assert len(reg_chunks) == 1
     assert "1 CDANG" in reg_chunks[0]
     assert "0 COPEN" in reg_chunks[0]

@@ -1,15 +1,16 @@
+"""Load PDF files into LangChain documents using pypdf."""
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional, Union
 
 from langchain_core.documents import Document
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 # Minimum total chars from layout extraction to avoid fallback to plain (for multi-page PDFs).
 _LAYOUT_MIN_CHARS_FOR_NO_FALLBACK = 500
@@ -21,8 +22,8 @@ def _extract_with_mode(
     total_pages: int,
     extraction_mode: str,
     skip_empty_pages: bool,
-    document_title: Optional[str],
-    document_author: Optional[str],
+    document_title: str | None,
+    document_author: str | None,
 ) -> list[Document]:
     """Extract per-page Documents using the given pypdf extraction_mode."""
     docs: list[Document] = []
@@ -58,7 +59,7 @@ class PdfLoadResult:
 def load_pdf_as_documents(
     path: PathLike,
     *,
-    extraction_mode: Optional[str] = "layout",
+    extraction_mode: str | None = "layout",
     skip_empty_pages: bool = True,
 ) -> PdfLoadResult:
     """Load a PDF into per-page LangChain `Document`s using `pypdf`.
@@ -81,6 +82,7 @@ def load_pdf_as_documents(
 
     Sources:
     - pypdf extract_text docs: https://pypdf.readthedocs.io/en/stable/user/extract-text.html
+
     """
     pdf_path = Path(path).expanduser().resolve()
     if not pdf_path.exists():
@@ -95,8 +97,8 @@ def load_pdf_as_documents(
         total_pages = len(reader.pages)
 
         meta = reader.metadata
-        document_title: Optional[str] = None
-        document_author: Optional[str] = None
+        document_title: str | None = None
+        document_author: str | None = None
         if meta is not None:
             if meta.title is not None:
                 document_title = str(meta.title).strip() or None
@@ -105,7 +107,13 @@ def load_pdf_as_documents(
 
         mode = extraction_mode or "layout"
         docs = _extract_with_mode(
-            reader, pdf_path, total_pages, mode, skip_empty_pages, document_title, document_author
+            reader,
+            pdf_path,
+            total_pages,
+            mode,
+            skip_empty_pages,
+            document_title,
+            document_author,
         )
 
         # If layout yielded very little, try plain and use the better result.
@@ -131,7 +139,9 @@ def load_pdf_as_documents(
                 "File may be image-only (scan) or empty; Phase 1 supports text-based PDFs only."
             )
 
-        return PdfLoadResult(source_path=pdf_path, documents=docs, total_pages=total_pages)
+        return PdfLoadResult(
+            source_path=pdf_path, documents=docs, total_pages=total_pages
+        )
     except (ValueError, FileNotFoundError):
         raise
     except PyPdfError as e:
@@ -139,24 +149,20 @@ def load_pdf_as_documents(
             f"PDF appears corrupted or unreadable: {pdf_path.name}. {e!s}"
         ) from e
     except OSError as e:
-        raise ValueError(
-            f"Could not read PDF file: {pdf_path.name}. {e!s}"
-        ) from e
+        raise ValueError(f"Could not read PDF file: {pdf_path.name}. {e!s}") from e
 
 
 def iter_pdf_page_text(
     path: PathLike,
     *,
-    extraction_mode: Optional[str] = "layout",
+    extraction_mode: str | None = "layout",
 ) -> Iterable[tuple[int, str]]:
     """Yield `(page_number, text)` for each page in a PDF.
 
     This is a lightweight helper when you don't want LangChain `Document`s yet.
     """
-
     result = load_pdf_as_documents(
         path, extraction_mode=extraction_mode, skip_empty_pages=False
     )
     for doc in result.documents:
         yield int(doc.metadata["page"]), doc.page_content
-

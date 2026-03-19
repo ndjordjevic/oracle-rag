@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Union
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -33,8 +32,7 @@ from pinrag.vectorstore.chroma_client import (
 )
 from pinrag.vectorstore.docstore import get_parent_docstore
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 
 @dataclass(frozen=True)
@@ -54,13 +52,13 @@ def index_github(
     repo_url: str,
     *,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    tag: Optional[str] = None,
-    branch: Optional[str] = None,
-    include_patterns: Optional[list[str]] = None,
-    exclude_patterns: Optional[list[str]] = None,
-    max_file_bytes: Optional[int] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    tag: str | None = None,
+    branch: str | None = None,
+    include_patterns: list[str] | None = None,
+    exclude_patterns: list[str] | None = None,
+    max_file_bytes: int | None = None,
 ) -> GitHubIndexResult:
     """Load, chunk, and index a GitHub repository into Chroma.
 
@@ -80,12 +78,15 @@ def index_github(
 
     Returns:
         GitHubIndexResult with owner, repo, branch, files_indexed, total_chunks.
+
     """
     if collection_name is None:
         collection_name = get_collection_name()
     respect_structure = get_structure_aware_chunking()
     token = get_github_token()
-    max_bytes = max_file_bytes if max_file_bytes is not None else get_github_max_file_bytes()
+    max_bytes = (
+        max_file_bytes if max_file_bytes is not None else get_github_max_file_bytes()
+    )
 
     load_result = load_github_repo_as_documents(
         repo_url,
@@ -123,7 +124,7 @@ def index_github(
     repo_id = f"{load_result.owner}/{load_result.repo}"
     store._collection.delete(where={"document_id": repo_id})
 
-    upload_ts = datetime.now(timezone.utc).isoformat()
+    upload_ts = datetime.now(UTC).isoformat()
 
     if get_use_parent_child():
         total_chunks = _index_github_parent_child(
@@ -163,7 +164,7 @@ def _index_github_flat(
     store,
     repo_id: str,
     upload_ts: str,
-    tag: Optional[str],
+    tag: str | None,
     respect_structure: bool,
 ) -> int:
     """Index GitHub files as flat chunks (no parent-child)."""
@@ -212,7 +213,7 @@ def _index_github_parent_child(
     collection_name: str,
     repo_id: str,
     upload_ts: str,
-    tag: Optional[str],
+    tag: str | None,
     respect_structure: bool,
 ) -> int:
     """Index GitHub files with parent-child retrieval: small child chunks in Chroma, large parents in docstore."""
@@ -240,14 +241,16 @@ def _index_github_parent_child(
 
         for parent in parent_chunks:
             parent_id = str(uuid.uuid4())
-            parent.metadata.update({
-                "doc_id": parent_id,
-                "document_id": repo_id,
-                "document_type": "github",
-                "upload_timestamp": upload_ts,
-                "file_path": file_path,
-                "doc_bytes": doc_bytes,
-            })
+            parent.metadata.update(
+                {
+                    "doc_id": parent_id,
+                    "document_id": repo_id,
+                    "document_type": "github",
+                    "upload_timestamp": upload_ts,
+                    "file_path": file_path,
+                    "doc_bytes": doc_bytes,
+                }
+            )
             if tag is not None and str(tag).strip():
                 parent.metadata["tag"] = str(tag).strip()
 
@@ -259,14 +262,16 @@ def _index_github_parent_child(
             )
 
             for child in child_chunks:
-                child.metadata.update({
-                    "doc_id": parent_id,
-                    "document_id": repo_id,
-                    "document_type": "github",
-                    "upload_timestamp": upload_ts,
-                    "file_path": file_path,
-                    "doc_bytes": doc_bytes,
-                })
+                child.metadata.update(
+                    {
+                        "doc_id": parent_id,
+                        "document_id": repo_id,
+                        "document_type": "github",
+                        "upload_timestamp": upload_ts,
+                        "file_path": file_path,
+                        "doc_bytes": doc_bytes,
+                    }
+                )
                 if tag is not None and str(tag).strip():
                     child.metadata["tag"] = str(tag).strip()
                 all_children.append(child)

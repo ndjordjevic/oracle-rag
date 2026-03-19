@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import pytest
-
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
 
 from pinrag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
 
@@ -31,11 +30,18 @@ def test_is_rerank_available_with_api_key(monkeypatch: pytest.MonkeyPatch) -> No
     assert err is None
 
 
-def test_wrap_retriever_with_cohere_rerank_returns_retriever() -> None:
+def test_wrap_retriever_with_cohere_rerank_returns_retriever(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """wrap_retriever_with_cohere_rerank returns a retriever (requires langchain_cohere)."""
+    monkeypatch.setenv("COHERE_API_KEY", "test-key")
+
     class FakeRetriever(BaseRetriever):
         def _get_relevant_documents(
-            self, query: str, *, run_manager: CallbackManagerForRetrieverRun | None = None
+            self,
+            query: str,
+            *,
+            run_manager: CallbackManagerForRetrieverRun | None = None,
         ) -> list[Document]:
             return [
                 Document(page_content="doc1", metadata={"page": 1}),

@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
-
-from youtube_transcript_api.proxies import GenericProxyConfig
+from typing import TYPE_CHECKING
 
 from pinrag.chunking.splitter import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
+
+if TYPE_CHECKING:
+    from youtube_transcript_api.proxies import GenericProxyConfig
 
 # Use project-local chroma_db so CLI, tools, and MCP all see the same index.
 # Override with PINRAG_PERSIST_DIR for ~/.pinrag/chroma_db or custom path.
 DEFAULT_PERSIST_DIR = "chroma_db"
+DEFAULT_COLLECTION_NAME = "pinrag"
 
 # LLM provider: openai | anthropic
 DEFAULT_LLM_PROVIDER = "anthropic"
@@ -105,13 +107,17 @@ def get_embedding_model_name() -> str:
 
 def get_persist_dir() -> str:
     """Return Chroma persist directory from PINRAG_PERSIST_DIR env var, or chroma_db (project-local)."""
-    return os.environ.get("PINRAG_PERSIST_DIR", DEFAULT_PERSIST_DIR)
+    raw = os.environ.get("PINRAG_PERSIST_DIR")
+    if raw is None:
+        return DEFAULT_PERSIST_DIR
+    s = str(raw).strip()
+    return s if s else DEFAULT_PERSIST_DIR
 
 
 def get_collection_name() -> str:
     """Return Chroma collection name.
 
-    If PINRAG_COLLECTION_NAME is set, use it. Otherwise return 'pinrag'.
+    If PINRAG_COLLECTION_NAME is set, use it. Otherwise return DEFAULT_COLLECTION_NAME.
     Use a single collection per persist dir; if you switch embedding providers,
     re-index or use a separate PINRAG_PERSIST_DIR / PINRAG_COLLECTION_NAME
     to avoid dimension mismatches.
@@ -119,7 +125,7 @@ def get_collection_name() -> str:
     env_name = os.environ.get("PINRAG_COLLECTION_NAME")
     if env_name and str(env_name).strip():
         return str(env_name).strip()
-    return "pinrag"
+    return DEFAULT_COLLECTION_NAME
 
 
 def get_chunk_size() -> int:
@@ -137,7 +143,11 @@ def get_chunk_size() -> int:
 
 
 def get_chunk_overlap() -> int:
-    """Return chunk overlap from PINRAG_CHUNK_OVERLAP env var, or default (200)."""
+    """Return chunk overlap from PINRAG_CHUNK_OVERLAP env var, or default (200).
+
+    If the requested overlap is >= chunk size, clamps to chunk_size - 1 so splitters
+    always see overlap < chunk size.
+    """
     val = os.environ.get("PINRAG_CHUNK_OVERLAP")
     if val is None:
         return DEFAULT_CHUNK_OVERLAP
@@ -145,9 +155,9 @@ def get_chunk_overlap() -> int:
         n = int(val)
         if n < 0:
             return DEFAULT_CHUNK_OVERLAP
-        # Keep overlap valid for text splitters (must be less than chunk size).
-        if n >= get_chunk_size():
-            return min(DEFAULT_CHUNK_OVERLAP, max(0, get_chunk_size() - 1))
+        chunk_size = get_chunk_size()
+        if n >= chunk_size:
+            return max(0, chunk_size - 1)
         return n
     except ValueError:
         return DEFAULT_CHUNK_OVERLAP
@@ -203,26 +213,31 @@ def get_rerank_retrieve_k() -> int:
 
 
 def get_rerank_top_n() -> int:
-    """Return how many chunks the reranker returns to the LLM (default 10)."""
+    """Return how many chunks the reranker returns to the LLM (default 10).
+
+    Capped by rerank retrieve k so top_n does not exceed the retrieved pool.
+    """
     val = os.environ.get("PINRAG_RERANK_TOP_N")
+    cap = get_rerank_retrieve_k()
     if val is None:
-        return DEFAULT_RERANK_TOP_N
+        return min(DEFAULT_RERANK_TOP_N, cap)
     try:
         n = int(val)
         if n < 1:
-            return DEFAULT_RERANK_TOP_N
-        return n
+            return min(DEFAULT_RERANK_TOP_N, cap)
+        return min(n, cap)
     except ValueError:
-        return DEFAULT_RERANK_TOP_N
+        return min(DEFAULT_RERANK_TOP_N, cap)
 
 
 # Multi-query retrieval: generate query variants via LLM, retrieve per variant, merge
 DEFAULT_USE_MULTI_QUERY = False
 DEFAULT_MULTI_QUERY_COUNT = 4
+DEFAULT_MULTI_QUERY_MAX = 10
 
 
 def get_use_multi_query() -> bool:
-    """Return whether to use multi-query retrieval (3-5 query variants, merge results)."""
+    """Return whether to use multi-query retrieval (merged variants; see PINRAG_MULTI_QUERY_COUNT)."""
     val = os.environ.get("PINRAG_USE_MULTI_QUERY")
     if val is None or not str(val).strip():
         return DEFAULT_USE_MULTI_QUERY
@@ -235,7 +250,7 @@ def get_use_multi_query() -> bool:
 
 
 def get_multi_query_count() -> int:
-    """Return number of alternative queries to generate for multi-query retrieval (default 4)."""
+    """Return number of alternative queries for multi-query retrieval (default 4, max 10)."""
     val = os.environ.get("PINRAG_MULTI_QUERY_COUNT")
     if val is None:
         return DEFAULT_MULTI_QUERY_COUNT
@@ -243,8 +258,8 @@ def get_multi_query_count() -> int:
         n = int(val)
         if n < 1:
             return DEFAULT_MULTI_QUERY_COUNT
-        if n > 10:
-            return 10
+        if n > DEFAULT_MULTI_QUERY_MAX:
+            return DEFAULT_MULTI_QUERY_MAX
         return n
     except ValueError:
         return DEFAULT_MULTI_QUERY_COUNT
@@ -284,17 +299,21 @@ def get_parent_chunk_size() -> int:
 
 
 def get_child_chunk_size() -> int:
-    """Return child chunk size in chars for parent-child retrieval (default 800)."""
+    """Return child chunk size in chars for parent-child retrieval (default 800).
+
+    Never larger than the parent chunk size so parent-child indexing stays consistent.
+    """
+    parent = get_parent_chunk_size()
     val = os.environ.get("PINRAG_CHILD_CHUNK_SIZE")
     if val is None:
-        return DEFAULT_CHILD_CHUNK_SIZE
+        return min(DEFAULT_CHILD_CHUNK_SIZE, parent)
     try:
         n = int(val)
         if n < 1:
-            return DEFAULT_CHILD_CHUNK_SIZE
-        return n
+            return min(DEFAULT_CHILD_CHUNK_SIZE, parent)
+        return min(n, parent)
     except ValueError:
-        return DEFAULT_CHILD_CHUNK_SIZE
+        return min(DEFAULT_CHILD_CHUNK_SIZE, parent)
 
 
 # Response style for RAG answer: thorough (default) or concise
@@ -327,7 +346,8 @@ def get_structure_aware_chunking() -> bool:
 
 
 # GitHub repo indexing
-DEFAULT_GITHUB_MAX_FILE_BYTES = 524288  # 512 KB
+DEFAULT_MAX_INDEX_FILE_BYTES = 524288  # 512 KB (shared with plain-text file cap)
+DEFAULT_GITHUB_MAX_FILE_BYTES = DEFAULT_MAX_INDEX_FILE_BYTES
 DEFAULT_GITHUB_DEFAULT_BRANCH = "main"
 
 
@@ -362,7 +382,7 @@ def get_github_default_branch() -> str:
 
 
 # Plain text file indexing
-DEFAULT_PLAINTEXT_MAX_FILE_BYTES = 524288  # 512 KB
+DEFAULT_PLAINTEXT_MAX_FILE_BYTES = DEFAULT_MAX_INDEX_FILE_BYTES
 
 
 def get_plaintext_max_file_bytes() -> int:
@@ -379,12 +399,14 @@ def get_plaintext_max_file_bytes() -> int:
         return DEFAULT_PLAINTEXT_MAX_FILE_BYTES
 
 
-def get_yt_proxy_config():
+def get_yt_proxy_config() -> GenericProxyConfig | None:
     """Return YouTube transcript API proxy config from env, or None if not configured.
 
     When PINRAG_YT_PROXY_HTTP_URL or PINRAG_YT_PROXY_HTTPS_URL is set, uses
     GenericProxyConfig. Otherwise returns None (no proxy).
     """
+    from youtube_transcript_api.proxies import GenericProxyConfig
+
     http_url = os.environ.get("PINRAG_YT_PROXY_HTTP_URL", "").strip()
     https_url = os.environ.get("PINRAG_YT_PROXY_HTTPS_URL", "").strip()
     if http_url or https_url:

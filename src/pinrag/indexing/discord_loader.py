@@ -5,12 +5,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
 
 from langchain_core.documents import Document
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 # DiscordChatExporter message line: [M/D/YYYY H:MM AM/PM] username (pinned)?
 _MESSAGE_HEADER_RE = re.compile(
@@ -28,14 +26,14 @@ _EMBED_MARKER = "{Embed}"
 
 # Unicode emoji ranges (simplified; covers most common)
 _EMOJI_RE = re.compile(
-    "[\U0001F300-\U0001F9FF"  # Misc Symbols and Pictographs, Emoticons, etc.
-    "\U00002702-\U000027B0"
-    "\U0001F600-\U0001F64F"
-    "\U0001F680-\U0001F6FF"
-    "\U00002600-\U000026FF"
-    "\U00002700-\U000027BF"
-    "\U0001F1E0-\U0001F1FF"  # flags
-    "\U0001F900-\U0001F9FF"
+    "[\U0001f300-\U0001f9ff"  # Misc Symbols and Pictographs, Emoticons, etc.
+    "\U00002702-\U000027b0"
+    "\U0001f600-\U0001f64f"
+    "\U0001f680-\U0001f6ff"
+    "\U00002600-\U000026ff"
+    "\U00002700-\U000027bf"
+    "\U0001f1e0-\U0001f1ff"  # flags
+    "\U0001f900-\U0001f9ff"
     "]+",
     re.UNICODE,
 )
@@ -140,29 +138,51 @@ def _parse_messages(text: str) -> list[_ParsedMessage]:
             # Block markers - skip until next message or next block
             if curr.strip() == _REACTIONS_MARKER:
                 i += 1
-                while i < len(lines) and not _MESSAGE_HEADER_RE.match(lines[i]) and lines[i].strip() != _ATTACHMENTS_MARKER and lines[i].strip() != _EMBED_MARKER:
+                while (
+                    i < len(lines)
+                    and not _MESSAGE_HEADER_RE.match(lines[i])
+                    and lines[i].strip() != _ATTACHMENTS_MARKER
+                    and lines[i].strip() != _EMBED_MARKER
+                ):
                     i += 1
                 continue
             if curr.strip() == _ATTACHMENTS_MARKER:
                 i += 1
-                while i < len(lines) and not _MESSAGE_HEADER_RE.match(lines[i]) and lines[i].strip() not in (_REACTIONS_MARKER, _EMBED_MARKER):
+                while (
+                    i < len(lines)
+                    and not _MESSAGE_HEADER_RE.match(lines[i])
+                    and lines[i].strip() not in (_REACTIONS_MARKER, _EMBED_MARKER)
+                ):
                     i += 1
                 continue
             if curr.strip() == _EMBED_MARKER:
                 i += 1
-                while i < len(lines) and not _MESSAGE_HEADER_RE.match(lines[i]) and lines[i].strip() != _REACTIONS_MARKER and lines[i].strip() != _ATTACHMENTS_MARKER:
+                while (
+                    i < len(lines)
+                    and not _MESSAGE_HEADER_RE.match(lines[i])
+                    and lines[i].strip() != _REACTIONS_MARKER
+                    and lines[i].strip() != _ATTACHMENTS_MARKER
+                ):
                     i += 1
                 continue
             # Footer
-            if _HEADER_SEP_RE.match(curr) and i + 1 < len(lines) and "Exported" in lines[i + 1]:
+            if (
+                _HEADER_SEP_RE.match(curr)
+                and i + 1 < len(lines)
+                and "Exported" in lines[i + 1]
+            ):
                 break
             content_parts.append(curr)
             i += 1
 
         raw_content = "\n".join(content_parts).strip()
         content = _strip_emoji(raw_content)
-        if content or author:  # Keep messages with no content (e.g. "Pinned a message.") if they have author
-            messages.append(_ParsedMessage(timestamp=timestamp, author=author, content=content))
+        if (
+            content or author
+        ):  # Keep messages with no content (e.g. "Pinned a message.") if they have author
+            messages.append(
+                _ParsedMessage(timestamp=timestamp, author=author, content=content)
+            )
 
     return messages
 
@@ -194,8 +214,8 @@ def load_discord_export_as_documents(
     path: PathLike,
     *,
     window_size: int = DEFAULT_WINDOW_SIZE,
-    document_id: Optional[str] = None,
-    tag: Optional[str] = None,
+    document_id: str | None = None,
+    tag: str | None = None,
 ) -> DiscordLoadResult:
     """Load a DiscordChatExporter .txt file into LangChain Documents.
 
@@ -212,6 +232,7 @@ def load_discord_export_as_documents(
 
     Returns:
         DiscordLoadResult with documents, guild, channel, and stats.
+
     """
     txt_path = Path(path).expanduser().resolve()
     if not txt_path.exists():
@@ -262,7 +283,9 @@ def load_discord_export_as_documents(
             "file_name": txt_path.name,
             "channel": channel,
             "guild": guild,
-            "author": first.author if len(window) == 1 else f"{first.author}..{last.author}",
+            "author": first.author
+            if len(window) == 1
+            else f"{first.author}..{last.author}",
             "timestamp": first.timestamp,
             "timestamp_end": last.timestamp,
             "document_id": doc_id,

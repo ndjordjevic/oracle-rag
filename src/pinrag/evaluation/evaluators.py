@@ -87,9 +87,7 @@ def _documents_to_context(documents: list) -> str:
 # ---------------------------------------------------------------------------
 
 
-def correctness(
-    inputs: dict, outputs: dict, reference_outputs: dict
-) -> dict:
+def correctness(inputs: dict, outputs: dict, reference_outputs: dict) -> dict:
     """Compare outputs['answer'] to reference_outputs['answer']."""
     grader = _get_grader_llm(_CorrectnessGrade)
     content = _CORRECTNESS_PROMPT.format(

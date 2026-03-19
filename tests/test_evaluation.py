@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,7 +16,6 @@ from pinrag.evaluation.evaluators import (
     has_sources,
     source_in_expected_docs,
 )
-
 
 # ---------------------------------------------------------------------------
 # evaluators.py — code evaluators (no LLM)
@@ -93,6 +91,7 @@ def test_source_in_expected_docs_missing_ref() -> None:
 
 def test_get_page_content_from_document() -> None:
     from langchain_core.documents import Document
+
     doc = Document(page_content="hello")
     assert _get_page_content(doc) == "hello"
 
@@ -107,6 +106,7 @@ def test_get_page_content_unknown_type() -> None:
 
 def test_documents_to_context() -> None:
     from langchain_core.documents import Document
+
     docs = [
         Document(page_content="alpha"),
         Document(page_content="beta"),
@@ -124,7 +124,13 @@ def test_documents_to_context_empty() -> None:
 def test_evaluators_list_has_five() -> None:
     assert len(EVALUATORS) == 5
     names = {e.__name__ for e in EVALUATORS}
-    assert names == {"correctness", "groundedness", "has_sources", "answer_not_empty", "source_in_expected_docs"}
+    assert names == {
+        "correctness",
+        "groundedness",
+        "has_sources",
+        "answer_not_empty",
+        "source_in_expected_docs",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -165,9 +171,13 @@ def test_groundedness_calls_grader() -> None:
 
     with patch("pinrag.evaluation.evaluators._get_grader_llm", return_value=mock_llm):
         from langchain_core.documents import Document
+
         out = groundedness(
             {},
-            {"answer": "Blue", "documents": [Document(page_content="The sky is blue.")]},
+            {
+                "answer": "Blue",
+                "documents": [Document(page_content="The sky is blue.")],
+            },
         )
     assert out == {"key": "groundedness", "score": 1}
 
@@ -186,7 +196,9 @@ def test_groundedness_hallucinated() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_run_evaluation_check_env_missing_langsmith(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_evaluation_check_env_missing_langsmith(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """_check_env exits when LANGSMITH_API_KEY is missing."""
     from pinrag.evaluation.run_evaluation import _check_env
 
@@ -197,7 +209,9 @@ def test_run_evaluation_check_env_missing_langsmith(monkeypatch: pytest.MonkeyPa
         _check_env()
 
 
-def test_run_evaluation_check_env_missing_evaluator_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_evaluation_check_env_missing_evaluator_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """_check_env exits when evaluator provider's API key is missing."""
     from pinrag.evaluation.run_evaluation import _check_env
 
@@ -231,7 +245,9 @@ def test_run_evaluation_main_parses_args(monkeypatch: pytest.MonkeyPatch) -> Non
     )
 
 
-def test_run_evaluation_main_invalid_metadata_exits(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_evaluation_main_invalid_metadata_exits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """main() exits with code 1 when --metadata is invalid JSON."""
     from pinrag.evaluation import run_evaluation
 
@@ -266,12 +282,12 @@ def test_run_evaluation_main_valid_metadata(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_evaluation_main_module_invokes_main(monkeypatch: pytest.MonkeyPatch) -> None:
-    """python -m pinrag.evaluation calls run_evaluation.main."""
+    """Python -m pinrag.evaluation calls run_evaluation.main."""
     mock_main = MagicMock()
     monkeypatch.setattr("pinrag.evaluation.run_evaluation.main", mock_main)
 
-    import importlib
     import pinrag.evaluation.__main__ as main_mod
+
     # __main__ is just: if __name__ == "__main__": main()
     # We can't easily re-trigger __name__ == "__main__", so just verify the import works
     assert hasattr(main_mod, "__name__")

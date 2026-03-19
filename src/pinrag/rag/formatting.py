@@ -47,6 +47,7 @@ def format_docs(docs: list[Document], *, number_chunks: bool = True) -> str:
 
     Returns:
         A single string suitable for the {context} placeholder in the RAG prompt.
+
     """
     if not docs:
         return "No relevant context found."
@@ -54,7 +55,12 @@ def format_docs(docs: list[Document], *, number_chunks: bool = True) -> str:
     parts: list[str] = []
     for i, doc in enumerate(docs, start=1):
         meta = doc.metadata
-        doc_id = meta.get("document_id") or meta.get("file_name") or meta.get("source") or "?"
+        doc_id = (
+            meta.get("document_id")
+            or meta.get("file_name")
+            or meta.get("source")
+            or "?"
+        )
         label = _citation_label(meta)
         if number_chunks:
             parts.append(f"[{i}] (doc: {doc_id}, {label})\n{doc.page_content}")
@@ -76,12 +82,18 @@ def format_sources(docs: list[Document]) -> list[dict[str, str | int]]:
     Returns:
         List of dicts with document_id, page (0 for YouTube/GitHub), start when present,
         file_path when present (GitHub).
+
     """
     seen: set[tuple[str, int | str]] = set()
     out: list[dict[str, str | int]] = []
     for doc in docs:
         meta = doc.metadata
-        doc_id = str(meta.get("document_id") or meta.get("file_name") or meta.get("source") or "?")
+        doc_id = str(
+            meta.get("document_id")
+            or meta.get("file_name")
+            or meta.get("source")
+            or "?"
+        )
         file_path = meta.get("file_path")
         start = meta.get("start")
         if start is not None:

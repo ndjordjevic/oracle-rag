@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
 
 DEFAULT_CHUNK_SIZE = 1000
 DEFAULT_CHUNK_OVERLAP = 200
@@ -32,21 +30,21 @@ _TABLE_COL_SPLIT_RE = re.compile(r"\s{2,}")
 
 
 def _is_heading_line(line: str) -> bool:
-    """True if the line looks like a section heading.
+    """Return whether the line looks like a section heading.
 
     Heuristic:
     - short (<= HEADING_LINE_MAX_LEN chars)
     - no trailing sentence punctuation (. ! ?)
-    - does not contain characters typical of code/register names (one of # / = ;)"""
+    - does not contain characters typical of code/register names (one of # / = ;)
+    """
     stripped = line.strip()
     if not stripped:
         return False
     # Filter out very code-y lines (e.g. MOVE.W #$00F0, $DFF... // comment)
     if re.search(r"[#/=;]", stripped):
         return False
-    return (
-        len(stripped) <= HEADING_LINE_MAX_LEN
-        and not bool(re.search(r"[.!?]\s*$", stripped))
+    return len(stripped) <= HEADING_LINE_MAX_LEN and not bool(
+        re.search(r"[.!?]\s*$", stripped)
     )
 
 
@@ -57,7 +55,7 @@ def _extract_heading_from_chunk(content: str) -> str | None:
 
 
 def _ensure_heading_paragraph_breaks(text: str) -> str:
-    """Insert \\n\\n before lines that look like section headings so they start a new segment.
+    r"""Insert \\n\\n before lines that look like section headings so they start a new segment.
 
     RecursiveCharacterTextSplitter splits on \\n\\n first. So a short title line like
     "The system memory" that appears after a paragraph will stay with that paragraph
@@ -104,9 +102,13 @@ def _is_code_line(line: str) -> bool:
         return True
     if _ASM_MNEMONIC_RE.search(left):
         return True
-    if ";" in stripped and (re.search(r"\$[0-9A-Fa-f]+", stripped) or _ASM_MNEMONIC_RE.search(left)):
+    if ";" in stripped and (
+        re.search(r"\$[0-9A-Fa-f]+", stripped) or _ASM_MNEMONIC_RE.search(left)
+    ):
         return True
-    if _CODE_OPERATOR_RE.search(stripped) and left.startswith(("for ", "if ", "while ", "switch ", "return ")):
+    if _CODE_OPERATOR_RE.search(stripped) and left.startswith(
+        ("for ", "if ", "while ", "switch ", "return ")
+    ):
         return True
     if line.startswith(("    ", "\t")) and _CODE_OPERATOR_RE.search(stripped):
         return True
@@ -225,6 +227,7 @@ def chunk_documents(
 
     Returns:
         List of chunk Documents with preserved and added metadata.
+
     """
     if not documents:
         return []

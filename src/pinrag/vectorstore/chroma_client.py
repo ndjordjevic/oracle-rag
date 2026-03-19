@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Union
 
 from langchain_chroma import Chroma
 from langchain_core.embeddings import Embeddings
 
 from pinrag.embeddings import get_embedding_model
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 DEFAULT_PERSIST_DIR = "chroma_db"
 DEFAULT_COLLECTION_NAME = "pinrag"
@@ -20,7 +18,7 @@ DEFAULT_COLLECTION_NAME = "pinrag"
 def get_chroma_store(
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
     collection_name: str = DEFAULT_COLLECTION_NAME,
-    embedding: Optional[Embeddings] = None,
+    embedding: Embeddings | None = None,
 ) -> Chroma:
     """Return a Chroma vector store with optional persistence.
 
@@ -31,6 +29,7 @@ def get_chroma_store(
 
     Returns:
         LangChain Chroma vectorstore (add_documents, similarity_search, etc.).
+
     """
     path = Path(persist_directory).expanduser().resolve()
     path.mkdir(parents=True, exist_ok=True)

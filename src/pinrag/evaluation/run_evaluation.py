@@ -118,7 +118,7 @@ def main() -> None:
     parser.add_argument(
         "--metadata",
         default=None,
-        help="Optional JSON metadata, e.g. '{\"version\":\"3.0.1\"}'",
+        help='Optional JSON metadata, e.g. \'{"version":"3.0.1"}\'',
     )
     parser.add_argument(
         "--limit",

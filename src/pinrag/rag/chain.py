@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -16,22 +16,21 @@ from langsmith import traceable
 from pinrag.config import (
     get_collection_name,
     get_multi_query_count,
-    get_retrieve_k,
     get_rerank_retrieve_k,
     get_rerank_top_n,
+    get_retrieve_k,
     get_use_multi_query,
     get_use_rerank,
 )
 from pinrag.rag.formatting import format_docs, format_sources
 from pinrag.rag.multiquery import wrap_retriever_with_multiquery
-from pinrag.rag.query_preprocess import preprocess_query
 from pinrag.rag.prompts import get_rag_prompt
+from pinrag.rag.query_preprocess import preprocess_query
 from pinrag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
 from pinrag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
 from pinrag.vectorstore.retriever import create_retriever
 
-
-PathLike = Union[str, Path]
+PathLike = str | Path
 logger = logging.getLogger(__name__)
 
 
@@ -69,14 +68,14 @@ def _build_standard_retriever(
     effective_k: int,
     persist_directory: PathLike,
     collection_name: str,
-    embedding: Optional[Embeddings],
-    document_id: Optional[str],
-    page_min: Optional[int],
-    page_max: Optional[int],
-    tag: Optional[str],
-    document_type: Optional[str],
-    file_path: Optional[str],
-) -> tuple[BaseRetriever, bool, Optional[int]]:
+    embedding: Embeddings | None,
+    document_id: str | None,
+    page_min: int | None,
+    page_max: int | None,
+    tag: str | None,
+    document_type: str | None,
+    file_path: str | None,
+) -> tuple[BaseRetriever, bool, int | None]:
     """Build standard retriever and optionally wrap with multi-query.
 
     Returns (retriever, was_multi_query_wrapped_without_rerank, truncate_k).
@@ -111,18 +110,18 @@ def run_rag(
     query: str,
     llm: BaseChatModel,
     *,
-    retriever: Optional[BaseRetriever] = None,
-    k: Optional[int] = None,
-    use_rerank: Optional[bool] = None,
+    retriever: BaseRetriever | None = None,
+    k: int | None = None,
+    use_rerank: bool | None = None,
     persist_directory: PathLike = DEFAULT_PERSIST_DIR,
-    collection_name: Optional[str] = None,
-    embedding: Optional[Embeddings] = None,
-    document_id: Optional[str] = None,
-    page_min: Optional[int] = None,
-    page_max: Optional[int] = None,
-    tag: Optional[str] = None,
-    document_type: Optional[str] = None,
-    file_path: Optional[str] = None,
+    collection_name: str | None = None,
+    embedding: Embeddings | None = None,
+    document_id: str | None = None,
+    page_min: int | None = None,
+    page_max: int | None = None,
+    tag: str | None = None,
+    document_type: str | None = None,
+    file_path: str | None = None,
     response_style: Literal["thorough", "concise"] = "thorough",
 ) -> RAGResult:
     """Run a 2-step RAG pipeline: retrieve chunks, format context, prompt LLM, return answer with citations.
@@ -152,16 +151,15 @@ def run_rag(
 
     Returns:
         RAGResult with answer (str) and sources (list of {document_id, page}).
+
     """
     query_for_retrieval = preprocess_query(query)
     built_with_multi_query_no_rerank = False
-    truncate_k: Optional[int] = None
+    truncate_k: int | None = None
     if retriever is None:
         if collection_name is None:
             collection_name = get_collection_name()
-        use_rerank = (
-            use_rerank if use_rerank is not None else get_use_rerank()
-        )
+        use_rerank = use_rerank if use_rerank is not None else get_use_rerank()
         use_multi_query = get_use_multi_query()
 
         if use_rerank:
@@ -195,7 +193,26 @@ def run_rag(
                     "Re-ranking disabled: %s. Using standard retrieval.", err
                 )
                 effective_k = k if k is not None else get_retrieve_k()
-                retriever, built_with_multi_query_no_rerank, truncate_k = _build_standard_retriever(
+                retriever, built_with_multi_query_no_rerank, truncate_k = (
+                    _build_standard_retriever(
+                        llm=llm,
+                        use_multi_query=use_multi_query,
+                        effective_k=effective_k,
+                        persist_directory=persist_directory,
+                        collection_name=collection_name,
+                        embedding=embedding,
+                        document_id=document_id,
+                        page_min=page_min,
+                        page_max=page_max,
+                        tag=tag,
+                        document_type=document_type,
+                        file_path=file_path,
+                    )
+                )
+        else:
+            effective_k = k if k is not None else get_retrieve_k()
+            retriever, built_with_multi_query_no_rerank, truncate_k = (
+                _build_standard_retriever(
                     llm=llm,
                     use_multi_query=use_multi_query,
                     effective_k=effective_k,
@@ -209,27 +226,16 @@ def run_rag(
                     document_type=document_type,
                     file_path=file_path,
                 )
-        else:
-            effective_k = k if k is not None else get_retrieve_k()
-            retriever, built_with_multi_query_no_rerank, truncate_k = _build_standard_retriever(
-                llm=llm,
-                use_multi_query=use_multi_query,
-                effective_k=effective_k,
-                persist_directory=persist_directory,
-                collection_name=collection_name,
-                embedding=embedding,
-                document_id=document_id,
-                page_min=page_min,
-                page_max=page_max,
-                tag=tag,
-                document_type=document_type,
-                file_path=file_path,
             )
     if retriever is None:
         raise ValueError("Retriever must be provided or constructible from config.")
     docs = _retrieve(retriever, query_for_retrieval)
 
-    if built_with_multi_query_no_rerank and truncate_k is not None and len(docs) > truncate_k:
+    if (
+        built_with_multi_query_no_rerank
+        and truncate_k is not None
+        and len(docs) > truncate_k
+    ):
         docs = docs[:truncate_k]
 
     if not docs:
@@ -240,9 +246,7 @@ def run_rag(
         )
 
     prompt = get_rag_prompt(response_style)
-    messages = prompt.invoke(
-        {"context": format_docs(docs), "question": query}
-    ).messages
+    messages = prompt.invoke({"context": format_docs(docs), "question": query}).messages
     try:
         response = llm.invoke(messages)
         content = response.content if hasattr(response, "content") else str(response)
@@ -252,7 +256,9 @@ def run_rag(
         logger.exception("LLM invocation failed in run_rag")
         err = str(e).lower()
         if "rate" in err or "limit" in err:
-            msg = "Answer generation failed: rate limit exceeded. Please try again later."
+            msg = (
+                "Answer generation failed: rate limit exceeded. Please try again later."
+            )
         elif "timeout" in err:
             msg = "Answer generation failed: request timed out. Please try again."
         else:

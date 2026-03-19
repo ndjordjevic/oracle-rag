@@ -24,7 +24,9 @@ def test_embed_query_generates_vector(monkeypatch) -> None:
     """embed_query returns a list of floats of expected dimension without API calls."""
     monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
-    monkeypatch.setattr(OpenAIEmbeddings, "embed_query", lambda _self, _query: [0.0] * 1536)
+    monkeypatch.setattr(
+        OpenAIEmbeddings, "embed_query", lambda _self, _query: [0.0] * 1536
+    )
     emb = get_embedding_model()
     result = emb.embed_query("test")
     assert isinstance(result, list)

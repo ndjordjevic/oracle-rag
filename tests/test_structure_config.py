@@ -12,13 +12,17 @@ def test_get_structure_aware_chunking_default(monkeypatch: pytest.MonkeyPatch) -
     assert get_structure_aware_chunking() is True
 
 
-def test_get_structure_aware_chunking_true_values(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_structure_aware_chunking_true_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     for val in ("1", "true", "True", "yes", "YES", "on", "ON"):
         monkeypatch.setenv("PINRAG_STRUCTURE_AWARE_CHUNKING", val)
         assert get_structure_aware_chunking() is True
 
 
-def test_get_structure_aware_chunking_false_values(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_structure_aware_chunking_false_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     for val in ("0", "false", "False", "no", "off"):
         monkeypatch.setenv("PINRAG_STRUCTURE_AWARE_CHUNKING", val)
         assert get_structure_aware_chunking() is False

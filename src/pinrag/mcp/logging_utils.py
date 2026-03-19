@@ -40,7 +40,9 @@ def _configure_pinrag_logger() -> None:
     root.setLevel(level)
     if log_to_stderr:
         handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+        )
         if not root.handlers:
             root.addHandler(handler)
     else:
@@ -65,7 +67,13 @@ def configure_logging() -> None:
 def _user_friendly_api_error(exc: Exception) -> str | None:
     """Return a short, user-friendly message for API key / auth errors, or None."""
     msg = str(exc).lower()
-    if "api key" in msg or "api_key" in msg or "authentication" in msg or "invalid key" in msg or "no api key" in msg:
+    if (
+        "api key" in msg
+        or "api_key" in msg
+        or "authentication" in msg
+        or "invalid key" in msg
+        or "no api key" in msg
+    ):
         if "anthropic" in msg or "claude" in msg:
             return "Anthropic API key missing or invalid. Set ANTHROPIC_API_KEY in ~/.pinrag/.env (or your config)."
         if "cohere" in msg:
@@ -98,7 +106,9 @@ def _build_tool_summary(name: str, kwargs: dict[str, Any]) -> str:
     return ""
 
 
-async def _emit_client_log(ctx: Context | None, message: str, level: str = "info") -> None:
+async def _emit_client_log(
+    ctx: Context | None, message: str, level: str = "info"
+) -> None:
     """Best-effort tool log emission to MCP clients via notifications/message."""
     if ctx is None:
         return
@@ -109,7 +119,9 @@ async def _emit_client_log(ctx: Context | None, message: str, level: str = "info
             return
         await sender(message)
     except Exception:
-        logger.debug("client_log_emit_failed level=%s message=%s", level, message, exc_info=True)
+        logger.debug(
+            "client_log_emit_failed level=%s message=%s", level, message, exc_info=True
+        )
 
 
 def _resolve_context_from_kwargs(fn: Any, kwargs: dict[str, Any]) -> Context | None:
@@ -126,6 +138,7 @@ def _log_tool_errors(fn):
 
     Preserves the wrapped function's signature so MCP/FastMCP schema introspection sees all parameters.
     """
+
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
         summary = _build_tool_summary(fn.__name__, kwargs)
@@ -136,7 +149,9 @@ def _log_tool_errors(fn):
         try:
             result = await fn(*args, **kwargs)
             elapsed_s = time.perf_counter() - start
-            await _emit_client_log(ctx, f"tool={fn.__name__} status=ok duration_s={elapsed_s:.2f}")
+            await _emit_client_log(
+                ctx, f"tool={fn.__name__} status=ok duration_s={elapsed_s:.2f}"
+            )
             return result
         except Exception as e:
             elapsed_s = time.perf_counter() - start

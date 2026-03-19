@@ -7,10 +7,8 @@ import fnmatch
 import logging
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 import requests
-
 from langchain_core.documents import Document
 
 from pinrag.config import get_github_default_branch
@@ -59,16 +57,61 @@ _DEFAULT_EXCLUDE = (
 # Extensions we consider text (include by default if no include pattern)
 _TEXT_EXTENSIONS = frozenset(
     {
-        ".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
-        ".md", ".mdx", ".rst", ".txt", ".adoc",
-        ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf",
-        ".html", ".htm", ".css", ".scss", ".sass", ".less",
-        ".go", ".rs", ".rb", ".java", ".kt", ".kts", ".scala",
-        ".c", ".h", ".cpp", ".hpp", ".cc", ".cxx",
-        ".sql", ".sh", ".bash", ".zsh", ".fish", ".ps1",
-        ".vue", ".svelte", ".astro",
-        ".dockerfile", ".gitignore", ".env.example",
-        ".pio", ".cmake", ".ld", ".s", ".asm",
+        ".py",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".md",
+        ".mdx",
+        ".rst",
+        ".txt",
+        ".adoc",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".ini",
+        ".cfg",
+        ".conf",
+        ".html",
+        ".htm",
+        ".css",
+        ".scss",
+        ".sass",
+        ".less",
+        ".go",
+        ".rs",
+        ".rb",
+        ".java",
+        ".kt",
+        ".kts",
+        ".scala",
+        ".c",
+        ".h",
+        ".cpp",
+        ".hpp",
+        ".cc",
+        ".cxx",
+        ".sql",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".fish",
+        ".ps1",
+        ".vue",
+        ".svelte",
+        ".astro",
+        ".dockerfile",
+        ".gitignore",
+        ".env.example",
+        ".pio",
+        ".cmake",
+        ".ld",
+        ".s",
+        ".asm",
     }
 )
 
@@ -91,7 +134,7 @@ def _parse_github_url(url: str) -> tuple[str, str, str]:
     return owner, repo, branch or get_github_default_branch()
 
 
-def _matches_patterns(path: str, include: Optional[list[str]], exclude: list[str]) -> bool:
+def _matches_patterns(path: str, include: list[str] | None, exclude: list[str]) -> bool:
     """Return True if path matches include (if set) and does not match exclude."""
     if include is not None and include:
         if not any(fnmatch.fnmatch(path, p) for p in include):
@@ -100,7 +143,11 @@ def _matches_patterns(path: str, include: Optional[list[str]], exclude: list[str
     for p in exclude:
         p_stripped = p.rstrip("/")
         if p.endswith("/"):
-            if p_stripped in parts or path.startswith(p_stripped + "/") or path.startswith(p):
+            if (
+                p_stripped in parts
+                or path.startswith(p_stripped + "/")
+                or path.startswith(p)
+            ):
                 return False
         else:
             if fnmatch.fnmatch(parts[-1] if parts else path, p):
@@ -112,16 +159,41 @@ def _infer_language(file_path: str) -> str:
     """Infer language from file extension."""
     ext = "." + file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
     lang_map = {
-        ".py": "python", ".ts": "typescript", ".tsx": "typescript",
-        ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript",
-        ".md": "markdown", ".mdx": "markdown", ".rst": "rst",
-        ".json": "json", ".yaml": "yaml", ".yml": "yaml", ".toml": "toml",
-        ".html": "html", ".css": "css", ".go": "go", ".rs": "rust",
-        ".rb": "ruby", ".java": "java", ".kt": "kotlin", ".scala": "scala",
-        ".c": "c", ".h": "c", ".cpp": "cpp", ".hpp": "cpp",
-        ".sql": "sql", ".sh": "shell", ".bash": "shell",
-        ".vue": "vue", ".svelte": "svelte",
-        ".pio": "pio", ".cmake": "cmake", ".ld": "ld", ".s": "asm", ".asm": "asm",
+        ".py": "python",
+        ".ts": "typescript",
+        ".tsx": "typescript",
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".mjs": "javascript",
+        ".md": "markdown",
+        ".mdx": "markdown",
+        ".rst": "rst",
+        ".json": "json",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".html": "html",
+        ".css": "css",
+        ".go": "go",
+        ".rs": "rust",
+        ".rb": "ruby",
+        ".java": "java",
+        ".kt": "kotlin",
+        ".scala": "scala",
+        ".c": "c",
+        ".h": "c",
+        ".cpp": "cpp",
+        ".hpp": "cpp",
+        ".sql": "sql",
+        ".sh": "shell",
+        ".bash": "shell",
+        ".vue": "vue",
+        ".svelte": "svelte",
+        ".pio": "pio",
+        ".cmake": "cmake",
+        ".ld": "ld",
+        ".s": "asm",
+        ".asm": "asm",
     }
     return lang_map.get(ext, "plaintext")
 
@@ -141,10 +213,10 @@ class GitHubLoadResult:
 def load_github_repo_as_documents(
     repo_url: str,
     *,
-    token: Optional[str] = None,
-    branch: Optional[str] = None,
-    include_patterns: Optional[list[str]] = None,
-    exclude_patterns: Optional[list[str]] = None,
+    token: str | None = None,
+    branch: str | None = None,
+    include_patterns: list[str] | None = None,
+    exclude_patterns: list[str] | None = None,
     max_file_bytes: int = 524288,
 ) -> GitHubLoadResult:
     """Load a GitHub repository's text files into LangChain Documents.
@@ -166,6 +238,7 @@ def load_github_repo_as_documents(
     Raises:
         ValueError: If repo_url is not a valid GitHub URL.
         RuntimeError: If API requests fail (404, 403, etc.).
+
     """
     owner, repo, default_branch = _parse_github_url(repo_url)
     use_branch = branch if branch else default_branch
@@ -257,7 +330,9 @@ def load_github_repo_as_documents(
             try:
                 raw = base64.b64decode(content_b64).decode("utf-8", errors="replace")
             except Exception:
-                logger.debug("Failed decoding GitHub content for %s/%s:%s", owner, repo, path)
+                logger.debug(
+                    "Failed decoding GitHub content for %s/%s:%s", owner, repo, path
+                )
                 continue
             total_chars += len(raw)
             repo_id = f"{owner}/{repo}"

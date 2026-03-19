@@ -7,7 +7,6 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Union
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -34,7 +33,7 @@ from pinrag.vectorstore.chroma_client import (
 )
 from pinrag.vectorstore.docstore import get_parent_docstore
 
-PathLike = Union[str, Path]
+PathLike = str | Path
 
 _log = logging.getLogger("pinrag.indexing")
 
@@ -144,7 +143,9 @@ def index_youtube(
         upload_ts = datetime.now(UTC).isoformat()
         doc_total_chunks = len(chunk_docs)
         doc_segments = load_result.total_segments
-        doc_bytes = sum(len(d.page_content.encode("utf-8")) for d in load_result.documents)
+        doc_bytes = sum(
+            len(d.page_content.encode("utf-8")) for d in load_result.documents
+        )
         for doc in chunk_docs:
             doc.metadata["document_type"] = "youtube"
             doc.metadata["upload_timestamp"] = upload_ts

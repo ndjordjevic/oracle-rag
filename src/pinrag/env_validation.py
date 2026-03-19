@@ -25,7 +25,9 @@ _LLM_KEYS = {
 
 def _fail(key_env: str, provider_env: str, provider: str) -> None:
     """Log and print error, then exit."""
-    msg = f"{key_env} not set. It is required when {provider_env}={provider}. {_ENV_HINT}"
+    msg = (
+        f"{key_env} not set. It is required when {provider_env}={provider}. {_ENV_HINT}"
+    )
     logger.error(msg)
     print(msg, file=sys.stderr)
     sys.exit(1)
@@ -43,7 +45,8 @@ def _require_key(
         print(msg, file=sys.stderr)
         sys.exit(1)
     key_env, provider_env = keys_map[provider]
-    if not os.environ.get(key_env):
+    raw = os.environ.get(key_env)
+    if raw is None or not str(raw).strip():
         _fail(key_env, provider_env, provider)
 
 

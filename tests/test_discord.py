@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
-from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
+from pinrag.indexing.discord_indexer import (
+    DiscordIndexResult,
+    _derive_document_id_from_channel_and_path,
+    index_discord,
+)
 from pinrag.indexing.discord_loader import (
     DiscordLoadResult,
     _document_id_from_channel_and_path,
@@ -21,12 +24,6 @@ from pinrag.indexing.discord_loader import (
     _tag_from_channel,
     load_discord_export_as_documents,
 )
-from pinrag.indexing.discord_indexer import (
-    DiscordIndexResult,
-    _derive_document_id_from_channel_and_path,
-    index_discord,
-)
-
 
 # ---------------------------------------------------------------------------
 # discord_loader helpers
@@ -132,6 +129,7 @@ def test_parse_messages_empty() -> None:
 
 def test_format_message_window() -> None:
     from pinrag.indexing.discord_loader import _ParsedMessage
+
     msgs = [
         _ParsedMessage(timestamp="1/1/2026 10:00 AM", author="Alice", content="Hi"),
         _ParsedMessage(timestamp="1/1/2026 10:01 AM", author="Bob", content="Hello"),
@@ -228,7 +226,9 @@ def test_index_discord_smoke(tmp_path: Path) -> None:
     export_file.write_text(SAMPLE_EXPORT, encoding="utf-8")
     persist = str(tmp_path / "chroma")
 
-    with patch("pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False):
+    with patch(
+        "pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False
+    ):
         result = index_discord(
             export_file,
             persist_directory=persist,
@@ -243,6 +243,7 @@ def test_index_discord_smoke(tmp_path: Path) -> None:
     assert result.channel == "general"
 
     from pinrag.vectorstore import get_chroma_store
+
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_discord",
@@ -260,7 +261,9 @@ def test_index_discord_replaces_on_reindex(tmp_path: Path) -> None:
     persist = str(tmp_path / "chroma")
     emb = _MockEmbeddings()
 
-    with patch("pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False):
+    with patch(
+        "pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False
+    ):
         r1 = index_discord(
             export_file,
             persist_directory=persist,
@@ -286,7 +289,9 @@ def test_index_discord_empty_export(tmp_path: Path) -> None:
     )
     persist = str(tmp_path / "chroma")
 
-    with patch("pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False):
+    with patch(
+        "pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False
+    ):
         result = index_discord(
             export_file,
             persist_directory=persist,
@@ -304,8 +309,10 @@ def test_index_discord_with_tag(tmp_path: Path) -> None:
     export_file.write_text(SAMPLE_EXPORT, encoding="utf-8")
     persist = str(tmp_path / "chroma")
 
-    with patch("pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False):
-        result = index_discord(
+    with patch(
+        "pinrag.indexing.discord_indexer.get_use_parent_child", return_value=False
+    ):
+        index_discord(
             export_file,
             persist_directory=persist,
             collection_name="test_coll",
@@ -314,6 +321,7 @@ def test_index_discord_with_tag(tmp_path: Path) -> None:
         )
 
     from pinrag.vectorstore import get_chroma_store
+
     store = get_chroma_store(
         persist_directory=persist,
         collection_name="test_coll",

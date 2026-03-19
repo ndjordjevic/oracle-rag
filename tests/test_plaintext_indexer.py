@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from langchain_core.embeddings import Embeddings
 
@@ -24,7 +23,9 @@ class _MockEmbeddings(Embeddings):
 def test_index_plaintext_smoke(tmp_path: Path) -> None:
     """Index small .txt; verify result and Chroma contents."""
     txt_file = tmp_path / "notes.txt"
-    txt_file.write_text("Hello world. This is a test document for indexing.", encoding="utf-8")
+    txt_file.write_text(
+        "Hello world. This is a test document for indexing.", encoding="utf-8"
+    )
     persist = str(tmp_path / "chroma")
 
     result = index_plaintext(

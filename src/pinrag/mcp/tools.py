@@ -6,10 +6,9 @@ import logging
 from pathlib import Path
 from typing import Any, Literal
 
-logger = logging.getLogger(__name__)
-
 from langsmith import traceable
 
+from pinrag.config import get_collection_name, get_persist_dir, get_use_parent_child
 from pinrag.embeddings import get_embedding_model
 from pinrag.indexing import (
     DiscordIndexResult,
@@ -28,9 +27,10 @@ from pinrag.indexing import (
 )
 from pinrag.llm import get_chat_model
 from pinrag.rag import run_rag
-from pinrag.config import get_collection_name, get_persist_dir, get_use_parent_child
 from pinrag.vectorstore import get_chroma_store
 from pinrag.vectorstore.docstore import get_parent_docstore
+
+logger = logging.getLogger(__name__)
 
 
 def _is_github_url(s: str) -> bool:
@@ -60,9 +60,19 @@ def _categorize_failures(failed: list[dict[str, str]]) -> dict[str, int]:
         err = (item.get("error") or "").lower()
         if "transcripts disabled" in err:
             summary["disabled"] += 1
-        elif any(x in err for x in ("blocking", "blocked", "cloud provider", "ip block")):
+        elif any(
+            x in err for x in ("blocking", "blocked", "cloud provider", "ip block")
+        ):
             summary["blocked"] += 1
-        elif any(x in err for x in ("could not retrieve", "no transcript", "transcriptsdisabled", "notranscriptfound")):
+        elif any(
+            x in err
+            for x in (
+                "could not retrieve",
+                "no transcript",
+                "transcriptsdisabled",
+                "notranscriptfound",
+            )
+        ):
             summary["missing_transcript"] += 1
         else:
             summary["other"] += 1
@@ -71,7 +81,18 @@ def _categorize_failures(failed: list[dict[str, str]]) -> dict[str, int]:
 
 def _detect_source_format(
     path_or_url: str,
-) -> Literal["youtube", "youtube_playlist", "pdf", "discord", "plaintext", "github", "directory"] | None:
+) -> (
+    Literal[
+        "youtube",
+        "youtube_playlist",
+        "pdf",
+        "discord",
+        "plaintext",
+        "github",
+        "directory",
+    ]
+    | None
+):
     """Detect supported format: GitHub URL, YouTube playlist, YouTube video, PDF, or DiscordChatExporter TXT.
 
     Returns "github", "youtube_playlist", "youtube", "pdf", "discord", or None if unsupported.
@@ -165,11 +186,14 @@ def query(
     Raises:
         ValueError: If query is empty or invalid.
         FileNotFoundError: If persist dir doesn't exist.
+
     """
     if not user_query or not user_query.strip():
         raise ValueError("Query cannot be empty")
     if (page_min is not None) != (page_max is not None):
-        raise ValueError("page_min and page_max must be provided together for page range filter")
+        raise ValueError(
+            "page_min and page_max must be provided together for page range filter"
+        )
     if page_min is not None and page_max is not None and page_min > page_max:
         raise ValueError("page_min must be <= page_max")
     if response_style not in ("thorough", "concise"):
@@ -187,10 +211,16 @@ def query(
     embedding = get_embedding_model()
     llm = get_chat_model()
 
-    doc_id_filter = document_id.strip() if document_id and str(document_id).strip() else None
+    doc_id_filter = (
+        document_id.strip() if document_id and str(document_id).strip() else None
+    )
     tag_filter = tag.strip() if tag and str(tag).strip() else None
-    doc_type_filter = document_type.strip() if document_type and str(document_type).strip() else None
-    file_path_filter = file_path.strip() if file_path and str(file_path).strip() else None
+    doc_type_filter = (
+        document_type.strip() if document_type and str(document_type).strip() else None
+    )
+    file_path_filter = (
+        file_path.strip() if file_path and str(file_path).strip() else None
+    )
     rag_result = run_rag(
         user_query,
         llm,
@@ -249,6 +279,7 @@ def add_file(
     Returns:
         Dictionary with "indexed" (list of results), "failed" (errors),
         "total_indexed", "total_failed", "persist_directory", "collection_name".
+
     """
     if not path or not str(path).strip():
         raise ValueError("path cannot be empty")
@@ -262,7 +293,9 @@ def add_file(
 
     fmt = _detect_source_format(path)
     if fmt == "github":
-        logger.info("Indexing GitHub repo: %s", path[:80] + "..." if len(path) > 80 else path)
+        logger.info(
+            "Indexing GitHub repo: %s", path[:80] + "..." if len(path) > 80 else path
+        )
         try:
             embedding = get_embedding_model()
             result_gh: GitHubIndexResult = index_github(
@@ -275,16 +308,23 @@ def add_file(
                 include_patterns=include_patterns if include_patterns else None,
                 exclude_patterns=exclude_patterns if exclude_patterns else None,
             )
-            logger.info("GitHub indexed: %s (%d files, %d chunks)", f"{result_gh.owner}/{result_gh.repo}", result_gh.files_indexed, result_gh.total_chunks)
+            logger.info(
+                "GitHub indexed: %s (%d files, %d chunks)",
+                f"{result_gh.owner}/{result_gh.repo}",
+                result_gh.files_indexed,
+                result_gh.total_chunks,
+            )
             return {
-                "indexed": [{
-                    "path": path,
-                    "format": "github",
-                    "repo": f"{result_gh.owner}/{result_gh.repo}",
-                    "branch": result_gh.branch,
-                    "files_indexed": result_gh.files_indexed,
-                    "total_chunks": result_gh.total_chunks,
-                }],
+                "indexed": [
+                    {
+                        "path": path,
+                        "format": "github",
+                        "repo": f"{result_gh.owner}/{result_gh.repo}",
+                        "branch": result_gh.branch,
+                        "files_indexed": result_gh.files_indexed,
+                        "total_chunks": result_gh.total_chunks,
+                    }
+                ],
                 "failed": [],
                 "total_indexed": 1,
                 "total_failed": 0,
@@ -302,7 +342,10 @@ def add_file(
                 "collection_name": collection,
             }
     if fmt == "youtube_playlist":
-        logger.info("Indexing YouTube playlist: %s", path[:80] + "..." if len(path) > 80 else path)
+        logger.info(
+            "Indexing YouTube playlist: %s",
+            path[:80] + "..." if len(path) > 80 else path,
+        )
         try:
             embedding = get_embedding_model()
             result_pl = index_youtube_playlist(
@@ -326,10 +369,17 @@ def add_file(
                     item["title"] = r.title
                 indexed_items.append(item)
             failed_items = [
-                {"path": f"https://www.youtube.com/watch?v={f['video_id']}", "error": f["error"]}
+                {
+                    "path": f"https://www.youtube.com/watch?v={f['video_id']}",
+                    "error": f["error"],
+                }
                 for f in result_pl.failed
             ]
-            logger.info("YouTube playlist indexed: %d videos, %d failed", result_pl.total_indexed, result_pl.total_failed)
+            logger.info(
+                "YouTube playlist indexed: %d videos, %d failed",
+                result_pl.total_indexed,
+                result_pl.total_failed,
+            )
             out: dict[str, Any] = {
                 "indexed": indexed_items,
                 "failed": failed_items,
@@ -352,7 +402,9 @@ def add_file(
                 "collection_name": collection,
             }
     if fmt == "youtube":
-        logger.info("Indexing YouTube video: %s", path[:80] + "..." if len(path) > 80 else path)
+        logger.info(
+            "Indexing YouTube video: %s", path[:80] + "..." if len(path) > 80 else path
+        )
         try:
             embedding = get_embedding_model()
             result_yt: YouTubeIndexResult = index_youtube(
@@ -372,7 +424,11 @@ def add_file(
             }
             if result_yt.title:
                 indexed_item["title"] = result_yt.title
-            logger.info("YouTube video indexed: %s (%d chunks)", result_yt.video_id, result_yt.total_chunks)
+            logger.info(
+                "YouTube video indexed: %s (%d chunks)",
+                result_yt.video_id,
+                result_yt.total_chunks,
+            )
             return {
                 "indexed": [indexed_item],
                 "failed": [],
@@ -446,14 +502,21 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
-                logger.info("PDF indexed: %s (%d pages, %d chunks)", f.name, result.total_pages, result.total_chunks)
-                indexed.append({
-                    "path": str(f),
-                    "format": "pdf",
-                    "source_path": str(result.source_path),
-                    "total_pages": result.total_pages,
-                    "total_chunks": result.total_chunks,
-                })
+                logger.info(
+                    "PDF indexed: %s (%d pages, %d chunks)",
+                    f.name,
+                    result.total_pages,
+                    result.total_chunks,
+                )
+                indexed.append(
+                    {
+                        "path": str(f),
+                        "format": "pdf",
+                        "source_path": str(result.source_path),
+                        "total_pages": result.total_pages,
+                        "total_chunks": result.total_chunks,
+                    }
+                )
             elif file_fmt == "discord":
                 result_d: DiscordIndexResult = index_discord(
                     f,
@@ -462,17 +525,24 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
-                logger.info("Discord indexed: %s (%d messages, %d chunks)", result_d.document_id, result_d.total_messages, result_d.total_chunks)
-                indexed.append({
-                    "path": str(f),
-                    "format": "discord",
-                    "source_path": str(result_d.source_path),
-                    "document_id": result_d.document_id,
-                    "channel": result_d.channel,
-                    "guild": result_d.guild,
-                    "total_messages": result_d.total_messages,
-                    "total_chunks": result_d.total_chunks,
-                })
+                logger.info(
+                    "Discord indexed: %s (%d messages, %d chunks)",
+                    result_d.document_id,
+                    result_d.total_messages,
+                    result_d.total_chunks,
+                )
+                indexed.append(
+                    {
+                        "path": str(f),
+                        "format": "discord",
+                        "source_path": str(result_d.source_path),
+                        "document_id": result_d.document_id,
+                        "channel": result_d.channel,
+                        "guild": result_d.guild,
+                        "total_messages": result_d.total_messages,
+                        "total_chunks": result_d.total_chunks,
+                    }
+                )
             elif file_fmt == "plaintext":
                 result_pt: PlaintextIndexResult = index_plaintext(
                     f,
@@ -481,14 +551,20 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
-                logger.info("Plaintext indexed: %s (%d chunks)", result_pt.document_id, result_pt.total_chunks)
-                indexed.append({
-                    "path": str(f),
-                    "format": "plaintext",
-                    "source_path": str(result_pt.source_path),
-                    "document_id": result_pt.document_id,
-                    "total_chunks": result_pt.total_chunks,
-                })
+                logger.info(
+                    "Plaintext indexed: %s (%d chunks)",
+                    result_pt.document_id,
+                    result_pt.total_chunks,
+                )
+                indexed.append(
+                    {
+                        "path": str(f),
+                        "format": "plaintext",
+                        "source_path": str(result_pt.source_path),
+                        "document_id": result_pt.document_id,
+                        "total_chunks": result_pt.total_chunks,
+                    }
+                )
             else:
                 failed.append({"path": str(f), "error": "Unsupported format"})
         except Exception as e:
@@ -531,6 +607,7 @@ def add_files(
 
     Returns:
         Dictionary containing indexed file results, failed file errors, and totals.
+
     """
     if not paths:
         raise ValueError("paths cannot be empty")
@@ -554,7 +631,12 @@ def add_files(
         if tags is not None and i < len(tags) and tags[i] and str(tags[i]).strip():
             doc_tag = str(tags[i]).strip()
         if n_paths > 1:
-            logger.info("Processing path %d/%d: %s", i + 1, n_paths, raw_path[:60] + "..." if len(raw_path) > 60 else raw_path)
+            logger.info(
+                "Processing path %d/%d: %s",
+                i + 1,
+                n_paths,
+                raw_path[:60] + "..." if len(raw_path) > 60 else raw_path,
+            )
         try:
             r = add_file(
                 path=raw_path,
@@ -571,7 +653,9 @@ def add_files(
             logger.warning("Path failed: %s - %s", raw_path, e)
             all_failed.append({"path": str(raw_path), "error": str(e)})
 
-    logger.info("add_files done: %d indexed, %d failed", len(all_indexed), len(all_failed))
+    logger.info(
+        "add_files done: %d indexed, %d failed", len(all_indexed), len(all_failed)
+    )
     result: dict[str, Any] = {
         "indexed": all_indexed,
         "failed": all_failed,
@@ -609,6 +693,7 @@ def list_documents(
     Returns:
         Dictionary with "documents" (list of unique document IDs)
         and "total_chunks" (total number of chunks in the index).
+
     """
     if collection is None or not str(collection).strip():
         collection = get_collection_name()
@@ -726,6 +811,7 @@ def remove_document(
     Raises:
         ValueError: If document_id is empty or collection is empty.
         FileNotFoundError: If persist_dir does not exist.
+
     """
     if not document_id or not str(document_id).strip():
         raise ValueError("document_id cannot be empty")
@@ -737,9 +823,7 @@ def remove_document(
     _persist = (persist_dir or "").strip() or get_persist_dir()
     persist_path = Path(_persist).expanduser().resolve()
     if not persist_path.exists():
-        raise FileNotFoundError(
-            f"Persistence directory does not exist: {_persist}"
-        )
+        raise FileNotFoundError(f"Persistence directory does not exist: {_persist}")
 
     store = get_chroma_store(
         persist_directory=_persist,

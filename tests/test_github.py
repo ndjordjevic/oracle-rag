@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from langchain_core.embeddings import Embeddings
 
 from pinrag.indexing import index_github, load_github_repo_as_documents
@@ -40,20 +39,31 @@ def test_is_github_url_detection() -> None:
 def test_detect_source_format_github() -> None:
     """_detect_source_format returns 'github' for GitHub URLs."""
     assert _detect_source_format("https://github.com/owner/repo") == "github"
-    assert _detect_source_format("https://github.com/ndjordjevic/pinrag/tree/main") == "github"
+    assert (
+        _detect_source_format("https://github.com/ndjordjevic/pinrag/tree/main")
+        == "github"
+    )
     assert _detect_source_format("github.com/foo/bar") == "github"
 
 
 def test_parse_github_url() -> None:
     """Parse owner, repo, branch from GitHub URLs."""
-    assert _parse_github_url("https://github.com/owner/repo") == ("owner", "repo", "main")
+    assert _parse_github_url("https://github.com/owner/repo") == (
+        "owner",
+        "repo",
+        "main",
+    )
     assert _parse_github_url("https://github.com/owner/repo/tree/develop") == (
         "owner",
         "repo",
         "develop",
     )
     assert _parse_github_url("github.com/foo/bar") == ("foo", "bar", "main")
-    assert _parse_github_url("https://github.com/foo/repo.git") == ("foo", "repo", "main")
+    assert _parse_github_url("https://github.com/foo/repo.git") == (
+        "foo",
+        "repo",
+        "main",
+    )
     with pytest.raises(ValueError, match="Invalid GitHub URL"):
         _parse_github_url("https://youtube.com/watch?v=abc")
     with pytest.raises(ValueError, match="Invalid GitHub URL"):
@@ -65,7 +75,11 @@ def test_parse_github_url_uses_default_branch_config(
 ) -> None:
     """PINRAG_GITHUB_DEFAULT_BRANCH is used when URL has no branch."""
     monkeypatch.setenv("PINRAG_GITHUB_DEFAULT_BRANCH", "develop")
-    assert _parse_github_url("https://github.com/owner/repo") == ("owner", "repo", "develop")
+    assert _parse_github_url("https://github.com/owner/repo") == (
+        "owner",
+        "repo",
+        "develop",
+    )
     monkeypatch.delenv("PINRAG_GITHUB_DEFAULT_BRANCH", raising=False)
 
 
@@ -90,15 +104,20 @@ def _mock_resp(status: int, json_data: object) -> object:
 def test_load_github_repo_documents_mocked(mock_get: object) -> None:
     """Mock GitHub API; verify Document metadata."""
     commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "tree123"}}})
-    tree_resp = _mock_resp(200, {
-        "tree": [
-            {"type": "blob", "path": "README.md"},
-            {"type": "blob", "path": "src/main.py"},
-        ],
-    })
+    tree_resp = _mock_resp(
+        200,
+        {
+            "tree": [
+                {"type": "blob", "path": "README.md"},
+                {"type": "blob", "path": "src/main.py"},
+            ],
+        },
+    )
     readme_content = base64.b64encode(b"# Hello World").decode()
     main_content = base64.b64encode(b'print("hi")').decode()
-    readme_file = _mock_resp(200, {"type": "file", "size": 20, "content": readme_content})
+    readme_file = _mock_resp(
+        200, {"type": "file", "size": 20, "content": readme_content}
+    )
     main_file = _mock_resp(200, {"type": "file", "size": 15, "content": main_content})
 
     def side_effect(url: str, **kwargs: object) -> object:
@@ -138,8 +157,18 @@ def test_load_github_repo_documents_mocked(mock_get: object) -> None:
 def test_load_github_repo_excludes_binary_files(mock_get: object) -> None:
     """Tree with .png; verify excluded."""
     commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "t1"}}})
-    tree_resp = _mock_resp(200, {"tree": [{"type": "blob", "path": "img.png"}, {"type": "blob", "path": "README.md"}]})
-    readme_resp = _mock_resp(200, {"type": "file", "size": 10, "content": base64.b64encode(b"# Hi").decode()})
+    tree_resp = _mock_resp(
+        200,
+        {
+            "tree": [
+                {"type": "blob", "path": "img.png"},
+                {"type": "blob", "path": "README.md"},
+            ]
+        },
+    )
+    readme_resp = _mock_resp(
+        200, {"type": "file", "size": 10, "content": base64.b64encode(b"# Hi").decode()}
+    )
 
     def side_effect(url: str, **kwargs: object) -> object:
         if "commits/" in url:
@@ -163,7 +192,14 @@ def test_load_github_repo_skips_oversized_files(mock_get: object) -> None:
     """Large file exceeds max_file_bytes; verify skipped."""
     commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "t1"}}})
     tree_resp = _mock_resp(200, {"tree": [{"type": "blob", "path": "huge.bin"}]})
-    huge_resp = _mock_resp(200, {"type": "file", "size": 1_000_000, "content": base64.b64encode(b"x" * 1000).decode()})
+    huge_resp = _mock_resp(
+        200,
+        {
+            "type": "file",
+            "size": 1_000_000,
+            "content": base64.b64encode(b"x" * 1000).decode(),
+        },
+    )
 
     def side_effect(url: str, **kwargs: object) -> object:
         if "commits/" in url:
@@ -187,7 +223,10 @@ def test_index_github_smoke(mock_get: object, tmp_path: Path) -> None:
     """Index mocked repo; verify Chroma store populated."""
     commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "t1"}}})
     tree_resp = _mock_resp(200, {"tree": [{"type": "blob", "path": "README.md"}]})
-    file_resp = _mock_resp(200, {"type": "file", "size": 20, "content": base64.b64encode(b"# PinRAG").decode()})
+    file_resp = _mock_resp(
+        200,
+        {"type": "file", "size": 20, "content": base64.b64encode(b"# PinRAG").decode()},
+    )
 
     def side_effect(url: str, **kwargs: object) -> object:
         if "commits/" in url:
@@ -231,7 +270,10 @@ def test_index_github_replaces_on_reindex(mock_get: object, tmp_path: Path) -> N
     """Index same repo twice; verify no duplicate chunks."""
     commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "t1"}}})
     tree_resp = _mock_resp(200, {"tree": [{"type": "blob", "path": "a.py"}]})
-    file_resp = _mock_resp(200, {"type": "file", "size": 10, "content": base64.b64encode(b"x = 1").decode()})
+    file_resp = _mock_resp(
+        200,
+        {"type": "file", "size": 10, "content": base64.b64encode(b"x = 1").decode()},
+    )
 
     def side_effect(url: str, **kwargs: object) -> object:
         if "commits/" in url:
@@ -256,7 +298,9 @@ def test_index_github_replaces_on_reindex(mock_get: object, tmp_path: Path) -> N
     )
     from pinrag.vectorstore import get_chroma_store
 
-    store = get_chroma_store(persist_directory=persist, collection_name=coll, embedding=emb)
+    store = get_chroma_store(
+        persist_directory=persist, collection_name=coll, embedding=emb
+    )
     data1 = store._collection.get(include=[])
     count1 = len(data1.get("ids") or [])
 
@@ -274,7 +318,9 @@ def test_index_github_replaces_on_reindex(mock_get: object, tmp_path: Path) -> N
 
 
 @patch("pinrag.indexing.github_loader.requests.get")
-def test_index_github_empty_documents_deletes_old_chunks(mock_get: object, tmp_path: Path) -> None:
+def test_index_github_empty_documents_deletes_old_chunks(
+    mock_get: object, tmp_path: Path
+) -> None:
     """When all files are filtered out, re-index deletes existing chunks (no stale data)."""
     from pinrag.indexing.github_loader import GitHubLoadResult
     from pinrag.vectorstore import get_chroma_store
@@ -282,7 +328,10 @@ def test_index_github_empty_documents_deletes_old_chunks(mock_get: object, tmp_p
     # First call: return one file
     commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "t1"}}})
     tree_resp = _mock_resp(200, {"tree": [{"type": "blob", "path": "a.py"}]})
-    file_resp = _mock_resp(200, {"type": "file", "size": 10, "content": base64.b64encode(b"x = 1").decode()})
+    file_resp = _mock_resp(
+        200,
+        {"type": "file", "size": 10, "content": base64.b64encode(b"x = 1").decode()},
+    )
 
     call_count = 0
 
@@ -314,7 +363,14 @@ def test_index_github_empty_documents_deletes_old_chunks(mock_get: object, tmp_p
     # Second call: patch loader to return empty (repo now has no indexable files)
     with patch(
         "pinrag.indexing.github_indexer.load_github_repo_as_documents",
-        return_value=GitHubLoadResult(owner="x", repo="y", branch="main", documents=[], files_loaded=0, total_chars=0),
+        return_value=GitHubLoadResult(
+            owner="x",
+            repo="y",
+            branch="main",
+            documents=[],
+            files_loaded=0,
+            total_chars=0,
+        ),
     ):
         r2 = index_github(
             "https://github.com/x/y",
@@ -326,6 +382,8 @@ def test_index_github_empty_documents_deletes_old_chunks(mock_get: object, tmp_p
     assert r2.files_indexed == 0
     assert r2.total_chunks == 0
 
-    store = get_chroma_store(persist_directory=persist, collection_name=coll, embedding=emb)
+    store = get_chroma_store(
+        persist_directory=persist, collection_name=coll, embedding=emb
+    )
     data = store._collection.get(where={"document_id": "x/y"}, include=[])
     assert len(data.get("ids") or []) == 0

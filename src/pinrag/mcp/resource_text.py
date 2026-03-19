@@ -89,7 +89,10 @@ def format_server_config() -> str:
         ("PINRAG_EMBEDDING_MODEL", config.get_embedding_model_name),
         ("PINRAG_CHUNK_SIZE", lambda: str(config.get_chunk_size())),
         ("PINRAG_CHUNK_OVERLAP", lambda: str(config.get_chunk_overlap())),
-        ("PINRAG_STRUCTURE_AWARE_CHUNKING", lambda: str(config.get_structure_aware_chunking())),
+        (
+            "PINRAG_STRUCTURE_AWARE_CHUNKING",
+            lambda: str(config.get_structure_aware_chunking()),
+        ),
         ("PINRAG_RETRIEVE_K", lambda: str(config.get_retrieve_k())),
         ("PINRAG_USE_RERANK", lambda: str(config.get_use_rerank()).lower()),
         ("PINRAG_RERANK_RETRIEVE_K", lambda: str(config.get_rerank_retrieve_k())),
@@ -100,10 +103,19 @@ def format_server_config() -> str:
         ("PINRAG_PARENT_CHUNK_SIZE", lambda: str(config.get_parent_chunk_size())),
         ("PINRAG_CHILD_CHUNK_SIZE", lambda: str(config.get_child_chunk_size())),
         ("PINRAG_RESPONSE_STYLE", config.get_response_style),
-        ("PINRAG_GITHUB_MAX_FILE_BYTES", lambda: str(config.get_github_max_file_bytes())),
+        (
+            "PINRAG_GITHUB_MAX_FILE_BYTES",
+            lambda: str(config.get_github_max_file_bytes()),
+        ),
         ("PINRAG_GITHUB_DEFAULT_BRANCH", config.get_github_default_branch),
-        ("PINRAG_PLAINTEXT_MAX_FILE_BYTES", lambda: str(config.get_plaintext_max_file_bytes())),
-        ("PINRAG_LOG_TO_STDERR", lambda: str(_parse_bool_env("PINRAG_LOG_TO_STDERR", default=False)).lower()),
+        (
+            "PINRAG_PLAINTEXT_MAX_FILE_BYTES",
+            lambda: str(config.get_plaintext_max_file_bytes()),
+        ),
+        (
+            "PINRAG_LOG_TO_STDERR",
+            lambda: str(_parse_bool_env("PINRAG_LOG_TO_STDERR", default=False)).lower(),
+        ),
         ("PINRAG_LOG_LEVEL", _effective_log_level_name),
     ]
     set_items: list[str] = []

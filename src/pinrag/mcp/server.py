@@ -10,7 +10,7 @@ from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field
 
 from pinrag import config
-from pinrag.mcp.logging_utils import configure_logging, _log_tool_errors
+from pinrag.mcp.logging_utils import _log_tool_errors, configure_logging
 from pinrag.mcp.resource_text import format_documents_list, format_server_config
 from pinrag.mcp.tools import (
     add_files,
@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 
 mcp = FastMCP("PinRAG", json_response=True)
 
+# Re-export for pinrag.cli (F401: name used via import from this module).
+__all__ = ["configure_logging", "mcp"]
+
 
 def _is_url(s: str) -> bool:
     """Return True if string is an HTTP(S) URL."""
@@ -35,13 +38,39 @@ def _is_url(s: str) -> bool:
 @_log_tool_errors
 async def query_tool(
     query: Annotated[str, Field(description="Natural language question to ask.")],
-    document_id: Annotated[str, Field(description="Optional document ID to filter retrieval (from list_documents).")] = "",
-    page_min: Annotated[int | None, Field(description="Optional start of page range (inclusive). PDF only.")] = None,
-    page_max: Annotated[int | None, Field(description="Optional end of page range (inclusive). PDF only.")] = None,
-    tag: Annotated[str, Field(description="Optional tag to filter retrieval (from list_documents).")] = "",
-    document_type: Annotated[str, Field(description="Optional type to filter: 'pdf', 'youtube', 'discord', 'github', or 'plaintext'.")] = "",
-    file_path: Annotated[str, Field(description="Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.")] = "",
-    response_style: Annotated[str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")] = "thorough",
+    document_id: Annotated[
+        str,
+        Field(
+            description="Optional document ID to filter retrieval (from list_documents)."
+        ),
+    ] = "",
+    page_min: Annotated[
+        int | None,
+        Field(description="Optional start of page range (inclusive). PDF only."),
+    ] = None,
+    page_max: Annotated[
+        int | None,
+        Field(description="Optional end of page range (inclusive). PDF only."),
+    ] = None,
+    tag: Annotated[
+        str,
+        Field(description="Optional tag to filter retrieval (from list_documents)."),
+    ] = "",
+    document_type: Annotated[
+        str,
+        Field(
+            description="Optional type to filter: 'pdf', 'youtube', 'discord', 'github', or 'plaintext'."
+        ),
+    ] = "",
+    file_path: Annotated[
+        str,
+        Field(
+            description="Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files."
+        ),
+    ] = "",
+    response_style: Annotated[
+        str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")
+    ] = "thorough",
     ctx: Context | None = None,
 ) -> dict:
     """Query indexed documents and return an answer with citations.
@@ -58,6 +87,7 @@ async def query_tool(
         document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
         file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
         response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
+        ctx: MCP request context (injected by the server; unused).
 
     Returns:
         Dictionary containing answer and sources (document_id, page).
@@ -87,14 +117,37 @@ async def query_tool(
 @mcp.tool()
 @_log_tool_errors
 async def add_document_tool(
-    paths: Annotated[list[str], Field(description="Paths to index: file, directory, YouTube URL, or GitHub URL (e.g. https://github.com/owner/repo). Single path: [\"/path/to/file.pdf\"] or [\"https://github.com/owner/repo\"].")],
-    tags: Annotated[list[str] | None, Field(description="Optional list of tags, one per path (same order as paths).")] = None,
-    branch: Annotated[str | None, Field(description="For GitHub URLs: override branch (default: main). Ignored for other formats.")] = None,
-    include_patterns: Annotated[list[str] | None, Field(description="For GitHub URLs: glob patterns for files to include (e.g. [\"*.md\", \"src/**/*.py\"]). Ignored for other formats.")] = None,
-    exclude_patterns: Annotated[list[str] | None, Field(description="For GitHub URLs: glob patterns to exclude. Ignored for other formats.")] = None,
+    paths: Annotated[
+        list[str],
+        Field(
+            description='Paths to index: file, directory, YouTube URL, or GitHub URL (e.g. https://github.com/owner/repo). Single path: ["/path/to/file.pdf"] or ["https://github.com/owner/repo"].'
+        ),
+    ],
+    tags: Annotated[
+        list[str] | None,
+        Field(description="Optional list of tags, one per path (same order as paths)."),
+    ] = None,
+    branch: Annotated[
+        str | None,
+        Field(
+            description="For GitHub URLs: override branch (default: main). Ignored for other formats."
+        ),
+    ] = None,
+    include_patterns: Annotated[
+        list[str] | None,
+        Field(
+            description='For GitHub URLs: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]). Ignored for other formats.'
+        ),
+    ] = None,
+    exclude_patterns: Annotated[
+        list[str] | None,
+        Field(
+            description="For GitHub URLs: glob patterns to exclude. Ignored for other formats."
+        ),
+    ] = None,
     ctx: Context | None = None,
 ) -> dict:
-    """Add files, directories, YouTube videos, or GitHub repos to the index.
+    r"""Add files, directories, YouTube videos, or GitHub repos to the index.
 
     Automatically detects format per path and indexes:
     - GitHub (URL, e.g. https://github.com/owner/repo or github.com/owner/repo/tree/branch)
@@ -112,6 +165,7 @@ async def add_document_tool(
         branch: For GitHub URLs: override branch (default: main). Ignored for other formats.
         include_patterns: For GitHub URLs: glob patterns for files to include (e.g. ["*.md", "src/**/*.py"]).
         exclude_patterns: For GitHub URLs: glob patterns to exclude. Ignored for other formats.
+        ctx: MCP request context (injected by the server; unused).
 
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
@@ -142,9 +196,12 @@ async def add_url_tool(
     tags: Annotated[
         list[str] | None, Field(description="Optional list of tags, one per URL.")
     ] = None,
-    branch: Annotated[str | None, Field(description="For GitHub: override branch (default: main).")] = None,
+    branch: Annotated[
+        str | None, Field(description="For GitHub: override branch (default: main).")
+    ] = None,
     include_patterns: Annotated[
-        list[str] | None, Field(description="For GitHub: glob patterns for files to include.")
+        list[str] | None,
+        Field(description="For GitHub: glob patterns for files to include."),
     ] = None,
     exclude_patterns: Annotated[
         list[str] | None, Field(description="For GitHub: glob patterns to exclude.")
@@ -183,7 +240,12 @@ async def add_url_tool(
 @mcp.tool()
 @_log_tool_errors
 async def list_documents_tool(
-    tag: Annotated[str, Field(description="Optional tag to filter: only list documents that have this tag.")] = "",
+    tag: Annotated[
+        str,
+        Field(
+            description="Optional tag to filter: only list documents that have this tag."
+        ),
+    ] = "",
     ctx: Context | None = None,
 ) -> dict:
     """List all indexed documents in the PinRAG index.
@@ -194,6 +256,7 @@ async def list_documents_tool(
 
     Args:
         tag: Optional tag to filter: only list documents that have this tag.
+        ctx: MCP request context (injected by the server; unused).
 
     Returns:
         Dictionary containing documents, total_chunks, persist_directory,
@@ -214,7 +277,10 @@ async def list_documents_tool(
 @mcp.tool()
 @_log_tool_errors
 async def remove_document_tool(
-    document_id: Annotated[str, Field(description="Document identifier to remove (from list_documents_tool).")],
+    document_id: Annotated[
+        str,
+        Field(description="Document identifier to remove (from list_documents_tool)."),
+    ],
     ctx: Context | None = None,
 ) -> dict:
     """Remove a document and all its chunks from the PinRAG index.
@@ -225,6 +291,7 @@ async def remove_document_tool(
 
     Args:
         document_id: Document identifier to remove (from list_documents_tool).
+        ctx: MCP request context (injected by the server; unused).
 
     Returns:
         Dictionary containing deleted_chunks, document_id, persist_directory, collection_name.
@@ -307,4 +374,3 @@ def use_pinrag(request: str = "") -> str:
         "If the request is ambiguous, call list_documents_tool first to show what is indexed, "
         "then decide which tool to use."
     )
-
