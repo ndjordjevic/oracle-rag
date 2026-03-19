@@ -43,17 +43,14 @@ Restart your editor after updating so the MCP server picks up the new version.
 
 ### 1. Create config
 
-```bash
-mkdir -p ~/.pinrag
-# Minimum required (defaults: Anthropic for LLM, OpenAI for embeddings)
-echo "OPENAI_API_KEY=sk-..." > ~/.pinrag/.env
-echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/.pinrag/.env
-# Optional: Cohere for re-ranking (COHERE_API_KEY + PINRAG_USE_RERANK=true); see Configuration below
-```
+Set API keys in your MCP server `env` block (shown in step 2). This is the
+recommended setup for OSS because `pinrag-mcp` is launched by your editor from
+MCP config.
 
 **Minimum required env vars (validated at startup):**
 
-The server validates required API keys at startup and exits with a clear error if any are missing. Set keys in `~/.pinrag/.env`, `~/.config/pinrag/.env`, or `{cwd}/.env`.
+The server validates required API keys at startup and exits with a clear error
+if any are missing. In OSS MCP mode, set all env vars in your MCP `env` block.
 
 - **Default setup** (Anthropic LLM + OpenAI embeddings): set both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. Embeddings use OpenAI; queries use Anthropic.
 - **OpenAI only:** set `PINRAG_LLM_PROVIDER=openai` and only `OPENAI_API_KEY` (one key for both embeddings and chat).
@@ -95,7 +92,10 @@ The server validates required API keys at startup and exits with a clear error i
 
 Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code or Cursor after editing.
 
-> **Where the MCP finds `.env`:** Load order (first existing wins): `~/.config/pinrag/`, `~/.pinrag/`, `{cwd}/`. Alternatively, add an `env` block to your MCP config and set all required variables there.
+> **Where the OSS MCP reads env vars:** PinRAG does not load `.env` files in OSS
+> MCP mode. Configure variables only in your MCP `env` block.
+> If you previously used `~/.pinrag/.env` or project `.env`, move those keys to
+> MCP `env`.
 > **Backup:** Back up `~/.pinrag/chroma_db` (or your `PINRAG_PERSIST_DIR`) if your indexed documents are important — deleting it removes all indexes.
 
 ### 3. Use in chat

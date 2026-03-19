@@ -5,13 +5,9 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 from youtube_transcript_api.proxies import GenericProxyConfig
 
 from pinrag.chunking.splitter import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
-
-# Ensure .env is loaded when config is first imported
-load_dotenv()
 
 # Use project-local chroma_db so CLI, tools, and MCP all see the same index.
 # Override with PINRAG_PERSIST_DIR for ~/.pinrag/chroma_db or custom path.

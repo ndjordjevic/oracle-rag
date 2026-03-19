@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any, Literal
 
-_log = logging.getLogger("pinrag.mcp")
+logger = logging.getLogger(__name__)
 
 from langsmith import traceable
 
@@ -262,7 +262,7 @@ def add_file(
 
     fmt = _detect_source_format(path)
     if fmt == "github":
-        _log.info("Indexing GitHub repo: %s", path[:80] + "..." if len(path) > 80 else path)
+        logger.info("Indexing GitHub repo: %s", path[:80] + "..." if len(path) > 80 else path)
         try:
             embedding = get_embedding_model()
             result_gh: GitHubIndexResult = index_github(
@@ -275,7 +275,7 @@ def add_file(
                 include_patterns=include_patterns if include_patterns else None,
                 exclude_patterns=exclude_patterns if exclude_patterns else None,
             )
-            _log.info("GitHub indexed: %s (%d files, %d chunks)", f"{result_gh.owner}/{result_gh.repo}", result_gh.files_indexed, result_gh.total_chunks)
+            logger.info("GitHub indexed: %s (%d files, %d chunks)", f"{result_gh.owner}/{result_gh.repo}", result_gh.files_indexed, result_gh.total_chunks)
             return {
                 "indexed": [{
                     "path": path,
@@ -292,7 +292,7 @@ def add_file(
                 "collection_name": collection,
             }
         except Exception as e:
-            _log.warning("GitHub indexing failed: %s - %s", path, e)
+            logger.warning("GitHub indexing failed: %s - %s", path, e)
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -302,7 +302,7 @@ def add_file(
                 "collection_name": collection,
             }
     if fmt == "youtube_playlist":
-        _log.info("Indexing YouTube playlist: %s", path[:80] + "..." if len(path) > 80 else path)
+        logger.info("Indexing YouTube playlist: %s", path[:80] + "..." if len(path) > 80 else path)
         try:
             embedding = get_embedding_model()
             result_pl = index_youtube_playlist(
@@ -329,7 +329,7 @@ def add_file(
                 {"path": f"https://www.youtube.com/watch?v={f['video_id']}", "error": f["error"]}
                 for f in result_pl.failed
             ]
-            _log.info("YouTube playlist indexed: %d videos, %d failed", result_pl.total_indexed, result_pl.total_failed)
+            logger.info("YouTube playlist indexed: %d videos, %d failed", result_pl.total_indexed, result_pl.total_failed)
             out: dict[str, Any] = {
                 "indexed": indexed_items,
                 "failed": failed_items,
@@ -342,7 +342,7 @@ def add_file(
                 out["fail_summary"] = _categorize_failures(failed_items)
             return out
         except Exception as e:
-            _log.warning("YouTube playlist indexing failed: %s - %s", path, e)
+            logger.warning("YouTube playlist indexing failed: %s - %s", path, e)
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -352,7 +352,7 @@ def add_file(
                 "collection_name": collection,
             }
     if fmt == "youtube":
-        _log.info("Indexing YouTube video: %s", path[:80] + "..." if len(path) > 80 else path)
+        logger.info("Indexing YouTube video: %s", path[:80] + "..." if len(path) > 80 else path)
         try:
             embedding = get_embedding_model()
             result_yt: YouTubeIndexResult = index_youtube(
@@ -372,7 +372,7 @@ def add_file(
             }
             if result_yt.title:
                 indexed_item["title"] = result_yt.title
-            _log.info("YouTube video indexed: %s (%d chunks)", result_yt.video_id, result_yt.total_chunks)
+            logger.info("YouTube video indexed: %s (%d chunks)", result_yt.video_id, result_yt.total_chunks)
             return {
                 "indexed": [indexed_item],
                 "failed": [],
@@ -382,7 +382,7 @@ def add_file(
                 "collection_name": collection,
             }
         except Exception as e:
-            _log.warning("YouTube video indexing failed: %s - %s", path, e)
+            logger.warning("YouTube video indexing failed: %s - %s", path, e)
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -434,7 +434,7 @@ def add_file(
     indexed: list[dict[str, Any]] = []
     failed: list[dict[str, str]] = []
 
-    _log.info("Indexing %d file(s) from %s", len(files_to_index), path)
+    logger.info("Indexing %d file(s) from %s", len(files_to_index), path)
     for f in files_to_index:
         try:
             file_fmt = _detect_file_format(f)
@@ -446,7 +446,7 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
-                _log.info("PDF indexed: %s (%d pages, %d chunks)", f.name, result.total_pages, result.total_chunks)
+                logger.info("PDF indexed: %s (%d pages, %d chunks)", f.name, result.total_pages, result.total_chunks)
                 indexed.append({
                     "path": str(f),
                     "format": "pdf",
@@ -462,7 +462,7 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
-                _log.info("Discord indexed: %s (%d messages, %d chunks)", result_d.document_id, result_d.total_messages, result_d.total_chunks)
+                logger.info("Discord indexed: %s (%d messages, %d chunks)", result_d.document_id, result_d.total_messages, result_d.total_chunks)
                 indexed.append({
                     "path": str(f),
                     "format": "discord",
@@ -481,7 +481,7 @@ def add_file(
                     embedding=embedding,
                     tag=tag_clean,
                 )
-                _log.info("Plaintext indexed: %s (%d chunks)", result_pt.document_id, result_pt.total_chunks)
+                logger.info("Plaintext indexed: %s (%d chunks)", result_pt.document_id, result_pt.total_chunks)
                 indexed.append({
                     "path": str(f),
                     "format": "plaintext",
@@ -492,7 +492,7 @@ def add_file(
             else:
                 failed.append({"path": str(f), "error": "Unsupported format"})
         except Exception as e:
-            _log.warning("File indexing failed: %s - %s", f, e)
+            logger.warning("File indexing failed: %s - %s", f, e)
             failed.append({"path": str(f), "error": str(e)})
 
     return {
@@ -554,7 +554,7 @@ def add_files(
         if tags is not None and i < len(tags) and tags[i] and str(tags[i]).strip():
             doc_tag = str(tags[i]).strip()
         if n_paths > 1:
-            _log.info("Processing path %d/%d: %s", i + 1, n_paths, raw_path[:60] + "..." if len(raw_path) > 60 else raw_path)
+            logger.info("Processing path %d/%d: %s", i + 1, n_paths, raw_path[:60] + "..." if len(raw_path) > 60 else raw_path)
         try:
             r = add_file(
                 path=raw_path,
@@ -568,10 +568,10 @@ def add_files(
             all_indexed.extend(r["indexed"])
             all_failed.extend(r["failed"])
         except Exception as e:
-            _log.warning("Path failed: %s - %s", raw_path, e)
+            logger.warning("Path failed: %s - %s", raw_path, e)
             all_failed.append({"path": str(raw_path), "error": str(e)})
 
-    _log.info("add_files done: %d indexed, %d failed", len(all_indexed), len(all_failed))
+    logger.info("add_files done: %d indexed, %d failed", len(all_indexed), len(all_failed))
     result: dict[str, Any] = {
         "indexed": all_indexed,
         "failed": all_failed,
@@ -583,7 +583,7 @@ def add_files(
     if all_failed:
         fail_summary = _categorize_failures(all_failed)
         result["fail_summary"] = fail_summary
-        _log.info(
+        logger.info(
             "Fail summary: blocked=%d, disabled=%d, missing_transcript=%d, other=%d",
             fail_summary["blocked"],
             fail_summary["disabled"],

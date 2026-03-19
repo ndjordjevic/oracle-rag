@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-
-import pytest
 
 from langchain_openai import OpenAIEmbeddings
 
@@ -14,22 +11,20 @@ from pinrag.embeddings.openai_client import DEFAULT_MODEL, get_embedding_model
 from pinrag.pdf.pypdf_loader import load_pdf_as_documents
 
 
-def test_get_embedding_model_returns_client() -> None:
+def test_get_embedding_model_returns_client(monkeypatch) -> None:
     """get_embedding_model returns an OpenAIEmbeddings instance."""
-    # May fail if OPENAI_API_KEY is missing (client validates on init in some versions)
-    try:
-        emb = get_embedding_model()
-    except Exception:
-        pytest.skip("OPENAI_API_KEY not set or invalid; skipping")
+    monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    emb = get_embedding_model()
     assert isinstance(emb, OpenAIEmbeddings)
     assert emb.model == DEFAULT_MODEL
 
 
-def test_embed_query_generates_vector() -> None:
-    """embed_query returns a list of floats of expected dimension (1536 for text-embedding-3-small)."""
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping embedding API test")
-
+def test_embed_query_generates_vector(monkeypatch) -> None:
+    """embed_query returns a list of floats of expected dimension without API calls."""
+    monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    monkeypatch.setattr(OpenAIEmbeddings, "embed_query", lambda _self, _query: [0.0] * 1536)
     emb = get_embedding_model()
     result = emb.embed_query("test")
     assert isinstance(result, list)
@@ -37,18 +32,17 @@ def test_embed_query_generates_vector() -> None:
     assert all(isinstance(x, float) for x in result)
 
 
-def test_embed_pdf_chunks() -> None:
-    """Load a PDF, chunk it, and create embeddings for a few chunks (pipeline smoke test)."""
-    from dotenv import load_dotenv
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping embedding API test")
-
+def test_embed_pdf_chunks(monkeypatch) -> None:
+    """Load a PDF, chunk it, and create mocked embeddings for a few chunks."""
+    monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+    monkeypatch.setattr(
+        OpenAIEmbeddings,
+        "embed_documents",
+        lambda _self, texts: [[0.0] * 1536 for _ in texts],
+    )
     repo_root = Path(__file__).resolve().parents[1]
     sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
-    if not sample_pdf.exists():
-        pytest.skip("sample PDF not present; skipping embed-chunks test")
-
     result = load_pdf_as_documents(sample_pdf)
     chunks = chunk_documents(result.documents, chunk_size=400, chunk_overlap=50)
     assert len(chunks) >= 2

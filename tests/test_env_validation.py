@@ -11,7 +11,9 @@ from pinrag.env_validation import (
 )
 
 
-def test_require_embedding_api_key_openai_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_require_embedding_api_key_openai_missing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """require_embedding_api_key exits when provider=openai and OPENAI_API_KEY not set."""
     monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "openai")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -19,6 +21,8 @@ def test_require_embedding_api_key_openai_missing(monkeypatch: pytest.MonkeyPatc
     with pytest.raises(SystemExit) as exc_info:
         require_embedding_api_key()
     assert exc_info.value.code == 1
+    err = capsys.readouterr().err
+    assert "deployment platform settings" in err
 
 
 def test_require_embedding_api_key_openai_set(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -45,7 +49,9 @@ def test_require_embedding_api_key_cohere_set(monkeypatch: pytest.MonkeyPatch) -
     require_embedding_api_key()
 
 
-def test_require_llm_api_key_anthropic_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_require_llm_api_key_anthropic_missing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """require_llm_api_key exits when provider=anthropic and ANTHROPIC_API_KEY not set."""
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "anthropic")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
@@ -53,6 +59,8 @@ def test_require_llm_api_key_anthropic_missing(monkeypatch: pytest.MonkeyPatch) 
     with pytest.raises(SystemExit) as exc_info:
         require_llm_api_key()
     assert exc_info.value.code == 1
+    err = capsys.readouterr().err
+    assert "deployment platform settings" in err
 
 
 def test_require_llm_api_key_anthropic_set(monkeypatch: pytest.MonkeyPatch) -> None:

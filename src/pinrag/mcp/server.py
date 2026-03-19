@@ -2,101 +2,27 @@
 
 from __future__ import annotations
 
-import functools
-import inspect
 import logging
 import os
-import sys
-import time
-import warnings
 from typing import Annotated
 
 import anyio
-from dotenv import load_dotenv
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field
 
-from pinrag.config import (
-    get_chunk_overlap,
-    get_chunk_size,
-    get_child_chunk_size,
-    get_collection_name,
-    get_embedding_model_name,
-    get_embedding_provider,
-    get_llm_model,
-    get_llm_provider,
-    get_multi_query_count,
-    get_parent_chunk_size,
-    get_persist_dir,
-    get_retrieve_k,
-    get_response_style,
-    get_rerank_retrieve_k,
-    get_rerank_top_n,
-    get_structure_aware_chunking,
-    get_use_multi_query,
-    get_use_parent_child,
-    get_use_rerank,
-)
+from pinrag import config
+from pinrag.mcp.logging_utils import configure_logging, _log_tool_errors
 from pinrag.mcp.tools import (
     add_files,
     list_documents,
-    query as query_index,
     remove_document,
 )
-
-# Load .env so config/API-key check below sees env when run via `python -m pinrag.mcp.server`.
-# When run via pinrag-mcp (cli), cli already calls _load_env() before importing this module.
-load_dotenv()
-
-# Disable Chroma telemetry — avoids PostHog INFO messages in Cursor Output
-os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
-
-# Configure PinRAG logs.
-# By default, do not write PinRAG logs to stderr because Cursor renders stderr with
-# an [error] badge and appends "undefined" lines after each entry.
-_log_to_stderr = (os.environ.get("PINRAG_LOG_TO_STDERR") or "").strip().lower() in (
-    "1",
-    "true",
-    "yes",
-    "on",
+from pinrag.mcp.tools import (
+    query as query_index,
 )
-_level_name = (os.environ.get("PINRAG_LOG_LEVEL") or "INFO").strip().upper()
-_level = getattr(logging, _level_name, logging.INFO)
-if _level_name not in ("DEBUG", "INFO", "WARNING", "ERROR"):
-    _level = logging.INFO
 
-_log = logging.getLogger("pinrag.mcp")
-_log.propagate = False
-_pinrag_root = logging.getLogger("pinrag")
-_pinrag_root.propagate = False
+logger = logging.getLogger(__name__)
 
-if _log_to_stderr:
-    _log_handler = logging.StreamHandler(sys.stderr)
-    _log_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
-    _log.setLevel(_level)
-    _pinrag_root.setLevel(_level)
-    if not _log.handlers:
-        _log.addHandler(_log_handler)
-    if not _pinrag_root.handlers:
-        _pinrag_root.addHandler(_log_handler)
-else:
-    _log.setLevel(logging.CRITICAL + 1)
-    _pinrag_root.setLevel(logging.CRITICAL + 1)
-
-# Suppress verbose INFO logs from dependencies — they go to stderr and show as [error] in Cursor
-for _name in ("mcp", "chromadb", "posthog", "openai", "httpx", "httpcore"):
-    logging.getLogger(_name).setLevel(logging.WARNING)
-# pypdf logs "Rotated text discovered" at WARNING level — suppress entirely
-logging.getLogger("pypdf").setLevel(logging.ERROR)
-# pypdf also uses warnings module for "Rotated text discovered"
-warnings.filterwarnings("ignore", message=".*Rotated text.*")
-
-# Verify required API keys for configured providers (exits if missing)
-from pinrag.env_validation import require_api_keys_for_server
-
-require_api_keys_for_server()
-
-# Create FastMCP server instance
 mcp = FastMCP("PinRAG", json_response=True)
 
 
@@ -105,100 +31,133 @@ def _is_url(s: str) -> bool:
     return (s or "").strip().startswith(("http://", "https://"))
 
 
-def _user_friendly_api_error(exc: Exception) -> str | None:
-    """Return a short, user-friendly message for API key / auth errors, or None."""
-    msg = str(exc).lower()
-    if "api key" in msg or "api_key" in msg or "authentication" in msg or "invalid key" in msg or "no api key" in msg:
-        if "anthropic" in msg or "claude" in msg:
-            return "Anthropic API key missing or invalid. Set ANTHROPIC_API_KEY in ~/.pinrag/.env (or your config)."
-        if "cohere" in msg:
-            return "Cohere API key missing or invalid. Set COHERE_API_KEY in ~/.pinrag/.env (or your config)."
-        return "OpenAI API key not found or invalid. Set OPENAI_API_KEY in ~/.pinrag/.env (or your config)."
-    if "rate" in msg and "limit" in msg:
-        return "API rate limit exceeded. Please try again in a moment."
-    return None
+def _env_set(name: str) -> bool:
+    """Return True if the environment variable is set and non-empty."""
+    v = os.environ.get(name)
+    return v is not None and str(v).strip() != ""
 
 
-def _log_tool_errors(fn):
-    """Decorator: log tool entry, success, and exceptions to stderr (Cursor MCP Output).
-    Preserves the wrapped function's signature so MCP/FastMCP schema introspection sees all parameters.
+def _parse_bool_env(name: str, default: bool = False) -> bool:
+    """Parse a boolean env var using the same accepted values as runtime config."""
+    raw = os.environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    val = str(raw).strip().lower()
+    if val in ("1", "true", "yes", "on"):
+        return True
+    if val in ("0", "false", "no", "off"):
+        return False
+    return default
+
+
+def _effective_log_level_name() -> str:
+    """Return normalized effective log level (DEBUG/INFO/WARNING/ERROR)."""
+    level_name = (os.environ.get("PINRAG_LOG_LEVEL") or "INFO").strip().upper()
+    return level_name if level_name in ("DEBUG", "INFO", "WARNING", "ERROR") else "INFO"
+
+
+def _format_documents_list() -> str:
+    """Sync helper: fetch and format documents list for documents_resource."""
+    result = list_documents(
+        persist_dir=config.get_persist_dir(),
+        collection=config.get_collection_name(),
+    )
+    docs = result.get("documents", [])
+    total = result.get("total_chunks", 0)
+    details = result.get("document_details") or {}
+    if not docs:
+        return "No documents indexed."
+    lines = [f"Indexed documents ({total} chunks total):", ""]
+    for d in docs:
+        info = details.get(d, {})
+        extra: list[str] = []
+        if info.get("pages") is not None:
+            extra.append(f"{info['pages']} pages")
+        if info.get("messages") is not None:
+            extra.append(f"{info['messages']} messages")
+        if info.get("segments") is not None:
+            extra.append(f"{info['segments']} segments")
+        if info.get("bytes") is not None and "messages" not in info:
+            b = info["bytes"]
+            size = f"{b / 1024:.1f} KB" if b >= 1024 else f"{b} B"
+            extra.append(size)
+        if info.get("file_count") is not None:
+            extra.append(f"{info['file_count']} files")
+        if info.get("tag"):
+            extra.append(f"tag: {info['tag']}")
+        suffix = f" ({', '.join(extra)})" if extra else ""
+        # For YouTube with title, show title prominently with video ID
+        if info.get("document_type") == "youtube" and info.get("title"):
+            display_name = f"{info['title']} ({d})"
+        else:
+            display_name = d
+        lines.append(f"  - {display_name}{suffix}")
+    return "\n".join(lines)
+
+
+def _format_server_config() -> str:
+    """Build config string for server_config_resource.
+
+    Runtime-only contract (OSS + Cloud):
+    - If env var exists in os.environ (non-empty): explicitly set
+    - Otherwise: default
+    - Always show effective value from config getters.
     """
+    config_items = [
+        ("PINRAG_PERSIST_DIR", config.get_persist_dir),
+        ("PINRAG_COLLECTION_NAME", config.get_collection_name),
+        ("PINRAG_LLM_PROVIDER", config.get_llm_provider),
+        ("PINRAG_LLM_MODEL", config.get_llm_model),
+        ("PINRAG_EMBEDDING_PROVIDER", config.get_embedding_provider),
+        ("PINRAG_EMBEDDING_MODEL", config.get_embedding_model_name),
+        ("PINRAG_CHUNK_SIZE", lambda: str(config.get_chunk_size())),
+        ("PINRAG_CHUNK_OVERLAP", lambda: str(config.get_chunk_overlap())),
+        ("PINRAG_STRUCTURE_AWARE_CHUNKING", lambda: str(config.get_structure_aware_chunking())),
+        ("PINRAG_RETRIEVE_K", lambda: str(config.get_retrieve_k())),
+        ("PINRAG_USE_RERANK", lambda: str(config.get_use_rerank()).lower()),
+        ("PINRAG_RERANK_RETRIEVE_K", lambda: str(config.get_rerank_retrieve_k())),
+        ("PINRAG_RERANK_TOP_N", lambda: str(config.get_rerank_top_n())),
+        ("PINRAG_USE_MULTI_QUERY", lambda: str(config.get_use_multi_query()).lower()),
+        ("PINRAG_MULTI_QUERY_COUNT", lambda: str(config.get_multi_query_count())),
+        ("PINRAG_USE_PARENT_CHILD", lambda: str(config.get_use_parent_child()).lower()),
+        ("PINRAG_PARENT_CHUNK_SIZE", lambda: str(config.get_parent_chunk_size())),
+        ("PINRAG_CHILD_CHUNK_SIZE", lambda: str(config.get_child_chunk_size())),
+        ("PINRAG_RESPONSE_STYLE", config.get_response_style),
+        ("PINRAG_GITHUB_MAX_FILE_BYTES", lambda: str(config.get_github_max_file_bytes())),
+        ("PINRAG_GITHUB_DEFAULT_BRANCH", config.get_github_default_branch),
+        ("PINRAG_PLAINTEXT_MAX_FILE_BYTES", lambda: str(config.get_plaintext_max_file_bytes())),
+        ("PINRAG_LOG_TO_STDERR", lambda: str(_parse_bool_env("PINRAG_LOG_TO_STDERR", default=False)).lower()),
+        ("PINRAG_LOG_LEVEL", _effective_log_level_name),
+    ]
+    set_items: list[str] = []
+    default_items: list[str] = []
+    for var, getter in config_items:
+        val = getter()
+        line = f"  {var}: {val}"
+        if _env_set(var):
+            set_items.append(line)
+        else:
+            default_items.append(line)
 
-    def _summary(name: str, args: tuple, kwargs: dict) -> str:
-        if name in ("add_document_tool", "add_url_tool"):
-            paths = kwargs.get("paths", [])
-            n = len(paths)
-            preview = paths[0][:60] + "..." if n == 1 and len(paths[0]) > 60 else (f"{n} paths" if n > 1 else (paths[0] if paths else ""))
-            return f"paths={preview!r}"
-        if name == "query_tool":
-            q = (kwargs.get("query") or "").strip()
-            return f"query={q[:80]!r}..." if len(q) > 80 else f"query={q!r}"
-        if name == "list_documents_tool":
-            return f"tag={kwargs.get('tag', '')!r}"
-        if name == "remove_document_tool":
-            return f"document_id={kwargs.get('document_id', '')!r}"
-        return ""
-
-    async def _emit_client_log(ctx: Context | None, message: str, level: str = "info") -> None:
-        """Best-effort tool log emission to MCP clients via notifications/message."""
-        if ctx is None:
-            return
-        try:
-            sender = getattr(ctx, level, None)
-            if sender is None:
-                await ctx.info(message)
-                return
-            await sender(message)
-        except Exception:
-            _log.debug("client_log_emit_failed level=%s message=%s", level, message, exc_info=True)
-
-    if inspect.iscoroutinefunction(fn):
-        @functools.wraps(fn)
-        async def wrapper(*args, **kwargs):
-            summary = _summary(fn.__name__, args, kwargs)
-            ctx: Context | None = kwargs.get("ctx")
-            start_msg = f"tool={fn.__name__} status=start {summary}".strip()
-            _log.info("Tool %s called %s", fn.__name__, summary if summary else "")
-            await _emit_client_log(ctx, start_msg)
-            start = time.perf_counter()
-            try:
-                result = await fn(*args, **kwargs)
-                elapsed_s = time.perf_counter() - start
-                _log.info("Tool %s completed in %.2fs", fn.__name__, elapsed_s)
-                await _emit_client_log(ctx, f"tool={fn.__name__} status=ok duration_s={elapsed_s:.2f}")
-                return result
-            except Exception as e:
-                _log.exception("Tool %s failed", fn.__name__)
-                elapsed_s = time.perf_counter() - start
-                await _emit_client_log(
-                    ctx,
-                    f"tool={fn.__name__} status=error duration_s={elapsed_s:.2f}",
-                    level="error",
-                )
-                friendly = _user_friendly_api_error(e)
-                if friendly:
-                    raise RuntimeError(friendly) from e
-                raise
-    else:
-        @functools.wraps(fn)
-        def wrapper(*args, **kwargs):
-            summary = _summary(fn.__name__, args, kwargs)
-            _log.info("Tool %s called %s", fn.__name__, summary if summary else "")
-            start = time.perf_counter()
-            try:
-                result = fn(*args, **kwargs)
-                _log.info("Tool %s completed in %.2fs", fn.__name__, time.perf_counter() - start)
-                return result
-            except Exception as e:
-                _log.exception("Tool %s failed", fn.__name__)
-                friendly = _user_friendly_api_error(e)
-                if friendly:
-                    raise RuntimeError(friendly) from e
-                raise
-
-    wrapper.__signature__ = inspect.signature(fn)
-    wrapper.__annotations__ = fn.__annotations__
-    return wrapper
+    lines = [
+        "PinRAG MCP Server Configuration",
+        "=" * 40,
+        "",
+        "--- Explicitly set (runtime env) ---",
+        *set_items,
+        "",
+        "--- Defaults (not set in env) ---",
+        *default_items,
+        "",
+        "--- API keys (status only) ---",
+        f"  OPENAI_API_KEY: {'set' if _env_set('OPENAI_API_KEY') else 'not set'}",
+        f"  ANTHROPIC_API_KEY: {'set' if _env_set('ANTHROPIC_API_KEY') else 'not set'}",
+        f"  COHERE_API_KEY: {'set' if _env_set('COHERE_API_KEY') else 'not set'}",
+        f"  GITHUB_TOKEN: {'set' if _env_set('GITHUB_TOKEN') else 'not set'}",
+        f"  PINRAG_YT_PROXY_HTTP_URL: {'set' if _env_set('PINRAG_YT_PROXY_HTTP_URL') else 'not set'}",
+        f"  PINRAG_YT_PROXY_HTTPS_URL: {'set' if _env_set('PINRAG_YT_PROXY_HTTPS_URL') else 'not set'}",
+    ]
+    return "\n".join(lines)
 
 
 @mcp.tool()
@@ -231,12 +190,13 @@ async def query_tool(
 
     Returns:
         Dictionary containing answer and sources (document_id, page).
+
     """
     style_input = (response_style or "").strip().lower()
     if style_input in ("thorough", "concise"):
         style = style_input
     else:
-        style = get_response_style()
+        style = config.get_response_style()
 
     def _run() -> dict:
         return query_index(
@@ -284,13 +244,14 @@ async def add_document_tool(
 
     Returns:
         Dictionary containing indexed entries, failed entries, and totals.
+
     """
 
     def _run() -> dict:
         return add_files(
             paths=paths,
-            persist_dir=get_persist_dir(),
-            collection=get_collection_name(),
+            persist_dir=config.get_persist_dir(),
+            collection=config.get_collection_name(),
             tags=tags,
             branch=branch,
             include_patterns=include_patterns,
@@ -337,8 +298,8 @@ async def add_url_tool(
     def _run() -> dict:
         return add_files(
             paths=input_paths,
-            persist_dir=get_persist_dir(),
-            collection=get_collection_name(),
+            persist_dir=config.get_persist_dir(),
+            collection=config.get_collection_name(),
             tags=tags,
             branch=branch,
             include_patterns=include_patterns,
@@ -366,12 +327,13 @@ async def list_documents_tool(
     Returns:
         Dictionary containing documents, total_chunks, persist_directory,
         collection_name, document_details.
+
     """
 
     def _run() -> dict:
         return list_documents(
-            persist_dir=get_persist_dir(),
-            collection=get_collection_name(),
+            persist_dir=config.get_persist_dir(),
+            collection=config.get_collection_name(),
             tag=tag or None,
         )
 
@@ -395,55 +357,17 @@ async def remove_document_tool(
 
     Returns:
         Dictionary containing deleted_chunks, document_id, persist_directory, collection_name.
+
     """
 
     def _run() -> dict:
         return remove_document(
             document_id=document_id,
-            persist_dir=get_persist_dir(),
-            collection=get_collection_name(),
+            persist_dir=config.get_persist_dir(),
+            collection=config.get_collection_name(),
         )
 
     return await anyio.to_thread.run_sync(_run)
-
-
-def _format_documents_list() -> str:
-    """Sync helper: fetch and format documents list for documents_resource."""
-    result = list_documents(
-        persist_dir=get_persist_dir(),
-        collection=get_collection_name(),
-    )
-    docs = result.get("documents", [])
-    total = result.get("total_chunks", 0)
-    details = result.get("document_details") or {}
-    if not docs:
-        return "No documents indexed."
-    lines = [f"Indexed documents ({total} chunks total):", ""]
-    for d in docs:
-        info = details.get(d, {})
-        extra: list[str] = []
-        if info.get("pages") is not None:
-            extra.append(f"{info['pages']} pages")
-        if info.get("messages") is not None:
-            extra.append(f"{info['messages']} messages")
-        if info.get("segments") is not None:
-            extra.append(f"{info['segments']} segments")
-        if info.get("bytes") is not None and "messages" not in info:
-            b = info["bytes"]
-            size = f"{b / 1024:.1f} KB" if b >= 1024 else f"{b} B"
-            extra.append(size)
-        if info.get("file_count") is not None:
-            extra.append(f"{info['file_count']} files")
-        if info.get("tag"):
-            extra.append(f"tag: {info['tag']}")
-        suffix = f" ({', '.join(extra)})" if extra else ""
-        # For YouTube with title, show title prominently with video ID
-        if info.get("document_type") == "youtube" and info.get("title"):
-            display_name = f"{info['title']} ({d})"
-        else:
-            display_name = d
-        lines.append(f"  - {display_name}{suffix}")
-    return "\n".join(lines)
 
 
 @mcp.resource(
@@ -458,70 +382,12 @@ async def documents_resource() -> str:
     For YouTube: shows video title when available, with video ID in parentheses.
     Shows tag when attached to a document.
     """
-    _log.debug("Resource pinrag://documents read")
+    logger.debug("Resource pinrag://documents read")
     try:
         return await anyio.to_thread.run_sync(_format_documents_list)
     except Exception as e:
-        _log.exception("Resource pinrag://documents failed")
+        logger.exception("Resource pinrag://documents failed")
         return f"Error listing documents: {e}"
-
-
-def _env_set(name: str) -> bool:
-    v = os.environ.get(name)
-    return v is not None and str(v).strip() != ""
-
-
-def _format_server_config() -> str:
-    """Sync helper: build config string for server_config_resource."""
-    config_items = [
-        ("PINRAG_PERSIST_DIR", get_persist_dir),
-        ("PINRAG_COLLECTION_NAME", get_collection_name),
-        ("PINRAG_LLM_PROVIDER", get_llm_provider),
-        ("PINRAG_LLM_MODEL", get_llm_model),
-        ("PINRAG_EMBEDDING_PROVIDER", get_embedding_provider),
-        ("PINRAG_EMBEDDING_MODEL", get_embedding_model_name),
-        ("PINRAG_CHUNK_SIZE", lambda: str(get_chunk_size())),
-        ("PINRAG_CHUNK_OVERLAP", lambda: str(get_chunk_overlap())),
-        ("PINRAG_STRUCTURE_AWARE_CHUNKING", lambda: str(get_structure_aware_chunking())),
-        ("PINRAG_RETRIEVE_K", lambda: str(get_retrieve_k())),
-        ("PINRAG_USE_RERANK", lambda: str(get_use_rerank()).lower()),
-        ("PINRAG_RERANK_RETRIEVE_K", lambda: str(get_rerank_retrieve_k())),
-        ("PINRAG_RERANK_TOP_N", lambda: str(get_rerank_top_n())),
-        ("PINRAG_USE_MULTI_QUERY", lambda: str(get_use_multi_query()).lower()),
-        ("PINRAG_MULTI_QUERY_COUNT", lambda: str(get_multi_query_count())),
-        ("PINRAG_USE_PARENT_CHILD", lambda: str(get_use_parent_child()).lower()),
-        ("PINRAG_PARENT_CHUNK_SIZE", lambda: str(get_parent_chunk_size())),
-        ("PINRAG_CHILD_CHUNK_SIZE", lambda: str(get_child_chunk_size())),
-        ("PINRAG_RESPONSE_STYLE", get_response_style),
-        ("PINRAG_LOG_TO_STDERR", lambda: str(_log_to_stderr).lower()),
-        ("PINRAG_LOG_LEVEL", lambda: _level_name),
-    ]
-    set_items: list[str] = []
-    default_items: list[str] = []
-    for var, getter in config_items:
-        val = getter()
-        line = f"  {var}: {val}"
-        if _env_set(var):
-            set_items.append(line)
-        else:
-            default_items.append(line + " (default)")
-
-    lines = [
-        "PinRAG MCP Server Configuration",
-        "=" * 40,
-        "",
-        "--- Set (from env) ---",
-        *set_items,
-        "",
-        "--- Defaults (not set) ---",
-        *default_items,
-        "",
-        "--- API keys (sensitive; only status) ---",
-        f"  OPENAI_API_KEY: {'set' if os.environ.get('OPENAI_API_KEY') else 'not set'}",
-        f"  ANTHROPIC_API_KEY: {'set' if os.environ.get('ANTHROPIC_API_KEY') else 'not set'}",
-        f"  COHERE_API_KEY: {'set' if os.environ.get('COHERE_API_KEY') else 'not set'}",
-    ]
-    return "\n".join(lines)
 
 
 @mcp.resource(
@@ -531,7 +397,7 @@ def _format_server_config() -> str:
 )
 async def server_config_resource() -> str:
     """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
-    _log.debug("Resource pinrag://server-config read")
+    logger.debug("Resource pinrag://server-config read")
     return await anyio.to_thread.run_sync(_format_server_config)
 
 
@@ -571,11 +437,3 @@ def use_pinrag(request: str = "") -> str:
         "then decide which tool to use."
     )
 
-
-if __name__ == "__main__":
-    # Entry point for running the server directly
-    # Use stdio transport for MCP clients
-    from pinrag.cli import _load_env
-
-    _load_env()
-    mcp.run(transport="stdio")
