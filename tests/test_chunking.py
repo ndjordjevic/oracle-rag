@@ -8,7 +8,7 @@ import pytest
 from langchain_core.documents import Document
 
 from pinrag.chunking.splitter import chunk_documents
-from pinrag.pdf.pypdf_loader import load_pdf_as_documents
+from pinrag.indexing.pdf_loader import load_pdf_as_documents
 
 
 def test_chunk_documents_empty() -> None:

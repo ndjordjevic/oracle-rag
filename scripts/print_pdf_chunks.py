@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from pinrag.chunking import chunk_documents
-from pinrag.pdf.pypdf_loader import load_pdf_as_documents
+from pinrag.indexing.pdf_loader import load_pdf_as_documents
 
 
 def main() -> None:

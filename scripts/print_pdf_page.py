@@ -6,7 +6,7 @@ import argparse
 import textwrap
 from pathlib import Path
 
-from pinrag.pdf.pypdf_loader import iter_pdf_page_text
+from pinrag.indexing.pdf_loader import iter_pdf_page_text
 
 
 def reflow_text(text: str, width: int = 72) -> str:

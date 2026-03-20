@@ -1,4 +1,4 @@
-"""Tests for pinrag.pdf.pypdf_loader."""
+"""Tests for pinrag.indexing.pdf_loader."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pinrag.pdf.pypdf_loader import iter_pdf_page_text, load_pdf_as_documents
+from pinrag.indexing.pdf_loader import iter_pdf_page_text, load_pdf_as_documents
 
 
 def test_load_pdf_as_documents_missing_file() -> None:
@@ -59,7 +59,7 @@ def test_load_pdf_as_documents_corrupted_pdf_raises(
     """Raises ValueError with user-facing message when PDF is corrupted or unreadable."""
     from pypdf.errors import PyPdfError
 
-    with patch("pinrag.pdf.pypdf_loader.PdfReader") as mock_reader:
+    with patch("pinrag.indexing.pdf_loader.PdfReader") as mock_reader:
         mock_reader.side_effect = PyPdfError("Invalid PDF structure")
         with pytest.raises(ValueError, match="PDF appears corrupted or unreadable"):
             load_pdf_as_documents(sample_pdf_path)

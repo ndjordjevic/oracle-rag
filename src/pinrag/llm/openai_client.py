@@ -15,33 +15,6 @@ from pinrag.config import DEFAULT_LLM_MODEL_OPENAI, get_llm_model, get_llm_provi
 DEFAULT_MODEL = DEFAULT_LLM_MODEL_OPENAI
 
 
-def get_openai_chat_model(
-    *,
-    model: str | None = None,
-    api_key: str | None = None,
-    temperature: float = 0,
-) -> ChatOpenAI:
-    """Return an OpenAI chat model client.
-
-    Uses ``OPENAI_API_KEY`` from the process environment unless ``api_key`` is
-    passed (callers may load ``.env`` first).
-
-    Args:
-        model: OpenAI chat model name; if None, uses config (PINRAG_LLM_MODEL or gpt-4o-mini).
-        api_key: Optional API key; otherwise uses OPENAI_API_KEY from env.
-        temperature: Sampling temperature (default: 0 for deterministic).
-
-    Returns:
-        LangChain ChatOpenAI instance (invoke, stream, etc.).
-
-    """
-    key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
-    if not key:
-        raise ValueError("OPENAI_API_KEY is required for OpenAI chat models.")
-    model_name = model if model is not None else get_llm_model()
-    return ChatOpenAI(model=model_name, api_key=SecretStr(key), temperature=temperature)
-
-
 def get_chat_model(
     *,
     model: str | None = None,
@@ -51,7 +24,7 @@ def get_chat_model(
     """Return a chat model based on PINRAG_LLM_PROVIDER (openai | anthropic).
 
     For anthropic, requires ANTHROPIC_API_KEY and langchain-anthropic.
-    For openai, requires OPENAI_API_KEY (default).
+    For openai, requires OPENAI_API_KEY unless ``api_key`` is passed.
     """
     provider = get_llm_provider()
     model_name = model if model is not None else get_llm_model()
@@ -73,6 +46,9 @@ def get_chat_model(
             temperature=temperature,
         )
 
-    return get_openai_chat_model(
-        model=model_name, api_key=api_key, temperature=temperature
+    key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise ValueError("OPENAI_API_KEY is required for OpenAI chat models.")
+    return ChatOpenAI(
+        model=model_name, api_key=SecretStr(key), temperature=temperature
     )

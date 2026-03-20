@@ -10,22 +10,20 @@ from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 
-from pinrag.llm.openai_client import (
-    DEFAULT_MODEL,
-    get_chat_model,
-    get_openai_chat_model,
-)
+from pinrag.llm.openai_client import DEFAULT_MODEL, get_chat_model
 
 
 def test_openai_missing_api_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openai")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-        get_openai_chat_model()
+        get_chat_model()
 
 
 def test_openai_explicit_api_key_skips_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openai")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    llm = get_openai_chat_model(api_key="sk-from-arg")
+    llm = get_chat_model(api_key="sk-from-arg")
     assert isinstance(llm, ChatOpenAI)
 
 

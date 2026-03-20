@@ -23,31 +23,6 @@ from pinrag.config import (
 DEFAULT_MODEL = DEFAULT_EMBEDDING_MODEL_OPENAI
 
 
-def get_openai_embedding_model(
-    *,
-    model: str | None = None,
-    api_key: str | None = None,
-) -> OpenAIEmbeddings:
-    """Return an OpenAI embedding model client.
-
-    Uses ``OPENAI_API_KEY`` from the process environment unless ``api_key`` is
-    passed (callers such as the MCP server may load ``.env`` before invoking this).
-
-    Args:
-        model: OpenAI embedding model name; if None, uses config.
-        api_key: Optional API key; otherwise uses OPENAI_API_KEY from env.
-
-    Returns:
-        LangChain OpenAIEmbeddings instance.
-
-    """
-    key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
-    if not key:
-        raise ValueError("OPENAI_API_KEY is required for OpenAI embeddings.")
-    model_name = model if model is not None else get_embedding_model_name()
-    return OpenAIEmbeddings(model=model_name, api_key=SecretStr(key))
-
-
 def get_embedding_model(
     *,
     model: str | None = None,
@@ -56,7 +31,7 @@ def get_embedding_model(
     """Return an embedding model based on PINRAG_EMBEDDING_PROVIDER (openai | cohere).
 
     For cohere, requires COHERE_API_KEY and langchain-cohere.
-    For openai, requires OPENAI_API_KEY (default).
+    For openai, requires OPENAI_API_KEY unless ``api_key`` is passed.
 
     Embedding provider options:
     - openai: text-embedding-3-small, text-embedding-3-large (default: text-embedding-3-small)
@@ -79,4 +54,7 @@ def get_embedding_model(
         # client/async_client are injected by CohereEmbeddings' model_validator (mypy unaware).
         return CohereEmbeddings(model=model_name, cohere_api_key=SecretStr(key))  # type: ignore[call-arg]
 
-    return get_openai_embedding_model(model=model_name, api_key=api_key)
+    key = api_key if api_key is not None else os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise ValueError("OPENAI_API_KEY is required for OpenAI embeddings.")
+    return OpenAIEmbeddings(model=model_name, api_key=SecretStr(key))

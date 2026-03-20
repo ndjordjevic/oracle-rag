@@ -11,6 +11,11 @@ from pinrag.indexing.github_loader import (
     load_github_repo_as_documents,
 )
 from pinrag.indexing.pdf_indexer import IndexResult, index_pdf, query_index
+from pinrag.indexing.pdf_loader import (
+    PdfLoadResult,
+    iter_pdf_page_text,
+    load_pdf_as_documents,
+)
 from pinrag.indexing.plaintext_indexer import PlaintextIndexResult, index_plaintext
 from pinrag.indexing.plaintext_loader import (
     PlaintextLoadResult,
@@ -38,6 +43,9 @@ __all__ = [
     "GitHubIndexResult",
     "GitHubLoadResult",
     "IndexResult",
+    "PdfLoadResult",
+    "iter_pdf_page_text",
+    "load_pdf_as_documents",
     "YouTubeIndexResult",
     "YouTubeLoadResult",
     "YouTubePlaylistIndexResult",

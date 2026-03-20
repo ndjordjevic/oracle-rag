@@ -11,7 +11,7 @@ from langchain_openai import OpenAIEmbeddings
 
 from pinrag.chunking import chunk_documents
 from pinrag.embeddings.openai_client import DEFAULT_MODEL, get_embedding_model
-from pinrag.pdf.pypdf_loader import load_pdf_as_documents
+from pinrag.indexing.pdf_loader import load_pdf_as_documents
 
 
 def test_get_embedding_model_returns_client(monkeypatch) -> None:

@@ -20,13 +20,13 @@ from pinrag.config import (
     get_structure_aware_chunking,
     get_use_parent_child,
 )
-from pinrag.pdf.pypdf_loader import PdfLoadResult, load_pdf_as_documents
+from pinrag.indexing.pdf_loader import PdfLoadResult, load_pdf_as_documents
 from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
 from pinrag.vectorstore.docstore import get_parent_docstore
-from pinrag.vectorstore.retriever import build_retrieval_filter
+from pinrag.vectorstore.chroma_filters import build_retrieval_filter
 
 PathLike = str | Path
 
