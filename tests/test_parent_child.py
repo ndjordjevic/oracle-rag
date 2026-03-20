@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from langchain_core.embeddings import Embeddings
 
 from pinrag.config import (
     get_child_chunk_size,
@@ -97,18 +100,12 @@ def test_create_retriever_returns_chroma_when_parent_child_off(
     mock.return_value.as_retriever.assert_called_once()
 
 
-@pytest.mark.integration
 def test_create_retriever_returns_parent_document_retriever_when_on(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    fake_embeddings: Embeddings,
 ) -> None:
     """When PINRAG_USE_PARENT_CHILD=true, create_retriever returns ParentDocumentRetriever."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping ParentDocumentRetriever test")
-
     monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "true")
     persist = tmp_path / "chroma_pc"
     persist.mkdir(parents=True)
@@ -116,6 +113,7 @@ def test_create_retriever_returns_parent_document_retriever_when_on(
         k=5,
         persist_directory=str(persist),
         collection_name="test_pc",
+        embedding=fake_embeddings,
     )
     from langchain_classic.retrievers import ParentDocumentRetriever
 
@@ -127,14 +125,9 @@ def test_create_retriever_returns_parent_document_retriever_when_on(
 def test_index_pdf_parent_child_adds_to_chroma_and_docstore(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    fake_embeddings: Embeddings,
 ) -> None:
     """When PINRAG_USE_PARENT_CHILD=true, index_pdf adds child chunks to Chroma and parents to docstore."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping parent-child index test")
-
     repo_root = Path(__file__).resolve().parents[1]
     sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
     if not sample_pdf.exists():
@@ -142,14 +135,13 @@ def test_index_pdf_parent_child_adds_to_chroma_and_docstore(
 
     monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "true")
     persist_dir = tmp_path / "chroma_pc"
-    from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
 
     result = index_pdf(
         sample_pdf,
         persist_directory=str(persist_dir),
         collection_name="pc_test",
-        embedding=get_embedding_model(),
+        embedding=fake_embeddings,
     )
     assert result.total_chunks > 0
     assert (persist_dir / "pc_test_parents").exists()
@@ -159,7 +151,7 @@ def test_index_pdf_parent_child_adds_to_chroma_and_docstore(
     store = get_chroma_store(
         persist_directory=str(persist_dir),
         collection_name="pc_test",
-        embedding=get_embedding_model(),
+        embedding=fake_embeddings,
     )
     coll = store._collection
     count = coll.count()
@@ -170,18 +162,12 @@ def test_index_pdf_parent_child_adds_to_chroma_and_docstore(
     assert len(ids) > 0
 
 
-@pytest.mark.integration
 def test_index_discord_parent_child_adds_to_chroma_and_docstore(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    fake_embeddings: Embeddings,
 ) -> None:
     """When PINRAG_USE_PARENT_CHILD=true, index_discord adds child chunks to Chroma and parents to docstore."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping Discord parent-child index test")
-
     monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "true")
     persist_dir = tmp_path / "chroma_discord_pc"
     discord_txt = tmp_path / "sample_discord.txt"
@@ -194,14 +180,13 @@ def test_index_discord_parent_child_adds_to_chroma_and_docstore(
         encoding="utf-8",
     )
 
-    from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_discord
 
     result = index_discord(
         discord_txt,
         persist_directory=str(persist_dir),
         collection_name="discord_pc_test",
-        embedding=get_embedding_model(),
+        embedding=fake_embeddings,
     )
     assert result.total_chunks > 0
     assert (persist_dir / "discord_pc_test_parents").exists()
@@ -211,7 +196,7 @@ def test_index_discord_parent_child_adds_to_chroma_and_docstore(
     store = get_chroma_store(
         persist_directory=str(persist_dir),
         collection_name="discord_pc_test",
-        embedding=get_embedding_model(),
+        embedding=fake_embeddings,
     )
     assert store._collection.count() > 0
 
@@ -219,29 +204,22 @@ def test_index_discord_parent_child_adds_to_chroma_and_docstore(
     assert len(list(docstore.yield_keys())) > 0
 
 
-@pytest.mark.integration
 def test_index_pdf_flat_mode_unchanged_when_parent_child_off(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     sample_pdf_path: Path,
+    fake_embeddings: Embeddings,
 ) -> None:
     """When PINRAG_USE_PARENT_CHILD=false, index_pdf uses original single-level flow (no _parents dir)."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping flat index test")
-
     monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "false")
     persist_dir = tmp_path / "chroma_flat"
-    from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
 
     result = index_pdf(
         sample_pdf_path,
         persist_directory=str(persist_dir),
         collection_name="flat_test",
-        embedding=get_embedding_model(),
+        embedding=fake_embeddings,
     )
     assert result.total_chunks > 0
     assert not (persist_dir / "flat_test_parents").exists()

@@ -8,8 +8,6 @@ from pathlib import Path
 
 import _script_env
 
-_script_env.load_project_dotenv()
-
 from pinrag.config import get_collection_name, get_persist_dir  # noqa: E402
 from pinrag.embeddings import get_embedding_model  # noqa: E402
 from pinrag.llm import get_chat_model  # noqa: E402

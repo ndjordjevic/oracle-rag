@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from langchain_core.embeddings import Embeddings
+
+
+@pytest.fixture
+def fake_embeddings() -> "Embeddings":
+    """Deterministic embeddings for Chroma tests (no API keys)."""
+    from langchain_core.embeddings import FakeEmbeddings
+
+    return FakeEmbeddings(size=32)
 
 
 @pytest.fixture

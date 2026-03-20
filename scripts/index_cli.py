@@ -1,7 +1,7 @@
 """Unified CLI to index PDFs and Discord exports into Chroma.
 
 Indexes files or directories. Replaces existing chunks for each document.
-Uses PINRAG_USE_PARENT_CHILD from .env when set (parent-child retrieval).
+Uses ``PINRAG_USE_PARENT_CHILD`` from the environment when set (parent-child retrieval).
 
 Usage:
     # Index specific files or directories
@@ -28,10 +28,6 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Literal
-
-from dotenv import load_dotenv
-
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from pinrag.config import (  # noqa: E402
     get_collection_name,
@@ -236,7 +232,11 @@ def main() -> int:
 
     if args.wipe_and_reindex and not args.dry_run:
         if not get_use_parent_child():
-            print("Set PINRAG_USE_PARENT_CHILD=true in .env for parent-child reindex.", file=sys.stderr)
+            print(
+                "Set PINRAG_USE_PARENT_CHILD=true in the environment for parent-child reindex "
+                "(export in shell or MCP mcp.json env).",
+                file=sys.stderr,
+            )
             return 1
         print("Wiping index and parent docstore...")
         _wipe_index(persist_path, collection)

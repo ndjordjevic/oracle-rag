@@ -70,13 +70,13 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
 }
 ```
 
-**Recommendation:** Use **Option B (uvx)** as primary — fewer setup steps. Document that users need [uv](https://docs.astral.sh/uv/) installed. PinRAG loads `.env` from `~/.pinrag/` or `~/.config/pinrag/`, so `env` can be empty if users prefer file-based config.
+**Recommendation:** Use **Option B (uvx)** as primary — fewer setup steps. Document that users need [uv](https://docs.astral.sh/uv/) installed. PinRAG reads only the process environment (MCP `env` in `mcp.json` or exported shell vars); there is no built-in `.env` loader.
 
 ### 1.4 One-Click Install URL Format
 
 Cursor uses: `https://cursor.com/en/install-mcp?name={name}&config={base64}`
 
-Example for PinRAG (uvx, empty env — user adds keys via .env):
+Example for PinRAG (uvx — user should fill `env` with API keys):
 
 ```javascript
 const config = { command: "uvx", args: ["pinrag"], env: {} };
@@ -187,7 +187,7 @@ Even without being listed, you can provide a one-click install link in the PinRA
 https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJwaW5yYWciXSwiZW52Ijp7fX0=
 ```
 
-(Decodes to `{"command":"uvx","args":["pinrag"],"env":{}}` — user adds keys via `~/.pinrag/.env` or `~/.config/pinrag/.env`)
+(Decodes to `{"command":"uvx","args":["pinrag"],"env":{}}` — user should add keys to `env` in `mcp.json` or export them before starting the client.)
 
 **Generate dynamically:**
 
@@ -210,7 +210,7 @@ For enterprise/MDM use, Cursor exposes [vscode.cursor.mcp.registerServer](https:
 
 1. **Create PinRAG icon** — Square SVG (e.g. 64×64 or 128×128)
 2. **Submit to cursor/mcp-servers** via [Server Request Template](https://github.com/cursor/mcp-servers/issues/new?template=server-request.yml)
-   - Use uvx config; mention .env fallback in description
+   - Use uvx config; document MCP `env` for API keys
    - Attach SVG icon
 3. **Add one-click install to README** — Link to `cursor.com/en/install-mcp?name=pinrag&config=...` in Cursor section
 

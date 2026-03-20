@@ -22,7 +22,7 @@ def test_require_embedding_api_key_openai_missing(
         require_embedding_api_key()
     assert exc_info.value.code == 1
     err = capsys.readouterr().err
-    assert "deployment platform settings" in err
+    assert "mcp.json" in err
 
 
 def test_require_embedding_api_key_openai_set(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -127,7 +127,7 @@ def test_require_llm_api_key_anthropic_missing(
         require_llm_api_key()
     assert exc_info.value.code == 1
     err = capsys.readouterr().err
-    assert "deployment platform settings" in err
+    assert "mcp.json" in err
 
 
 def test_require_llm_api_key_anthropic_set(monkeypatch: pytest.MonkeyPatch) -> None:

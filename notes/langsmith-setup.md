@@ -13,7 +13,7 @@ LangSmith provides observability, debugging, and monitoring for your RAG chain. 
 
 ### 2. Configure Environment Variables
 
-Add these to your `.env` file:
+Add these to your MCP server `env` map in `mcp.json`, or export them in your shell (for example before running `scripts/rag_cli.py`):
 
 ```bash
 # LangSmith tracing
@@ -140,17 +140,16 @@ Trace: RAG Chain Execution
 **403 Forbidden errors?**
 - **Most common cause**: Wrong API endpoint for your region. If your LangSmith URL starts with `eu.smith.langchain.com`, you **must** set `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`
 - If using an org-scoped API key with multiple workspaces, set `LANGSMITH_WORKSPACE_ID`
-- Ensure the `.env` does NOT use `export` prefix (correct: `KEY=value`, wrong: `export KEY=value`)
+- In shell exports, use `export KEY=value`. In JSON `mcp.json` `env`, use string values only (no `export` prefix).
 
 **No traces appearing?**
 - Check `LANGSMITH_API_KEY` is set correctly
 - Verify `LANGSMITH_TRACING=true`
-- Ensure you're loading `.env` with `load_dotenv()`
+- Ensure the process that runs PinRAG has these variables set (MCP client `env` or your shell).
 
 **Traces work from CLI but not when calling MCP tools (e.g. add_pdf_tool)?**
 - MCP tools run in the **MCP server process**. That process must have LangSmith env vars set.
-- **Option A (implemented)**: The MCP entrypoint (`scripts/mcp_server.py`) loads `.env` from the **project root** (directory containing `pyproject.toml`), so it does not depend on process cwd. Add the LangSmith vars to your project's `.env` (see step 2 above); then restart the MCP server (or Cursor). Traces from tool calls should then appear in LangSmith.
-- **Alternative**: To avoid using project `.env`, set `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, and `LANGSMITH_PROJECT` in Cursor's MCP server env for PinRAG.
+- Add `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, and `LANGSMITH_PROJECT` (and `LANGSMITH_ENDPOINT` if EU) to the PinRAG server `env` object in `mcp.json`, then restart the MCP server (or Cursor). Traces from tool calls should then appear in LangSmith.
 - Tool calls are wrapped with LangSmith's `@traceable` (`add_pdf`, `query_pdf`), so you'll see a top-level run per tool call when tracing is on.
 
 **Wrong project name?**

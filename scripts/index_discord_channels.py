@@ -15,10 +15,6 @@ import argparse
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-
 from pinrag.config import DEFAULT_PERSIST_DIR, get_collection_name  # noqa: E402
 from pinrag.mcp.tools import add_file  # noqa: E402
 

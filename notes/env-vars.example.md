@@ -1,6 +1,12 @@
-# Copy to .env and fill in your values.
+# PinRAG environment variables (reference)
 
-# --- LLM (required for generation) ---
+Set these in the MCP server `env` object in `mcp.json` (for example `~/.cursor/mcp.json` or `.vscode/mcp.json`), or export them in your shell when running repo scripts (`uv run python scripts/...`). The packaged `pinrag-mcp` entry point does not load any dotenv file.
+
+See also the configuration table in the project `README.md`.
+
+---
+
+## LLM (required for generation)
 # Provider: openai | anthropic (default: anthropic)
 # PINRAG_LLM_PROVIDER=anthropic
 # Model name (provider-specific). If unset: openai=gpt-4o-mini, anthropic=claude-haiku-4-5

@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
+from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.retrievers import BaseRetriever
 
 from pinrag.rag.multiquery import _get_multiquery_prompt, wrap_retriever_with_multiquery
@@ -19,7 +18,6 @@ def test_get_multiquery_prompt_has_question_variable() -> None:
     assert "question" in prompt.template
 
 
-@pytest.mark.integration
 def test_wrap_retriever_with_multiquery_returns_retriever() -> None:
     """wrap_retriever_with_multiquery returns a retriever that produces docs."""
 
@@ -35,19 +33,14 @@ def test_wrap_retriever_with_multiquery_returns_retriever() -> None:
                 Document(page_content="doc2", metadata={"page": 2}),
             ]
 
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
-        pytest.skip("No LLM API key; skipping multi-query test")
-
-    from pinrag.llm import get_chat_model
-
     base = FakeRetriever()
-    llm = get_chat_model()
+    llm = FakeListChatModel(
+        responses=["DMA overview question\nDMA hardware question"],
+    )
     wrapped = wrap_retriever_with_multiquery(
         base, llm, num_queries=2, include_original=True
     )
+    wrapped.verbose = False
     assert wrapped is not None
 
     docs = wrapped.invoke("What is DMA?")

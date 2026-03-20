@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import os
+from unittest.mock import patch
 
 import pytest
 from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 
@@ -48,16 +49,13 @@ def test_get_chat_model_returns_anthropic_when_configured(
     assert isinstance(llm, ChatAnthropic)
 
 
-@pytest.mark.integration
-def test_chat_model_invoke() -> None:
-    """Live invoke against the configured provider (requires API keys)."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping LLM test")
-
-    llm = get_chat_model()
+def test_chat_model_invoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    """invoke() returns string content (OpenAI path stubbed with a fake chat model)."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-fake")
+    fake = FakeListChatModel(responses=["ok"])
+    with patch("pinrag.llm.openai_client.ChatOpenAI", return_value=fake):
+        llm = get_chat_model()
     response = llm.invoke([HumanMessage(content="Say 'ok' and nothing else.")])
     assert response.content
     assert isinstance(response.content, str)

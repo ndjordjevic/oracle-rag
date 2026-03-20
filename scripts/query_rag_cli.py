@@ -5,10 +5,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import _script_env
-
-_script_env.load_project_dotenv()
-
 from pinrag.config import get_collection_name, get_persist_dir  # noqa: E402
 from pinrag.indexing import query_index  # noqa: E402
 

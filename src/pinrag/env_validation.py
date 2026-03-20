@@ -10,7 +10,11 @@ from pinrag.config import get_embedding_provider, get_llm_provider
 
 logger = logging.getLogger(__name__)
 
-_ENV_HINT = "Set it as an environment variable (e.g. in a .env file or your deployment platform settings)."
+_ENV_HINT = (
+    "Set it in the process environment—for Cursor/VS Code MCP, add keys under the "
+    "server's `env` object in `mcp.json` (e.g. `~/.cursor/mcp.json` or `.vscode/mcp.json`). "
+    "For CLI use, export the variable in your shell."
+)
 
 _EMBEDDING_KEYS = {
     "openai": ("OPENAI_API_KEY", "PINRAG_EMBEDDING_PROVIDER"),

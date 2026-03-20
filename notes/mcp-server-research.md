@@ -277,7 +277,7 @@ mcp>=1.26.0  # Requires Python 3.10+
 
 ## Configuration
 
-MCP server should read from `.env`:
+MCP server should read from the process environment (MCP `env` / shell):
 - `OPENAI_API_KEY` (required)
 - `LANGSMITH_*` variables (optional, for tracing)
 - Default `persist_dir` and `collection` can be configurable
@@ -310,10 +310,8 @@ if __name__ == "__main__":
 - **Language & SDK:** Python with the official `mcp` SDK.
 - **Server framework:** `FastMCP` (decorator-based) instead of the low-level server API.
 - **Transport:** `stdio` for real use (Cursor, uv tool install); `streamable-http` only for local testing/Inspector.
-- **Entry point:** `pinrag-mcp` script from `pyproject.toml` (`pinrag.cli:main`), which:
-  - Loads `.env` from `~/.config/pinrag/.env`, `~/.pinrag/.env`, then `{cwd}/.env`.
-  - Verifies `OPENAI_API_KEY` is set before starting the MCP server.
-- **Persistence defaults:** Chroma persist dir `~/.pinrag/chroma_db` (overridable via `PINRAG_PERSIST_DIR`); collection name `pinrag`.
+- **Entry point:** `pinrag-mcp` script from `pyproject.toml` (`pinrag.cli:main`), which validates required API keys from the environment and starts stdio MCP (no dotenv file loading).
+- **Persistence defaults:** Chroma persist dir project-local `chroma_db` by default (overridable via `PINRAG_PERSIST_DIR`); collection name `pinrag`.
 - **Tools exposed:** `query_pdf_tool`, `add_pdf_tool`, `list_pdfs_tool`, `remove_pdf_tool` as thin wrappers around the existing PinRAG functions.
 
 ## Error Handling

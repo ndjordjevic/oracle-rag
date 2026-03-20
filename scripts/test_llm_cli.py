@@ -7,8 +7,6 @@ import sys
 
 import _script_env
 
-_script_env.load_project_dotenv()
-
 from langchain_core.messages import HumanMessage  # noqa: E402
 
 from pinrag.llm import get_chat_model  # noqa: E402

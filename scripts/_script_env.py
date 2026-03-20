@@ -1,18 +1,10 @@
-"""Shared dotenv loading and API-key checks for `scripts/` CLIs."""
+"""Shared API-key hints for `scripts/` CLIs."""
 
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
-from dotenv import load_dotenv
-
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-
-
-def load_project_dotenv() -> None:
-    """Load ``.env`` from the repository root (parent of ``scripts/``)."""
-    load_dotenv(_REPO_ROOT / ".env")
+_KEY_HINT = "Set it in your shell or add it to the MCP server `env` map in mcp.json."
 
 
 def llm_keys_error_message() -> str | None:
@@ -23,12 +15,11 @@ def llm_keys_error_message() -> str | None:
         if not os.environ.get("ANTHROPIC_API_KEY"):
             return (
                 "ANTHROPIC_API_KEY is not set (PINRAG_LLM_PROVIDER=anthropic). "
-                "Set it in .env or the environment."
+                + _KEY_HINT
             )
     elif not os.environ.get("OPENAI_API_KEY"):
         return (
-            "OPENAI_API_KEY is not set (PINRAG_LLM_PROVIDER=openai). "
-            "Set it in .env or the environment."
+            "OPENAI_API_KEY is not set (PINRAG_LLM_PROVIDER=openai). " + _KEY_HINT
         )
     return None
 
@@ -41,12 +32,11 @@ def embedding_keys_error_message() -> str | None:
         if not os.environ.get("COHERE_API_KEY"):
             return (
                 "COHERE_API_KEY is not set (PINRAG_EMBEDDING_PROVIDER=cohere). "
-                "Set it in .env or the environment."
+                + _KEY_HINT
             )
     elif not os.environ.get("OPENAI_API_KEY"):
         return (
-            "OPENAI_API_KEY is not set (PINRAG_EMBEDDING_PROVIDER=openai). "
-            "Set it in .env or the environment."
+            "OPENAI_API_KEY is not set (PINRAG_EMBEDDING_PROVIDER=openai). " + _KEY_HINT
         )
     return None
 

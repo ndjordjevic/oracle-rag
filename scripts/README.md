@@ -90,7 +90,7 @@ uv run python scripts/print_pdf_chunks.py data/pdfs/sample.pdf --page 7 --limit 
 
 ## index_cli.py
 
-Unified CLI to index PDFs and Discord exports into Chroma. Replaces existing chunks per document. When `PINRAG_USE_PARENT_CHILD=true` in `.env`, indexing uses parent–child chunking (see project README).
+Unified CLI to index PDFs and Discord exports into Chroma. Replaces existing chunks per document. When `PINRAG_USE_PARENT_CHILD=true` in the environment, indexing uses parent–child chunking (see project README).
 
 **Arguments**
 
@@ -174,7 +174,7 @@ uv run python scripts/list_indexed_docs_cli.py --persist-dir my_chroma --collect
 
 ## test_llm_cli.py
 
-Call the configured chat model (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic) with a test prompt. Requires the matching API key in `.env` or the environment (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`).
+Call the configured chat model (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic) with a test prompt. Requires the matching API key in the environment (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`).
 
 **Arguments**
 
@@ -216,11 +216,11 @@ uv run python scripts/rag_cli.py "Summarize the main points." --k 8
 
 ## mcp_server.py
 
-Dev entry point to run the PinRAG MCP server over **stdio** for MCP-compatible clients (Cursor, Claude Desktop, MCP Inspector). Packaged installs typically use the **`pinrag-mcp`** console script instead (`pyproject` `[project.scripts]`); both load `.env` from the repo/install context.
+Dev entry point to run the PinRAG MCP server over **stdio** for MCP-compatible clients (Cursor, Claude Desktop, MCP Inspector). Packaged installs use the **`pinrag-mcp`** console script (`pyproject` `[project.scripts]`). Neither loads a dotenv file — set variables in MCP `env` or export in your shell.
 
 **Requirements**
 
-- Same API keys as running the app: embeddings (OpenAI or Cohere) plus LLM (OpenAI or Anthropic), per your `.env`. See the main project README.
+- Same API keys as running the app: embeddings (OpenAI or Cohere) plus LLM (OpenAI or Anthropic). See the main project README.
 - Index documents via **`add_document_tool`** / **`add_files`** from the client, or use `index_cli.py` locally.
 
 **Transport**

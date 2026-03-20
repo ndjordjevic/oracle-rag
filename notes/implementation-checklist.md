@@ -100,7 +100,7 @@
 
 ### Configuration & Persistence
 - [x] **Configuration Management** (env vars)
-  - [x] Set up configuration file (YAML/JSON/env) — using `.env` + `PINRAG_*` vars; see `.env.example`
+  - [x] Set up configuration — `PINRAG_*` and provider API keys via MCP `env` or shell; see `notes/env-vars.example.md` and README
   - [x] Make chunk size configurable (`PINRAG_CHUNK_SIZE`, default 1000)
   - [x] Make chunk overlap configurable (`PINRAG_CHUNK_OVERLAP`, default 200)
 
@@ -138,7 +138,7 @@
 ### Deployment & Distribution - MVP
 - [x] **Document how others can start and use this MCP**
   - [x] PyPI install: `pip install pinrag` → `pinrag-mcp` CLI; config from cwd or `~/.config/pinrag/` (see `README.md`, `notes/distribution-options.md`)
-  - [x] Cursor MCP config: command `pinrag-mcp` (no cwd needed; uses ~/.pinrag/ for .env and chroma_db)
+  - [x] Cursor MCP config: command `pinrag-mcp` (no cwd needed; Chroma under `PINRAG_PERSIST_DIR`, default project-local `chroma_db`)
   - **Publish new version to PyPI:** Bump `version` in `pyproject.toml` → `git add -A && git commit -m "vX.Y.Z: ..." && git push` → `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z` → `uv build && uv publish` (use `__token__` + PyPI API token when prompted; or `uv cache clean` before `uv tool install pinrag --force` to get latest)
   - [x] Github action to publish to PyPI on a new tag/release
 
@@ -262,7 +262,7 @@
 ### MCP & Configuration Polish
 - [x] **Revise and polish MCP tools params** — Review tool parameter names, descriptions, defaults, and validation across all MCP tools.
 - [x] **Revise and polish MCP resources and prompts** — Review resource URIs, prompt templates, and argument descriptions for clarity and consistency.
-- [x] **Revise and polish MCP server params** — Keep .env (MCP env blocks, 12-factor, no YAML needed). Documented in .env.example, README config table, and server config resource (set vs defaults).
+- [x] **Revise and polish MCP server params** — Configure via MCP `env` / process environment (12-factor, no YAML). Documented in `notes/env-vars.example.md`, README config table, and server config resource (set vs defaults).
 
 ### New Document Types (Indexing)
 - [x] **YouTube indexing** — Index video transcripts via `youtube-transcript-api`. Load transcript → chunk → Chroma; metadata: `document_id` (video ID), `document_type`, `video_id`, `start` (seconds), `duration`, `title` (via oEmbed), `source` (canonical URL). MCP `add_document_tool` detects YouTube URLs/IDs; citations show timestamp (e.g. `t. 1:23`). Handle `TranscriptsDisabled`, `NoTranscriptFound` with clear errors. `list_documents_tool` and `documents_resource` show title and segments.
@@ -292,7 +292,7 @@
 - [ ] Code review of the src and tests folders.
 - [ ] Fix code review findings.
 - [ ] Test two modes of running the stdio pinrag mcp server: one via `uv run --project pinrag pinrag-mcp` and one via `uvx pinrag` (a new release should be published first).
-- [ ] Check README.md for the pinrag mcp server and update it if needed.
+- [ ] Check README.md for the pinrag mcp server and update it if needed. Check it how it looks like on GitHub.
 - [ ] Check pinrag repo and what's been pushed there and should we expose it to the users?
 - [ ] Investigate the ways how to advertise the pinrag mcp server to the users and advertise the pinrag mcp server to the users.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.

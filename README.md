@@ -17,7 +17,7 @@ PinRAG provides intelligent document querying and retrieval capabilities for PDF
 - **MCP tools** — `add_document_tool`, `query_tool`, `list_documents_tool`, `remove_document_tool`
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
-- **Configurable LLM** — Anthropic (default) or OpenAI; set via `PINRAG_LLM_PROVIDER` and model in `.env`
+- **Configurable LLM** — Anthropic (default) or OpenAI; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
 - **Configurable embeddings** — OpenAI (default) or Cohere; set via `PINRAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
 - **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, Cohere
 
@@ -55,6 +55,8 @@ if any are missing. In OSS MCP mode, set all env vars in your MCP `env` block.
 - **Default setup** (Anthropic LLM + OpenAI embeddings): set both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. Embeddings use OpenAI; queries use Anthropic.
 - **OpenAI only:** set `PINRAG_LLM_PROVIDER=openai` and only `OPENAI_API_KEY` (one key for both embeddings and chat).
 - **Cohere embeddings:** set `PINRAG_EMBEDDING_PROVIDER=cohere` and `COHERE_API_KEY`; you still need an LLM key (OpenAI or Anthropic) per above.
+
+A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
 
 ### 2. Add MCP server
 
@@ -118,13 +120,13 @@ Index a GitHub repository to ask questions about its code and docs. Use `add_doc
 - `https://github.com/owner/repo/tree/branch`
 - `github.com/owner/repo` (no scheme)
 
-Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in `.env` for private repos or higher API rate limits. Large files (>512 KB by default) and binaries are skipped.
+Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in MCP `env` or your shell for private repos or higher API rate limits. Large files (>512 KB by default) and binaries are skipped.
 
 ### YouTube indexing and IP blocking
 
 YouTube often blocks transcript requests from IPs that have made too many requests or from cloud provider IPs (AWS, GCP, Azure, etc.). When indexing playlists or many videos, you may see errors like *"YouTube is blocking requests from your IP"*.
 
-**Workaround:** Use an HTTP/HTTPS proxy. Add to `.env`:
+**Workaround:** Use an HTTP/HTTPS proxy. Set in MCP `env` or your shell:
 
 ```env
 PINRAG_YT_PROXY_HTTP_URL=http://user:pass@proxy.example.com:80
@@ -196,15 +198,15 @@ Environment variables:
 
 ### Monitoring & Observability
 
-For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in `.env`; traces are sent automatically. For EU region, add `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`. See `notes/langsmith-setup.md` for setup. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
+For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in MCP `env` or your shell; traces are sent automatically. For EU region, add `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`. See `notes/langsmith-setup.md` for setup. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
 
 ### Multiple providers and collections
 
 Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid dimension mismatches:
 
 - **Default:** Collection name is `pinrag`. Use one embedding provider; if you switch provider, re-index or you will get dimension errors.
-- **Per-provider collections:** Set `PINRAG_COLLECTION_NAME` to a provider-specific name (e.g. `pinrag_openai`, `pinrag_cohere`) when indexing, and use the same name when querying with that provider. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_PROVIDER` and `PINRAG_COLLECTION_NAME` in `.env`.
-- **MCP tools:** The server uses `PINRAG_COLLECTION_NAME` (default `pinrag`) for all tools. Collection is not configurable per call; change it via `.env` to target a different collection.
+- **Per-provider collections:** Set `PINRAG_COLLECTION_NAME` to a provider-specific name (e.g. `pinrag_openai`, `pinrag_cohere`) when indexing, and use the same name when querying with that provider. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_PROVIDER` and `PINRAG_COLLECTION_NAME` in MCP `env` or your shell.
+- **MCP tools:** The server uses `PINRAG_COLLECTION_NAME` (default `pinrag`) for all tools. Collection is not configurable per call; change it via MCP `env` or your shell to target a different collection.
 
 ## MCP Tools Reference
 
