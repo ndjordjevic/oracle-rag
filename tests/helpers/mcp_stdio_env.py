@@ -1,4 +1,4 @@
-"""Env loading for tests/test_mcp_stdio_integration (no python-dotenv dependency)."""
+"""Env loading for MCP stdio integration tests (no python-dotenv dependency)."""
 
 from __future__ import annotations
 

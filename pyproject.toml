@@ -38,6 +38,7 @@ pinrag-mcp = "pinrag.cli:main"
 testpaths = ["tests"]
 markers = [
     "integration: needs network, API keys, or optional assets (e.g. sample PDF)",
+    "pypi_mcp: stdio MCP against published PyPI pinrag package (network, uv tool run)",
 ]
 filterwarnings = [
     "ignore::pydantic.warnings.PydanticDeprecatedSince20",
