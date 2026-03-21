@@ -292,6 +292,8 @@
 - [x] Code review of the src and tests folders.
 - [x] Fix code review findings.
 - [ ] Test two modes of running the stdio pinrag mcp server: one via `uv run --project pinrag pinrag-mcp` and one via `uvx pinrag` (a new release should be published first).
+  - [x] **`uv run --project pinrag pinrag-mcp`:** integration test [`tests/test_mcp_stdio_integration.py`](tests/test_mcp_stdio_integration.py) — spawns `uv run --project <repo> pinrag-mcp`, calls `add_document_tool` → `list_documents_tool` → `query_tool` (e.g. “What’s Amiga AGA?” scoped to the indexed PDF) → `remove_document_tool` on `data/pdfs/Bare-metal Amiga programming 2021_ocr.pdf`, uses a temp `PINRAG_PERSIST_DIR` (never the repo `chroma_db`). **Keys:** `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` from the environment (CI secrets), or from `tests/.mcp_stdio_integration.env` (copy from [`tests/mcp_stdio_integration.env.example`](tests/mcp_stdio_integration.env.example), gitignored), or `PINRAG_MCP_ITEST_ENV_FILE` pointing at a `KEY=value` file; optional deprecated: `PINRAG_ITEST_USE_CURSOR_MCP_JSON=1` merges `~/.cursor/mcp.json` `pinrag-dev` env. **Run:** `pytest -m integration tests/test_mcp_stdio_integration.py -v`. **Verbose progress (optional):** add `--log-cli-level=INFO`.
+  - [ ] **`uvx pinrag`:** manual or add a second test after PyPI release; not automated yet.
 - [ ] Check README.md for the pinrag mcp server and update it if needed. Check it how it looks like on GitHub.
 - [ ] Check pinrag repo and what's been pushed there and should we expose it to the users?
 - [ ] Investigate the ways how to advertise the pinrag mcp server to the users and advertise the pinrag mcp server to the users.

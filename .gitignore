@@ -72,6 +72,9 @@ logs/
 # MCP server
 .mcp/
 
+# MCP stdio integration test (local secrets only)
+tests/.mcp_stdio_integration.env
+
 # Testing
 .pytest_cache/
 .coverage
