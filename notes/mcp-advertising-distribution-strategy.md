@@ -143,13 +143,15 @@ https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJ
 ```
 Decodes to `{"command":"uvx","args":["--from","pinrag","pinrag-mcp"],"env":{}}`.
 
-**VS Code:**
+**VS Code:** GitHub’s README renderer does **not** make `vscode:` URLs clickable (custom schemes are stripped). The README therefore links to an **HTTPS landing page** that contains the real `vscode:` button: [`docs/vscode-mcp-install.html`](../docs/vscode-mcp-install.html), also reachable via jsDelivr as `https://cdn.jsdelivr.net/gh/ndjordjevic/pinrag@main/docs/vscode-mcp-install.html`.
+
+Raw `vscode:` URL (for local README preview or manual paste):
 ```
 vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22pinrag%22%2C%22pinrag-mcp%22%5D%7D
 ```
 Decodes to `{"name":"pinrag","command":"uvx","args":["--from","pinrag","pinrag-mcp"]}`.
 
-Add both as badges/buttons in the README Quick Start section. Users still need to add API keys to `mcp.json` after install.
+Add Cursor link + VS Code HTTPS landing page in the README Quick Start section. Users still need to add API keys to `mcp.json` after install.
 
 ### 2.6 cursor.store
 

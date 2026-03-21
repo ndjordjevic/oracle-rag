@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Install PinRAG MCP in VS Code</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #1e293b; }
+    .btn { display: inline-block; margin: 1rem 0; padding: 0.65rem 1.25rem; background: #0ea5e9; color: #fff !important; text-decoration: none; border-radius: 8px; font-weight: 600; }
+    .btn:hover { background: #0284c7; }
+    code { font-size: 0.85rem; word-break: break-all; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Install PinRAG MCP in VS Code</h1>
+  <p>
+    GitHub’s README cannot use <code>vscode:</code> links (they are not treated as clickable URLs).
+    This page is served over HTTPS so you get a real link from the README; use the button below to open VS Code’s MCP installer.
+  </p>
+  <p>
+    <a
+      class="btn"
+      href="vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22pinrag%22%2C%22pinrag-mcp%22%5D%7D"
+      >Install PinRAG in VS Code</a
+    >
+  </p>
+  <div class="box">
+    <p><strong>If the button does nothing</strong>, copy this entire line into your browser’s address bar (you need VS Code installed and the <code>vscode</code> URL handler):</p>
+    <p><code>vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22pinrag%22%2C%22pinrag-mcp%22%5D%7D</code></p>
+  </div>
+  <p>Requires <a href="https://docs.astral.sh/uv/">uv</a> on your PATH. After install, add API keys in your MCP <code>env</code> block — see the <a href="https://github.com/ndjordjevic/pinrag#quick-start">PinRAG README</a>.</p>
+</body>
+</html>
