@@ -82,3 +82,6 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# MCP Registry CLI (downloaded for local publish; not vendored)
+mcp-publisher
