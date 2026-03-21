@@ -18,13 +18,6 @@
       },
       "environmentVariables": [
         {
-          "description": "OpenAI API key (LLM and/or embeddings when using OpenAI). Often set together with or instead of ANTHROPIC_API_KEY.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": true,
-          "name": "OPENAI_API_KEY"
-        },
-        {
           "description": "Anthropic API key when using Claude as the LLM (default provider).",
           "isRequired": false,
           "format": "string",
@@ -32,11 +25,11 @@
           "name": "ANTHROPIC_API_KEY"
         },
         {
-          "description": "Cohere API key when PINRAG_EMBEDDING_PROVIDER=cohere or using Cohere re-ranking (install pinrag[cohere]).",
+          "description": "OpenAI API key (LLM and/or embeddings when using OpenAI). Often set together with or instead of ANTHROPIC_API_KEY.",
           "isRequired": false,
           "format": "string",
           "isSecret": true,
-          "name": "COHERE_API_KEY"
+          "name": "OPENAI_API_KEY"
         },
         {
           "description": "Absolute path to the Chroma vector store directory (recommended so indexes are not tied to the server process cwd).",
