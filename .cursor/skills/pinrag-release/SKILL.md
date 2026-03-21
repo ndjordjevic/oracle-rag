@@ -52,7 +52,11 @@ Cut a new pinrag release: bump version, tag, push, and create a GitHub Release (
 
 ### MCP Registry (`mcp-publisher`)
 
-The README must include the PyPI ownership line `<!-- mcp-name: io.github.ndjordjevic/pinrag -->` (so the published package description on PyPI contains it). **On each release**, after bumping versions in `pyproject.toml` and `server.json`, ship the release so PyPI is updated. **Then** run `mcp-publisher login github` and `mcp-publisher publish` (from the repo root, with `server.json` present) so the MCP Registry picks up the new metadata. Do not publish to the registry before the matching version is on PyPI.
+The README must include the PyPI ownership line `<!-- mcp-name: io.github.ndjordjevic/pinrag -->` (so the published package description on PyPI contains it). **On each release**, after bumping versions in `pyproject.toml` and `server.json`, ship the release so PyPI is updated.
+
+**Automated (default):** Creating a **GitHub Release** runs `.github/workflows/publish.yml`, which publishes to PyPI and then runs **`mcp-publisher login github-oidc`** + **`mcp-publisher publish`** in CI (OIDC; no extra secrets). A job waits until the new version appears on PyPI before publishing metadata.
+
+**Manual (fallback):** If you skip CI or need to re-publish metadata, run `mcp-publisher login github` and `mcp-publisher publish` from the repo root (with `server.json` present) **after** the matching version is on PyPI.
 
 If you keep the official CLI binary in the **repo root** as `./mcp-publisher` (listed in `.gitignore`, not committed), use `./mcp-publisher login github` and `./mcp-publisher publish` from that directory. Otherwise install via Homebrew (`brew install mcp-publisher`) or download from the [registry releases](https://github.com/modelcontextprotocol/registry/releases) so `mcp-publisher` is on your `PATH`.
 

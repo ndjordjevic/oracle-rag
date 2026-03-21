@@ -34,3 +34,44 @@ jobs:
         run: |
           uv publish
 
+  publish-mcp-registry:
+    name: Publish to MCP Registry
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Wait for PyPI to list this release
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          echo "Waiting for pinrag==${VERSION} on PyPI (registry validates against live PyPI)..."
+          for i in $(seq 1 36); do
+            if curl -fsS "https://pypi.org/pypi/pinrag/json" | jq -e --arg v "$VERSION" '.releases | has($v)' >/dev/null 2>&1; then
+              echo "PyPI lists ${VERSION}"
+              exit 0
+            fi
+            echo "Attempt ${i}/36: not yet visible; sleeping 10s"
+            sleep 10
+          done
+          echo "Timed out waiting for PyPI to serve ${VERSION}"
+          exit 1
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          chmod +x mcp-publisher
+
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json to MCP Registry
+        run: ./mcp-publisher publish
