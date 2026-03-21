@@ -27,8 +27,8 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 | 2 | **cursor/mcp-servers** GitHub issue | Official Cursor curated list. One-click install. High visibility among Cursor users. | Low | Not started |
 | 3 | **mcp.so** | Largest directory (17,000+ servers). Simple web/CLI submission. | Low | Not started |
 | 4 | **awesome-mcp-servers** GitHub PR | 83.7k stars. Enormous organic visibility. | Low | Not started |
-| 5 | **VS Code one-click install URL** in README | Zero friction for VS Code users. Works today. | Very Low | Not started |
-| 6 | **Cursor one-click install URL** in README | Zero friction for Cursor users. Works today. | Very Low | Not started |
+| 5 | **VS Code one-click install URL** in README | Zero friction for VS Code users. Works today. | Very Low | **Done** — README Quick Start (GitHub Pages → `vscode:` button; see §2.5). |
+| 6 | **Cursor one-click install URL** in README | Zero friction for Cursor users. Works today. | Very Low | **Done** — README Quick Start (`cursor.com/en/install-mcp` + base64 config). |
 
 ### Tier 2: Broader Reach (Do Next)
 
@@ -253,6 +253,8 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 - [ ] Submit to **MCPCentral** (mcpcentral.io)
 
 ### Phase 4: Content & Community (ongoing)
+
+**Origin story (reminder — optional for ads later):** PinRAG was conceived as an **MCP RAG** where you **index your own sources**—PDFs, YouTube transcripts, GitHub repo contents, Discord channel exports—so you can **study a topic** by asking questions across those resources in the IDE. We have not decided whether to foreground this narrative in public marketing; revisit when writing posts or demos.
 
 - [ ] Create demo GIF/video for README
 - [ ] Write first blog post (Dev.to or Hashnode)
