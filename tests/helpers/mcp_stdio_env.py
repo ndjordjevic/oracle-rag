@@ -18,6 +18,29 @@ def truthy_env(name: str) -> bool:
     return (os.environ.get(name) or "").strip().lower() in ("1", "true", "yes")
 
 
+def resolve_mcp_stdio_itest_pdf(repo_root: Path) -> Path | None:
+    """Return a PDF path for MCP stdio integration tests, or None if unavailable.
+
+    If ``PINRAG_MCP_ITEST_PDF`` is set, that path must exist on disk. Otherwise
+    ``<repo_root>/data/pdfs/sample-text.pdf`` is used when present (same asset as
+    other PDF tests).
+    """
+    override = (os.environ.get("PINRAG_MCP_ITEST_PDF") or "").strip()
+    if override:
+        p = Path(override).expanduser()
+        if not p.is_absolute():
+            p = (Path.cwd() / p).resolve()
+        return p if p.is_file() else None
+    default = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    return default if default.is_file() else None
+
+
+def mcp_stdio_itest_query() -> str:
+    """Return the MCP stdio test query string (env override or generic default)."""
+    q = (os.environ.get("PINRAG_MCP_ITEST_QUERY") or "").strip()
+    return q if q else "What is this document about?"
+
+
 def resolve_mcp_itest_env_file_path(test_file: Path) -> Path:
     """Path to secrets file: PINRAG_MCP_ITEST_ENV_FILE or tests/.mcp_stdio_integration.env."""
     override = (os.environ.get("PINRAG_MCP_ITEST_ENV_FILE") or "").strip()

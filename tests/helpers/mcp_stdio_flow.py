@@ -19,7 +19,7 @@ def parse_tool_result(result: CallToolResult) -> dict:
     return json.loads(result.content[0].text)
 
 
-async def run_amiga_pdf_stdio_flow(
+async def run_pdf_stdio_roundtrip(
     session: ClientSession,
     *,
     pdf_path: Path,

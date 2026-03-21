@@ -7,6 +7,9 @@ API keys (required for the subprocess server):
    and fill in keys (gitignored), or
 3. Set ``PINRAG_MCP_ITEST_ENV_FILE`` to another ``KEY=value`` file path.
 
+**PDF:** defaults to ``data/pdfs/sample-text.pdf`` (not committed; create locally). Override
+with ``PINRAG_MCP_ITEST_PDF`` / ``PINRAG_MCP_ITEST_QUERY`` if you use another file.
+
 Environment variables win over the file for each key. Optional migration-only: set
 ``PINRAG_ITEST_USE_CURSOR_MCP_JSON=1`` to merge ``mcpServers.pinrag-dev.env`` from
 ``~/.cursor/mcp.json`` (deprecated).
@@ -28,14 +31,16 @@ import pytest
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
-from tests.helpers.mcp_stdio_env import build_server_env_for_mcp_itest
-from tests.helpers.mcp_stdio_flow import run_amiga_pdf_stdio_flow
+from tests.helpers.mcp_stdio_env import (
+    build_server_env_for_mcp_itest,
+    mcp_stdio_itest_query,
+    resolve_mcp_stdio_itest_pdf,
+)
+from tests.helpers.mcp_stdio_flow import run_pdf_stdio_roundtrip
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_AMIGA_PDF = _REPO_ROOT / "data" / "pdfs" / "Bare-metal Amiga programming 2021_ocr.pdf"
 
 _COLLECTION_ITEST = "pinrag_itest"
-_QUERY_TEXT = "What's Amiga AGA?"
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +58,22 @@ def _uv_bin() -> str | None:
 
 
 @pytest.mark.integration
-def test_amiga_pdf_roundtrip_local_repo(tmp_path: Path) -> None:
+def test_pdf_roundtrip_local_repo(tmp_path: Path) -> None:
     """Local checkout: spawn ``pinrag-mcp``, index PDF, list, query, remove; isolated Chroma."""
+    pdf = resolve_mcp_stdio_itest_pdf(_REPO_ROOT)
+    if pdf is None:
+        override = (os.environ.get("PINRAG_MCP_ITEST_PDF") or "").strip()
+        if override:
+            pytest.skip(f"PINRAG_MCP_ITEST_PDF not found: {override}")
+        pytest.skip(
+            "No PDF for MCP stdio tests: add data/pdfs/sample-text.pdf or set PINRAG_MCP_ITEST_PDF."
+        )
+    query_text = mcp_stdio_itest_query()
+
     chroma_dir = tmp_path / "chroma_itest"
     logger.info("MCP stdio integration — local repo checkout")
     logger.info("Repo root: %s", _REPO_ROOT)
-    logger.info("PDF path: %s (exists=%s)", _AMIGA_PDF, _AMIGA_PDF.is_file())
+    logger.info("PDF path: %s", pdf)
 
     env = build_server_env_for_mcp_itest(
         chroma_dir,
@@ -70,8 +85,6 @@ def test_amiga_pdf_roundtrip_local_repo(tmp_path: Path) -> None:
         pytest.skip(f"OPENAI_API_KEY not set. {_SKIP_KEYS_HINT}")
     if not env.get("ANTHROPIC_API_KEY", "").strip():
         pytest.skip(f"ANTHROPIC_API_KEY not set. {_SKIP_KEYS_HINT}")
-    if not _AMIGA_PDF.is_file():
-        pytest.skip("Amiga PDF not present")
     uv_bin = _uv_bin()
     if not uv_bin:
         pytest.skip("uv not found (install uv or set PINRAG_TEST_UV)")
@@ -96,10 +109,10 @@ def test_amiga_pdf_roundtrip_local_repo(tmp_path: Path) -> None:
                     )
                     await session.initialize()
                     logger.info("MCP session initialized (protocol handshake done)")
-                    await run_amiga_pdf_stdio_flow(
+                    await run_pdf_stdio_roundtrip(
                         session,
-                        pdf_path=_AMIGA_PDF,
-                        query_text=_QUERY_TEXT,
+                        pdf_path=pdf,
+                        query_text=query_text,
                         log=logger,
                     )
         finally:

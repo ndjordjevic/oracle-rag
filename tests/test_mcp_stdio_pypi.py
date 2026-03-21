@@ -6,6 +6,9 @@ package from PyPI (not the local repo).
 Requires ``uv`` (same as ``uvx --from <spec> pinrag-mcp``). API keys: same as the repo
 stdio test — see ``tests/mcp_stdio_integration.env.example``.
 
+**PDF / query:** same defaults as the repo test (``data/pdfs/sample-text.pdf`` and a
+generic question; override with ``PINRAG_MCP_ITEST_PDF`` / ``PINRAG_MCP_ITEST_QUERY``).
+
 **Skip PyPI download / network:** set ``PINRAG_MCP_ITEST_SKIP_PYPI=1``.
 
 **Pin the package version:** ``PINRAG_MCP_ITEST_PYPI_SPEC=pinrag==0.9.0`` (default is
@@ -28,14 +31,17 @@ import pytest
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
-from tests.helpers.mcp_stdio_env import build_server_env_for_mcp_itest, truthy_env
-from tests.helpers.mcp_stdio_flow import run_amiga_pdf_stdio_flow
+from tests.helpers.mcp_stdio_env import (
+    build_server_env_for_mcp_itest,
+    mcp_stdio_itest_query,
+    resolve_mcp_stdio_itest_pdf,
+    truthy_env,
+)
+from tests.helpers.mcp_stdio_flow import run_pdf_stdio_roundtrip
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_AMIGA_PDF = _REPO_ROOT / "data" / "pdfs" / "Bare-metal Amiga programming 2021_ocr.pdf"
 
 _COLLECTION_ITEST_PYPI = "pinrag_itest_pypi"
-_QUERY_TEXT = "What's Amiga AGA?"
 
 logger = logging.getLogger(__name__)
 
@@ -57,15 +63,25 @@ def _pypi_spec() -> str:
 
 @pytest.mark.integration
 @pytest.mark.pypi_mcp
-def test_amiga_pdf_roundtrip_pypi_package(tmp_path: Path) -> None:
+def test_pdf_roundtrip_pypi_package(tmp_path: Path) -> None:
     """PyPI package: spawn ``pinrag-mcp`` from the index, same PDF roundtrip; isolated Chroma."""
     if truthy_env("PINRAG_MCP_ITEST_SKIP_PYPI"):
         pytest.skip("PINRAG_MCP_ITEST_SKIP_PYPI set")
 
+    pdf = resolve_mcp_stdio_itest_pdf(_REPO_ROOT)
+    if pdf is None:
+        override = (os.environ.get("PINRAG_MCP_ITEST_PDF") or "").strip()
+        if override:
+            pytest.skip(f"PINRAG_MCP_ITEST_PDF not found: {override}")
+        pytest.skip(
+            "No PDF for MCP stdio tests: add data/pdfs/sample-text.pdf or set PINRAG_MCP_ITEST_PDF."
+        )
+    query_text = mcp_stdio_itest_query()
+
     chroma_dir = tmp_path / "chroma_itest_pypi"
     pypi_spec = _pypi_spec()
     logger.info("MCP stdio integration — PyPI package (spec=%s)", pypi_spec)
-    logger.info("PDF path: %s (exists=%s)", _AMIGA_PDF, _AMIGA_PDF.is_file())
+    logger.info("PDF path: %s", pdf)
 
     env = build_server_env_for_mcp_itest(
         chroma_dir,
@@ -77,8 +93,6 @@ def test_amiga_pdf_roundtrip_pypi_package(tmp_path: Path) -> None:
         pytest.skip(f"OPENAI_API_KEY not set. {_SKIP_KEYS_HINT}")
     if not env.get("ANTHROPIC_API_KEY", "").strip():
         pytest.skip(f"ANTHROPIC_API_KEY not set. {_SKIP_KEYS_HINT}")
-    if not _AMIGA_PDF.is_file():
-        pytest.skip("Amiga PDF not present")
     uv_bin = _uv_bin()
     if not uv_bin:
         pytest.skip("uv not found (install uv or set PINRAG_TEST_UV)")
@@ -103,10 +117,10 @@ def test_amiga_pdf_roundtrip_pypi_package(tmp_path: Path) -> None:
                     )
                     await session.initialize()
                     logger.info("MCP session initialized (protocol handshake done)")
-                    await run_amiga_pdf_stdio_flow(
+                    await run_pdf_stdio_roundtrip(
                         session,
-                        pdf_path=_AMIGA_PDF,
-                        query_text=_QUERY_TEXT,
+                        pdf_path=pdf,
+                        query_text=query_text,
                         log=logger,
                     )
         finally:
