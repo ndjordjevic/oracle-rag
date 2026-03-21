@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/pinrag-icon.svg" width="96" height="96" alt="PinRAG logo" />
+</p>
+
 # PinRAG
 
 [![PyPI version](https://img.shields.io/pypi/v/pinrag)](https://pypi.org/project/pinrag/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -42,6 +46,23 @@ pipx upgrade pinrag
 Restart your editor after updating so the MCP server picks up the new version.
 
 ## Quick Start
+
+### One-click install (Cursor & VS Code)
+
+These links add PinRAG to your editor’s MCP config using **`uvx --from pinrag pinrag-mcp`** (runs the latest PinRAG from PyPI without a prior `pip install`). You need [**uv**](https://docs.astral.sh/uv/) installed and on your `PATH`.
+
+| Editor | Action |
+|--------|--------|
+| **Cursor** | [Install PinRAG MCP in Cursor](https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6e319) |
+| **VS Code** | [Install PinRAG MCP in VS Code](vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22pinrag%22%2C%22pinrag-mcp%22%5D%7D) |
+
+After the install step, **add your API keys** in the MCP `env` block (same place as in the manual examples below)—the one-click flow does not embed secrets. If you prefer **`pinrag-mcp`** after `pipx install pinrag`, use the JSON snippets in the next section instead of the links above.
+
+To pick up a **new PyPI release** with this `uvx` setup, run `uvx --refresh --from pinrag pinrag-mcp` once in a terminal (or `uv cache clean`), then restart your editor so the MCP server reloads.
+
+To **see which version you’re on**, run `pipx list` if you use pipx, or `uvx --from pinrag python -c "import importlib.metadata as m; print(m.version('pinrag'))"` to print the version `uvx` resolves (PyPI metadata).
+
+> **VS Code:** The `vscode:` link may not open from the GitHub web UI in some browsers—paste it into your address bar, or open it from a local clone of this README in VS Code.
 
 ### Configure MCP server
 

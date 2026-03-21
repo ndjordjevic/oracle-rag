@@ -57,6 +57,7 @@ venv.bak/
 *.sqlite
 *.sqlite3
 chroma_db/
+chroma_db_test/
 
 # Local-only data (PDFs, Discord exports, etc.); not tracked
 data/

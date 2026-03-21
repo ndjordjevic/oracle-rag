@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="PinRAG">
+  <title>PinRAG</title>
+  <!-- Document -->
+  <rect
+    x="14"
+    y="22"
+    width="72"
+    height="88"
+    rx="10"
+    fill="#f8fafc"
+    stroke="#334155"
+    stroke-width="4"
+  />
+  <!-- Abstract text lines -->
+  <line x1="28" y1="46" x2="72" y2="46" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  <line x1="28" y1="60" x2="64" y2="60" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  <line x1="28" y1="74" x2="68" y2="74" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  <!-- Pin on your corpus -->
+  <path
+    d="M 88 18 C 74 18 64 30 64 44 C 64 62 88 94 88 94 C 88 94 112 62 112 44 C 112 30 102 18 88 18 Z"
+    fill="#0ea5e9"
+    stroke="#0369a1"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+  <circle cx="88" cy="44" r="9" fill="#f8fafc"/>
+</svg>

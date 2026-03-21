@@ -287,7 +287,7 @@
 - [x] Update PyPi package description: set in `pyproject.toml` — `description` = one-line summary (PyPI summary); `readme = "README.md"` = long description (PyPI project page body). Re-publish to PyPI for changes to appear.
 - [x] Test pinrag mcp in visual studio code locally.
 - [x] Polish README.md
-- [x] **Investigate** to add pinrag mcp to visual studio code extensions marketplace — see `notes/vscode-marketplace-investigation.md`. Summary: (A) VS Code extension wrapping `uvx pinrag` for Extensions view; (B) one-click install URL (`vscode:mcp/install?…`) for README; (C) curated list (process TBD). Recommend B first, then A.
+- [x] **Investigate** to add pinrag mcp to visual studio code extensions marketplace — see `notes/vscode-marketplace-investigation.md`. Summary: (A) VS Code extension wrapping `uvx --from pinrag pinrag-mcp` for Extensions view; (B) one-click install URL (`vscode:mcp/install?…`) for README; (C) curated list (process TBD). Recommend B first, then A.
 - [x] **Investigate** how to add pinrag mcp to cursor mcp server list — see `notes/cursor-mcp-list-investigation.md`. Summary: Submit via (1) cursor/mcp-servers GitHub issue (Server Request Template), (2) cursor.store/mcp/new, (3) mcp-marketplace.io/submit. One-click install: `cursor.com/en/install-mcp?name=pinrag&config=...`
 - [x] Code review of the src and tests folders.
 - [x] Fix code review findings.
@@ -296,7 +296,7 @@
   - [x] **PyPI (same as `uvx --from pinrag pinrag-mcp` / `uv tool run --from pinrag pinrag-mcp`):** integration test [`tests/test_mcp_stdio_pypi.py`](tests/test_mcp_stdio_pypi.py) (`test_pdf_roundtrip_pypi_package`) — shared flow in [`tests/helpers/mcp_stdio_flow.py`](tests/helpers/mcp_stdio_flow.py). **Opt out:** `PINRAG_MCP_ITEST_SKIP_PYPI=1`. **Pin version:** `PINRAG_MCP_ITEST_PYPI_SPEC=pinrag==…`. **Run:** `pytest -m integration tests/test_mcp_stdio_pypi.py -v` (marker `pypi_mcp`). Exclude PyPI test: `-m "integration and not pypi_mcp"`.
 - [x] Check README.md for the pinrag mcp server and update it if needed. Check it how it looks like on GitHub.
 - [x] Check pinrag repo and what's been pushed there and should we expose it to the users?
-- [ ] Investigate the ways how to advertise the pinrag mcp server to the users.
+- [x] Investigate advertising & distribution for the PinRAG MCP server (IDE lists, directories, promotion) — see `notes/mcp-advertising-distribution-strategy.md`.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 
 ---
