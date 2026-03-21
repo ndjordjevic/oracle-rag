@@ -6,19 +6,21 @@ A powerful RAG (Retrieval-Augmented Generation) system built with LangChain, des
 
 ## Overview
 
-PinRAG provides intelligent document querying and retrieval capabilities for PDFs, YouTube transcripts, Discord exports, and GitHub repositories. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor.
+PinRAG provides intelligent document querying and retrieval for PDFs, plain text files, Discord chat exports, YouTube transcripts, and GitHub repositories. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor.
 
 ## Features
 
-- **Multi-format indexing** — PDF (.pdf), YouTube (URL or video ID), Discord export (.txt), plain text (.txt), GitHub repo (URL)
-- **RAG with citations** — Ask questions, get answers with source (document + page for PDFs, timestamp for YouTube)
+- **Multi-format indexing** — PDF (.pdf), local files or directories, plain text (.txt), Discord export (.txt), YouTube (video or playlist URL, or video ID), GitHub repo (URL)
+- **RAG with citations** — Answers cite source context: PDF page, YouTube timestamp, document name for plain text and Discord, file path for GitHub repos
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
-- **Metadata filtering** — Query by document, page range (PDF only), or tag
-- **MCP tools** — `add_document_tool`, `query_tool`, `list_documents_tool`, `remove_document_tool`
+- **Metadata filtering** — `query_tool` supports `document_id`, `tag`, `document_type`, PDF `page_min`/`page_max`, GitHub `file_path`, and `response_style` (thorough or concise)
+- **MCP tools** — `add_document_tool` (files, dirs, or URLs), `add_url_tool` (YouTube/GitHub URLs only), `query_tool`, `list_documents_tool`, `remove_document_tool`
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
 - **Configurable LLM** — Anthropic (default) or OpenAI; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
 - **Configurable embeddings** — OpenAI (default) or Cohere; set via `PINRAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
+- **Retrieval & chunking options** — Structure-aware chunking (on by default); optional Cohere re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
+- **Observability** — Optional [LangSmith](https://smith.langchain.com) tracing; optional stderr logging via `PINRAG_LOG_TO_STDERR`
 - **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, Cohere
 
 ## Installation
@@ -30,35 +32,31 @@ pipx install pinrag
 
 Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated environment and put `pinrag-mcp` on your PATH.
 
-### Updating
+### 1. Updating
 
 ```bash
 pipx upgrade pinrag
-# or: uv cache clean && uv tool install pinrag --force
+# or: uv tool upgrade pinrag
 ```
 
 Restart your editor after updating so the MCP server picks up the new version.
 
 ## Quick Start
 
-### 1. Create config
+### 1. Configure MCP server
 
-Set API keys in your MCP server `env` block (shown in step 2). This is the
-recommended setup for OSS because `pinrag-mcp` is launched by your editor from
-MCP config.
+Add `pinrag` to your editor’s MCP config and set API keys in the same `env` block. This is the recommended setup for OSS: `pinrag-mcp` is launched by the editor from MCP config, not from a shell that loads `.env`.
 
 **Minimum required env vars (validated at startup):**
 
 The server validates required API keys at startup and exits with a clear error
-if any are missing. In OSS MCP mode, set all env vars in your MCP `env` block.
+if any are missing. Set keys in your MCP `env` block as in the examples below.
 
 - **Default setup** (Anthropic LLM + OpenAI embeddings): set both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. Embeddings use OpenAI; queries use Anthropic.
 - **OpenAI only:** set `PINRAG_LLM_PROVIDER=openai` and only `OPENAI_API_KEY` (one key for both embeddings and chat).
 - **Cohere embeddings:** set `PINRAG_EMBEDDING_PROVIDER=cohere` and `COHERE_API_KEY`; you still need an LLM key (OpenAI or Anthropic) per above.
 
 A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
-
-### 2. Add MCP server
 
 **Cursor:** Add to `~/.cursor/mcp.json`:
 
@@ -94,35 +92,34 @@ A longer commented reference for optional `PINRAG_*` variables is in [`notes/env
 
 Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code or Cursor after editing.
 
-> **Where the OSS MCP reads env vars:** PinRAG does not load `.env` files in OSS
-> MCP mode. Configure variables only in your MCP `env` block.
-> If you previously used `~/.pinrag/.env` or project `.env`, move those keys to
-> MCP `env`.
-> **Backup:** Back up `~/.pinrag/chroma_db` (or your `PINRAG_PERSIST_DIR`) if your indexed documents are important — deleting it removes all indexes.
+> **Env vars and `.env`:** The `pinrag-mcp` entry point does not load `.env` files.
+> Configure variables in your MCP `env` block (or export them in your shell when running other scripts).
+> If you previously used `~/.pinrag/.env` or project `.env`, move those keys to MCP `env`.
+> **Backup:** Back up your vector store directory (`PINRAG_PERSIST_DIR`). If unset, the default is `chroma_db` relative to the **current working directory of the `pinrag-mcp` process** (depends on the editor—often the folder you have open, but not guaranteed). Set `PINRAG_PERSIST_DIR` to an absolute path (e.g. `~/.pinrag/chroma_db`) if you want a predictable location. Deleting that directory removes all indexes.
 
-### 3. Use in chat
+### 2. Use in chat
 
 | Action | Tool |
 |--------|------|
-| Add files or YouTube videos | `add_document_tool` — path(s) as list (e.g. `paths=["/path/to/file.pdf"]` or `paths=["https://youtu.be/xyz"]`); optionally `tags` (one per path) |
-| List indexed documents | `list_documents_tool` — shows documents, chunk counts, tags, upload times |
-| Query with filters | `query_tool` — filter by `document_id`, `page_min`/`page_max` (PDF only), or `tag` |
+| Index files, directories, or URLs | `add_document_tool` — `paths` as a list (e.g. PDFs, `.txt`, dirs, YouTube or playlist URLs, GitHub URLs); optional `tags` (one per path). For **URLs only**, you can use `add_url_tool` instead. |
+| List indexed documents | `list_documents_tool` — document IDs, chunk counts, optional tag filter; `document_details` includes metadata such as tags, page counts, titles, and `upload_timestamp` when stored |
+| Query with filters | `query_tool` — optional `document_id`, `tag`, `document_type`, `page_min`/`page_max` (PDF), `file_path` (GitHub), `response_style` |
 | Remove a document | `remove_document_tool` |
-| View indexed documents (read-only) | Click **Resources** → `_documents_resource` in the MCP panel |
+| View resources (read-only) | In the MCP panel, open **Resources** and select `pinrag://documents` (indexed docs) or `pinrag://server-config` (effective config) |
 
-Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"*, *"Index https://youtu.be/xyz and ask what it says"*, or *"Index https://github.com/owner/repo and ask about the codebase"*. The AI will invoke the tools for you. Citations show page numbers for PDFs, timestamps (e.g. `t. 1:23`) for YouTube, and file paths for GitHub.
+Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"*, *"Index https://youtu.be/xyz and ask what it says"*, or *"Index https://github.com/owner/repo and ask about the codebase"*. The AI will invoke the tools for you. Citations show page numbers for PDFs, timestamps (e.g. `t. 1:23`) for YouTube, document names for plain text and Discord exports, and file paths for GitHub.
 
-### GitHub indexing
+### 3. GitHub indexing
 
-Index a GitHub repository to ask questions about its code and docs. Use `add_document_tool` with a GitHub URL:
+Index a GitHub repository to ask questions about its code and docs. Use `add_document_tool` with a GitHub URL (or `add_url_tool` if you only pass URLs):
 
 - `https://github.com/owner/repo`
 - `https://github.com/owner/repo/tree/branch`
 - `github.com/owner/repo` (no scheme)
 
-Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in MCP `env` or your shell for private repos or higher API rate limits. Large files (>512 KB by default) and binaries are skipped.
+Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in MCP `env` or your shell for private repos or higher API rate limits. Files larger than `PINRAG_GITHUB_MAX_FILE_BYTES` (default 512 KiB) are skipped. By default, only common text/source extensions are indexed; other paths are omitted unless you widen the set with `include_patterns` (defaults also exclude many non-text artifacts such as images and archives).
 
-### YouTube indexing and IP blocking
+### 4. YouTube indexing and IP blocking
 
 YouTube often blocks transcript requests from IPs that have made too many requests or from cloud provider IPs (AWS, GCP, Azure, etc.). When indexing playlists or many videos, you may see errors like *"YouTube is blocking requests from your IP"*.
 
@@ -133,9 +130,16 @@ PINRAG_YT_PROXY_HTTP_URL=http://user:pass@proxy.example.com:80
 PINRAG_YT_PROXY_HTTPS_URL=http://user:pass@proxy.example.com:80
 ```
 
-Rotating proxy services (e.g. [Webshare](https://www.webshare.io/)) work well; residential proxies are often more reliable than datacenter IPs for avoiding YouTube blocks. The proxy is used only for fetching transcripts via `youtube-transcript-api`.
+Rotating proxy services (e.g. [Webshare](https://www.webshare.io/)) work well; residential proxies are often more reliable than datacenter IPs for avoiding YouTube blocks. `PINRAG_YT_PROXY_*` is wired only into `youtube-transcript-api` transcript fetches (other steps, such as title lookup or playlist listing via yt-dlp, do not use these variables).
 
-When indexing fails, `add_document_tool` returns a `fail_summary` with counts by reason: `blocked` (IP blocking), `disabled` (transcripts disabled by creator), `missing_transcript`, and `other`.
+When `add_document_tool` or `add_url_tool` returns any failed paths (e.g. some videos in a playlist), the response includes a `fail_summary` when failures are present. Counts are grouped by matching error text—mainly useful for transcript issues: `blocked` (IP blocking), `disabled` (transcripts disabled by creator), `missing_transcript`, and `other` (everything else, including non-YouTube failures).
+
+### Tips
+
+- **`pinrag-mcp` not found:** The editor runs MCP with your login environment. After `pipx` / `uv tool install`, restart the editor and confirm `pinrag-mcp` is on `PATH` (e.g. `which pinrag-mcp` in a terminal).
+- **Stable vector store path:** Add `PINRAG_PERSIST_DIR` to the MCP `env` block (absolute path, e.g. `~/.pinrag/chroma_db`) so indexes are not tied to the server process working directory.
+- **Cohere embeddings or re-ranking:** Install the extra in the same environment as `pinrag-mcp`, e.g. `pipx install 'pinrag[cohere]'` or `uv tool install 'pinrag[cohere]'` (see **Configuration**).
+- **Check the running server:** Open the `pinrag://server-config` resource in the MCP panel to see effective LLM, embeddings, chunking, and API key status.
 
 ## Configuration
 
@@ -155,24 +159,25 @@ Environment variables:
 | `PINRAG_EMBEDDING_MODEL` | *(provider default)* | e.g. `text-embedding-3-small`, `embed-english-v3.0` |
 | `COHERE_API_KEY` | *(required for Cohere)* | Cohere API key; install with `pip install pinrag[cohere]` when using Cohere embeddings or re-ranking |
 | **Storage & chunking** | | |
-| `PINRAG_PERSIST_DIR` | `chroma_db` | Chroma vector store directory (project-local by default; use `~/.pinrag/chroma_db` for global) |
+| `PINRAG_PERSIST_DIR` | `chroma_db` | Chroma vector store directory (default is relative to the server process cwd unless you set an absolute path; e.g. `~/.pinrag/chroma_db` for a fixed location) |
 | `PINRAG_CHUNK_SIZE` | `1000` | Text chunk size (chars) |
 | `PINRAG_CHUNK_OVERLAP` | `200` | Chunk overlap (chars) |
 | `PINRAG_STRUCTURE_AWARE_CHUNKING` | `true` | Apply structure-aware chunking heuristics for code/table boundaries |
 | `PINRAG_COLLECTION_NAME` | `pinrag` | Chroma collection name. Single shared collection by default. |
+| `ANONYMIZED_TELEMETRY` | `False` if unset | Chroma reads this for anonymous usage telemetry (PostHog). PinRAG sets it to `False` at startup when unset, to reduce noise in MCP/editor logs. Set explicitly in MCP `env` or your shell if you want Chroma’s default. |
 | **Retrieval** | | |
-| `PINRAG_RETRIEVE_K` | `20` | Number of chunks to retrieve. When rerank is on, this is the fallback for the pre-rerank fetch if `PINRAG_RERANK_RETRIEVE_K` is unset. |
+| `PINRAG_RETRIEVE_K` | `20` | Chunks to retrieve when re-ranking is off. When `PINRAG_USE_RERANK=true`, `PINRAG_RERANK_RETRIEVE_K` defaults to this value if unset. |
 | **Parent-child retrieval** | | |
-| `PINRAG_USE_PARENT_CHILD` | `false` | Set to `true` to embed small chunks (precise matching) and return larger parent chunks (rich context). Requires re-indexing. |
+| `PINRAG_USE_PARENT_CHILD` | `false` | Set to `true` to embed small chunks and return larger parent chunks (supported for PDF, GitHub, YouTube, and Discord indexing—not plain `.txt`). Requires re-indexing. |
 | `PINRAG_PARENT_CHUNK_SIZE` | `2000` | Parent chunk size (chars) when `PINRAG_USE_PARENT_CHILD=true`. |
 | `PINRAG_CHILD_CHUNK_SIZE` | `800` | Child chunk size (chars) when `PINRAG_USE_PARENT_CHILD=true`. |
 | **Re-ranking** | | |
 | `PINRAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: fetch more chunks, re-score with Cohere, pass top N to the LLM. Requires `pip install pinrag[cohere]` and `COHERE_API_KEY`. |
 | `PINRAG_RERANK_RETRIEVE_K` | `20` | Chunks to fetch before reranking when `PINRAG_USE_RERANK=true`. If unset, uses `PINRAG_RETRIEVE_K`. |
-| `PINRAG_RERANK_TOP_N` | `10` | Number of chunks the reranker returns to the LLM (only when `PINRAG_USE_RERANK=true`). |
+| `PINRAG_RERANK_TOP_N` | `10` | Chunks passed to the LLM after re-ranking when `PINRAG_USE_RERANK=true` (capped by the pre-rerank fetch size). |
 | **Multi-query** | | |
-| `PINRAG_USE_MULTI_QUERY` | `false` | Set to `true` to generate 3–5 query variants via LLM, retrieve per variant, merge (unique union). Improves recall for terse or ambiguous queries. |
-| `PINRAG_MULTI_QUERY_COUNT` | `4` | Number of alternative queries to generate when `PINRAG_USE_MULTI_QUERY=true`. |
+| `PINRAG_USE_MULTI_QUERY` | `false` | Set to `true` to generate alternative phrasings of the user query via LLM, retrieve per variant, and merge (unique union). Improves recall for terse or ambiguous queries. |
+| `PINRAG_MULTI_QUERY_COUNT` | `4` | Number of **alternative** queries to generate (default 4, max 10). The original query is still included in retrieval when merging. |
 | **Response style** | | |
 | `PINRAG_RESPONSE_STYLE` | `thorough` | RAG answer style: `thorough` (detailed) or `concise`. Used by evaluation target and as default when MCP `query` omits `response_style`. |
 | **GitHub indexing** | | |
@@ -188,13 +193,13 @@ Environment variables:
 | `PINRAG_LOG_TO_STDERR` | `false` | Set to `true` to send PinRAG logs (tool calls, completion timing, indexing messages) to stderr so they appear in the MCP server output in VS Code or Cursor. Default is off to avoid noisy or misleading badges in the editor. |
 | `PINRAG_LOG_LEVEL` | `INFO` | Log level when `PINRAG_LOG_TO_STDERR=true`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. |
 | **Evaluators (LLM-as-judge)** | | |
-| `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai` or `anthropic` — which LLM grades correctness/relevance/groundedness/retrieval. Used only during evaluation runs (LangSmith experiments). |
-| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for correctness/relevance (e.g. `gpt-4o`, `claude-sonnet-4-6`) |
-| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for groundedness/retrieval (context-heavy; e.g. `gpt-4o-mini`, `claude-haiku-4-5`) |
+| `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai` or `anthropic` — which LLM runs LLM-as-judge graders. Used only during evaluation runs (LangSmith experiments). |
+| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`) |
+| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`) |
 
 > **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 >
-> **Re-indexing when enabling parent-child:** Setting `PINRAG_USE_PARENT_CHILD=true` requires re-indexing; the new structure (child chunks in Chroma, parent chunks in docstore) is created only during indexing.
+> **Re-indexing when enabling parent-child:** Setting `PINRAG_USE_PARENT_CHILD=true` requires re-indexing; the new structure (child chunks in Chroma, parent chunks in docstore) is created only during indexing for supported document types (not plain `.txt`).
 
 ### Monitoring & Observability
 
@@ -208,11 +213,13 @@ Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid
 - **Per-provider collections:** Set `PINRAG_COLLECTION_NAME` to a provider-specific name (e.g. `pinrag_openai`, `pinrag_cohere`) when indexing, and use the same name when querying with that provider. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_PROVIDER` and `PINRAG_COLLECTION_NAME` in MCP `env` or your shell.
 - **MCP tools:** The server uses `PINRAG_COLLECTION_NAME` (default `pinrag`) for all tools. Collection is not configurable per call; change it via MCP `env` or your shell to target a different collection.
 
-## MCP Tools Reference
+## MCP reference
+
+Tools, optional prompt, and read-only resources from the PinRAG MCP server (`pinrag-mcp`). Indexing tools return `indexed` / `failed` / totals (and `fail_summary` when some paths fail); `query_tool` returns an answer plus citation metadata.
 
 ### `query_tool`
 
-Ask a question and get an answer with citations. Optional filters narrow retrieval:
+Ask a question and get an answer with citations. Optional filters narrow retrieval (omit or leave empty when unused):
 
 | Parameter | Description |
 |-----------|-------------|
@@ -222,26 +229,38 @@ Ask a question and get an answer with citations. Optional filters narrow retriev
 | `tag` | Search only documents with this tag (e.g. `AMIGA`, `PI_PICO`) |
 | `document_type` | Search only by type: `pdf`, `youtube`, `discord`, `github`, or `plaintext` |
 | `file_path` | Search only within this file (GitHub: e.g. `src/ria/api/atr.c`). Use `list_documents_tool` to see files. |
-| `response_style` | Answer style: `thorough` (default) or `concise` |
+| `response_style` | Answer style: `thorough` (default) or `concise` (invalid values fall back to `PINRAG_RESPONSE_STYLE`) |
 
-Filters can be combined. Sources include `page` for PDFs and `start` (timestamp in seconds) for YouTube. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  
+Filters can be combined. Citations use PDF **page** numbers, YouTube **start** time (seconds), **document** identifiers for plain text and Discord, and repo **file paths** for GitHub. Example: *"What is OpenOCD? In the Pico doc, pages 16–17 only"* →  
 `query_tool(query="...", document_id="RP-008276-DS-1-getting-started-with-pico.pdf", page_min=16, page_max=17)`.
 
 ### `add_document_tool`
 
-Index files, directories, YouTube videos, or GitHub repos.
+Index local files or directories, plain or Discord `.txt`, PDFs, YouTube (video, playlist, or ID), or GitHub repos (URL may omit `https://`). Batches multiple paths; one failure does not roll back the rest.
 
 | Parameter | Description |
 |-----------|-------------|
-| `paths` | List of paths to index (required). File, directory, YouTube URL, or GitHub URL. |
+| `paths` | List of paths to index (required). File, directory, YouTube URL or ID, or GitHub URL. |
 | `tags` | Optional list of tags, one per path (same order as paths) |
 | `branch` | For GitHub URLs: override branch (default: main). Ignored for other formats. |
 | `include_patterns` | For GitHub URLs: glob patterns for files to include (e.g. `["*.md", "src/**/*.py"]`) |
 | `exclude_patterns` | For GitHub URLs: glob patterns to exclude |
 
+### `add_url_tool`
+
+Same indexing pipeline as `add_document_tool`, but **only HTTP(S) URLs**—each entry must start with `http://` or `https://`. Use this for remote YouTube or GitHub only; for local paths or schemeless `github.com/...` URLs, use `add_document_tool`.
+
+| Parameter | Description |
+|-----------|-------------|
+| `paths` | List of URLs to index (required). YouTube video/playlist or GitHub repo. |
+| `tags` | Optional list of tags, one per URL |
+| `branch` | For GitHub URLs: override branch (default: main) |
+| `include_patterns` | For GitHub URLs: glob patterns for files to include |
+| `exclude_patterns` | For GitHub URLs: glob patterns to exclude |
+
 ### `list_documents_tool`
 
-List indexed documents and chunk counts.
+List indexed document IDs, total chunk count, `persist_directory`, `collection_name`, and per-document metadata in `document_details` (tags, titles, `upload_timestamp`, GitHub file lists when applicable).
 
 | Parameter | Description |
 |-----------|-------------|
@@ -249,28 +268,38 @@ List indexed documents and chunk counts.
 
 ### `remove_document_tool`
 
-Remove a document and all its chunks from the index.
+Remove one logical document and all its chunks from the index.
 
 | Parameter | Description |
 |-----------|-------------|
 | `document_id` | Document identifier to remove (from `list_documents_tool`) |
 
-### MCP Resources
+### MCP prompt: `use_pinrag`
 
-Read-only resources; click in Cursor’s MCP panel to view:
+Returns fixed guidance text for the assistant describing when to call each tool. Optional parameter **`request`** is embedded at the top (what to index, list, query, or remove); the rest summarizes `query_tool`, `add_url_tool`, `add_document_tool`, `list_documents_tool`, and `remove_document_tool`. Shown in clients that list MCP prompts (e.g. Cursor).
+
+| Parameter | Description |
+|-----------|-------------|
+| `request` | Free-text goal (optional; may be empty). |
+
+### MCP resources
+
+Read-only URIs; open from the MCP panel in Cursor or VS Code:
 
 | Resource | Description |
 |----------|-------------|
-| `pinrag://documents` | Indexed documents (IDs, chunk counts, tags, metadata) |
-| `pinrag://server-config` | Env vars and config (LLM, embeddings, chunking, retrieval, logging; API key status) |
+| `pinrag://documents` | Plain-text list of indexed documents (IDs, chunk counts, tags, and format-specific metadata) |
+| `pinrag://server-config` | Effective env and config (LLM, embeddings, chunking, retrieval, logging; API key presence) |
 
 ## Running tests
 
 From the repo root (with dev dependencies, e.g. `uv sync --extra dev`):
 
-- **Fast (no integration tests):** `uv run pytest tests/ -q -m "not integration"` — skips tests that need API keys, network, or the bundled sample PDF at `data/pdfs/sample-text.pdf`.
-- **Full suite:** `uv run pytest tests/ -q` — set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` as needed and ensure the sample PDF exists where tests expect it.
+- **Fast (exclude `integration`):** `uv run pytest tests/ -q -m "not integration"` — skips tests marked `integration` (see `pyproject.toml`: API keys, network, optional assets, MCP stdio). Tests that use the `sample_pdf_path` fixture are tagged as `integration` automatically (`tests/conftest.py`). A few non-integration tests may still `skip` if `data/pdfs/sample-text.pdf` is missing.
+- **Full suite:** `uv run pytest tests/ -q` — set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` via the environment or `tests/.mcp_stdio_integration.env` (copy from `tests/mcp_stdio_integration.env.example`; environment wins over the file). Place `data/pdfs/sample-text.pdf` for PDF/RAG tests. MCP stdio integration tests (`test_mcp_stdio_*.py`) additionally need `data/pdfs/Bare-metal Amiga programming 2021_ocr.pdf`. To skip the PyPI-based MCP test (network / `uv tool run --from pinrag pinrag-mcp`), use `-m "not pypi_mcp"` or `PINRAG_MCP_ITEST_SKIP_PYPI=1`. For live logs from those tests, add `--log-cli-level=INFO`.
+
+The `data/` tree is gitignored (create `data/pdfs/` or `data/discord-channels/` locally; nothing under `data/` is committed).
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License. Full text in [LICENSE](LICENSE).
