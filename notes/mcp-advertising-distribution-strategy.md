@@ -143,7 +143,7 @@ https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJ
 ```
 Decodes to `{"command":"uvx","args":["--from","pinrag","pinrag-mcp"],"env":{}}`.
 
-**VS Code:** GitHub’s README renderer does **not** make `vscode:` URLs clickable (custom schemes are stripped). The README therefore links to an **HTTPS landing page** that contains the real `vscode:` button: [`docs/vscode-mcp-install.html`](../docs/vscode-mcp-install.html), also reachable via jsDelivr as `https://cdn.jsdelivr.net/gh/ndjordjevic/pinrag@main/docs/vscode-mcp-install.html`.
+**VS Code:** GitHub’s README renderer does **not** make `vscode:` URLs clickable (custom schemes are stripped). The README therefore links to an **HTTPS landing page** that contains the real `vscode:` button: [`docs/vscode-mcp-install.html`](../docs/vscode-mcp-install.html), served via **GitHub Pages** at `https://ndjordjevic.github.io/pinrag/vscode-mcp-install.html` (Pages enabled on `main:/docs`).
 
 Raw `vscode:` URL (for local README preview or manual paste):
 ```
