@@ -61,3 +61,10 @@ The README must include the PyPI ownership line `<!-- mcp-name: io.github.ndjord
 If you keep the official CLI binary in the **repo root** as `./mcp-publisher` (listed in `.gitignore`, not committed), use `./mcp-publisher login github` and `./mcp-publisher publish` from that directory. Otherwise install via Homebrew (`brew install mcp-publisher`) or download from the [registry releases](https://github.com/modelcontextprotocol/registry/releases) so `mcp-publisher` is on your `PATH`.
 
 The MCP Registry enforces **`server.json` `description` length ≤ 100 characters**; if `publish` returns 422 on `body.description`, shorten the string and try again.
+
+**Verify (search API returns multiple versions):** The registry search endpoint can return **more than one** `servers[]` entry (older + latest). Do not read only `servers[0]`—it may be an older version. To print the **latest** published version:
+
+```bash
+curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ndjordjevic/pinrag" \
+  | jq -r '.servers[] | select(._meta["io.modelcontextprotocol.registry/official"].isLatest == true) | .server.version'
+```

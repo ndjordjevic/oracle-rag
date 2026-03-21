@@ -23,7 +23,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 
 | # | Channel | Why | Effort | Status |
 |---|---------|-----|--------|--------|
-| 1 | **Official MCP Registry** (`modelcontextprotocol.io/registry`) | Authoritative source backed by Anthropic, GitHub, Block, Microsoft. Feeds downstream into VS Code, GitHub MCP, Pulse MCP. Supports PyPI packages. | Medium | **Done** — `io.github.ndjordjevic/pinrag` v0.9.2; [`server.json`](../server.json); verify: `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ndjordjevic/pinrag"` |
+| 1 | **Official MCP Registry** (`modelcontextprotocol.io/registry`) | Authoritative source backed by Anthropic, GitHub, Block, Microsoft. Feeds downstream into VS Code, GitHub MCP, Pulse MCP. Supports PyPI packages. | Medium | **Done** — `io.github.ndjordjevic/pinrag` (latest on registry); [`server.json`](../server.json); verify with `jq` below (search returns multiple versions; do not assume `servers[0]` is latest). |
 | 2 | **cursor/mcp-servers** GitHub issue | Official Cursor curated list. One-click install. High visibility among Cursor users. | Low | Not started |
 | 3 | **mcp.so** | Largest directory (17,000+ servers). Simple web/CLI submission. | Low | Not started |
 | 4 | **awesome-mcp-servers** GitHub PR | 83.7k stars. Enormous organic visibility. | Low | Not started |
@@ -70,7 +70,9 @@ The single most strategic listing — cascades into VS Code, GitHub, and potenti
 4. **Ship PyPI first** — Create a GitHub Release so [`.github/workflows/publish.yml`](../.github/workflows/publish.yml) publishes the sdist/wheel; the registry verifies the README string against **live** PyPI.
 5. **Publish metadata** — **CI:** the same workflow runs `mcp-publisher login github-oidc` and `mcp-publisher publish` after PyPI lists the new version ([registry GitHub Actions](https://modelcontextprotocol.io/registry/github-actions)). **Manual fallback:** from repo root, `mcp-publisher login github` then `mcp-publisher publish` (or `./mcp-publisher`).
 
-**Verify:** `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ndjordjevic/pinrag"`
+**Verify (latest version):** Search can return several `servers[]` rows; pick the one with `isLatest: true` (e.g. `jq`), not the first element:
+
+`curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ndjordjevic/pinrag" | jq -r '.servers[] | select(._meta["io.modelcontextprotocol.registry/official"].isLatest == true) | .server.version'`
 
 **Important:** The registry is in preview. Version metadata is immutable once published. Deletion/unpublishing is not currently available.
 
