@@ -294,9 +294,9 @@
 - [x] Test two modes of running the stdio pinrag mcp server: one from the repo and one from PyPI (same MCP steps).
   - [x] **`uv run --project pinrag pinrag-mcp`:** integration test [`tests/test_mcp_stdio_repo.py`](tests/test_mcp_stdio_repo.py) (`test_pdf_roundtrip_local_repo`) — spawns `uv run --project <repo> pinrag-mcp`, calls `add_document_tool` → `list_documents_tool` → `query_tool` → `remove_document_tool` on a local PDF (default `data/pdfs/sample-text.pdf`, or `PINRAG_MCP_ITEST_PDF` / `PINRAG_MCP_ITEST_QUERY`), uses a temp `PINRAG_PERSIST_DIR` (never the repo `chroma_db`). **Keys:** `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` from the environment (CI secrets), or from `tests/.mcp_stdio_integration.env` (copy from [`tests/mcp_stdio_integration.env.example`](tests/mcp_stdio_integration.env.example), gitignored), or `PINRAG_MCP_ITEST_ENV_FILE` pointing at a `KEY=value` file; optional deprecated: `PINRAG_ITEST_USE_CURSOR_MCP_JSON=1` merges `~/.cursor/mcp.json` `pinrag-dev` env. **Run:** `pytest -m integration tests/test_mcp_stdio_repo.py -v`. **Verbose progress (optional):** add `--log-cli-level=INFO`.
   - [x] **PyPI (same as `uvx --from pinrag pinrag-mcp` / `uv tool run --from pinrag pinrag-mcp`):** integration test [`tests/test_mcp_stdio_pypi.py`](tests/test_mcp_stdio_pypi.py) (`test_pdf_roundtrip_pypi_package`) — shared flow in [`tests/helpers/mcp_stdio_flow.py`](tests/helpers/mcp_stdio_flow.py). **Opt out:** `PINRAG_MCP_ITEST_SKIP_PYPI=1`. **Pin version:** `PINRAG_MCP_ITEST_PYPI_SPEC=pinrag==…`. **Run:** `pytest -m integration tests/test_mcp_stdio_pypi.py -v` (marker `pypi_mcp`). Exclude PyPI test: `-m "integration and not pypi_mcp"`.
-- [ ] Check README.md for the pinrag mcp server and update it if needed. Check it how it looks like on GitHub.
-- [ ] Check pinrag repo and what's been pushed there and should we expose it to the users?
-- [ ] Investigate the ways how to advertise the pinrag mcp server to the users and advertise the pinrag mcp server to the users.
+- [x] Check README.md for the pinrag mcp server and update it if needed. Check it how it looks like on GitHub.
+- [x] Check pinrag repo and what's been pushed there and should we expose it to the users?
+- [ ] Investigate the ways how to advertise the pinrag mcp server to the users.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 
 ---

@@ -32,7 +32,7 @@ pipx install pinrag
 
 Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated environment and put `pinrag-mcp` on your PATH.
 
-### 1. Updating
+### Updating
 
 ```bash
 pipx upgrade pinrag
@@ -43,7 +43,7 @@ Restart your editor after updating so the MCP server picks up the new version.
 
 ## Quick Start
 
-### 1. Configure MCP server
+### Configure MCP server
 
 Add `pinrag` to your editor’s MCP config and set API keys in the same `env` block. This is the recommended setup for OSS: `pinrag-mcp` is launched by the editor from MCP config, not from a shell that loads `.env`.
 
@@ -97,7 +97,7 @@ Or create `.vscode/mcp.json` in your workspace for project-specific setup. Resta
 > If you previously used `~/.pinrag/.env` or project `.env`, move those keys to MCP `env`.
 > **Backup:** Back up your vector store directory (`PINRAG_PERSIST_DIR`). If unset, the default is `chroma_db` relative to the **current working directory of the `pinrag-mcp` process** (depends on the editor—often the folder you have open, but not guaranteed). Set `PINRAG_PERSIST_DIR` to an absolute path (e.g. `~/.pinrag/chroma_db`) if you want a predictable location. Deleting that directory removes all indexes.
 
-### 2. Use in chat
+### Use in chat
 
 | Action | Tool |
 |--------|------|
@@ -109,7 +109,7 @@ Or create `.vscode/mcp.json` in your workspace for project-specific setup. Resta
 
 Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"*, *"Index https://youtu.be/xyz and ask what it says"*, or *"Index https://github.com/owner/repo and ask about the codebase"*. The AI will invoke the tools for you. Citations show page numbers for PDFs, timestamps (e.g. `t. 1:23`) for YouTube, document names for plain text and Discord exports, and file paths for GitHub.
 
-### 3. GitHub indexing
+### GitHub indexing
 
 Index a GitHub repository to ask questions about its code and docs. Use `add_document_tool` with a GitHub URL (or `add_url_tool` if you only pass URLs):
 
@@ -119,7 +119,7 @@ Index a GitHub repository to ask questions about its code and docs. Use `add_doc
 
 Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in MCP `env` or your shell for private repos or higher API rate limits. Files larger than `PINRAG_GITHUB_MAX_FILE_BYTES` (default 512 KiB) are skipped. By default, only common text/source extensions are indexed; other paths are omitted unless you widen the set with `include_patterns` (defaults also exclude many non-text artifacts such as images and archives).
 
-### 4. YouTube indexing and IP blocking
+### YouTube indexing and IP blocking
 
 YouTube often blocks transcript requests from IPs that have made too many requests or from cloud provider IPs (AWS, GCP, Azure, etc.). When indexing playlists or many videos, you may see errors like *"YouTube is blocking requests from your IP"*.
 
