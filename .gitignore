@@ -85,3 +85,4 @@ dmypy.json
 
 # MCP Registry CLI (downloaded for local publish; not vendored)
 mcp-publisher
+.mcpregistry_*

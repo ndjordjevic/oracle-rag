@@ -23,7 +23,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 
 | # | Channel | Why | Effort | Status |
 |---|---------|-----|--------|--------|
-| 1 | **Official MCP Registry** (`modelcontextprotocol.io/registry`) | Authoritative source backed by Anthropic, GitHub, Block, Microsoft. Feeds downstream into VS Code, GitHub MCP, Pulse MCP. Supports PyPI packages. | Medium | Not started |
+| 1 | **Official MCP Registry** (`modelcontextprotocol.io/registry`) | Authoritative source backed by Anthropic, GitHub, Block, Microsoft. Feeds downstream into VS Code, GitHub MCP, Pulse MCP. Supports PyPI packages. | Medium | **Done** — `io.github.ndjordjevic/pinrag` v0.9.2; [`server.json`](../server.json); verify: `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ndjordjevic/pinrag"` |
 | 2 | **cursor/mcp-servers** GitHub issue | Official Cursor curated list. One-click install. High visibility among Cursor users. | Low | Not started |
 | 3 | **mcp.so** | Largest directory (17,000+ servers). Simple web/CLI submission. | Low | Not started |
 | 4 | **awesome-mcp-servers** GitHub PR | 83.7k stars. Enormous organic visibility. | Low | Not started |
@@ -56,32 +56,21 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 
 The single most strategic listing — cascades into VS Code, GitHub, and potentially more clients.
 
+**Status:** **Done** (March 2026) — Published as **`io.github.ndjordjevic/pinrag`** (e.g. v0.9.2 on PyPI at time of first successful `mcp-publisher publish`). Canonical metadata in repo: [`server.json`](../server.json).
+
 **Prerequisites:**
 - GitHub account (for `io.github.ndjordjevic/*` namespace)
-- PinRAG already on PyPI ✓
+- PinRAG on PyPI ✓
+- README includes `<!-- mcp-name: io.github.ndjordjevic/pinrag -->` so the **published PyPI** long description contains the verification string ([package types — PyPI](https://modelcontextprotocol.io/registry/package-types))
 
-**Steps:**
-1. Install `mcp-publisher` CLI:
-   ```bash
-   curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_darwin_arm64.tar.gz" | tar xz
-   ```
-2. Add ownership verification to PyPI README — include `mcp-name: io.github.ndjordjevic/pinrag` somewhere in the package README (PyPI checks this string).
-3. Create `server.json` in the repo:
-   ```json
-   {
-     "name": "io.github.ndjordjevic/pinrag",
-     "registryType": "pypi",
-     "package": "pinrag",
-     "description": "RAG system for PDFs, YouTube, GitHub repos, Discord exports. Index documents and query with citations via MCP tools.",
-     "homepage": "https://github.com/ndjordjevic/pinrag"
-   }
-   ```
-4. Authenticate and publish:
-   ```bash
-   mcp-publisher login github
-   mcp-publisher publish
-   ```
-5. Optional: Automate with GitHub Actions on tag (see `modelcontextprotocol.io/registry/github-actions`).
+**Steps (repeat on each release that should update registry metadata):**
+1. **Install `mcp-publisher`** — Use the portable install from the [registry quickstart](https://modelcontextprotocol.io/registry/quickstart) (dynamic OS/arch), `brew install mcp-publisher`, or the Windows snippet — not a single `darwin_arm64` URL only.
+2. **`server.json`** — Run `mcp-publisher init` in the repo root and edit the generated file, or maintain the committed [`server.json`](../server.json). For PyPI, use the schema with `packages[]`, `registryType: "pypi"`, `identifier: "pinrag"`, `transport.type: "stdio"`, etc. (see [quickstart `server.json` example](https://modelcontextprotocol.io/registry/quickstart) and [PyPI package type](https://modelcontextprotocol.io/registry/package-types)). **Registry API:** top-level **`description` must be ≤ 100 characters** or `publish` returns **422**.
+3. **Version lockstep** — After each version bump, set the same `X.Y.Z` in `pyproject.toml` and in `server.json` (top-level `version` and `packages[0].version`). See [`.cursor/skills/release/SKILL.md`](../.cursor/skills/release/SKILL.md).
+4. **Ship PyPI first** — Create a GitHub Release so the workflow publishes the sdist/wheel; the registry verifies the README string against **live** PyPI.
+5. **Publish metadata** — From repo root: `mcp-publisher login github`, then `mcp-publisher publish` (or `./mcp-publisher` if you keep the binary locally; it is gitignored).
+
+**Verify:** `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ndjordjevic/pinrag"`
 
 **Important:** The registry is in preview. Version metadata is immutable once published. Deletion/unpublishing is not currently available.
 
@@ -239,7 +228,7 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 
 ### Phase 2: Tier 1 Listings (half day)
 
-- [ ] Submit to **Official MCP Registry** (add `mcp-name` to README, create `server.json`, publish)
+- [x] Submit to **Official MCP Registry** — README `mcp-name` comment, [`server.json`](../server.json), PyPI release then `mcp-publisher publish` (`io.github.ndjordjevic/pinrag`; `description` ≤ 100 chars)
 - [ ] Submit to **cursor/mcp-servers** (GitHub issue with SVG icon)
 - [ ] Submit to **mcp.so** (web form or CLI)
 - [ ] Submit PR to **awesome-mcp-servers**
