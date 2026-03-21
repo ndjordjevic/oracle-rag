@@ -1,12 +1,12 @@
 ---
-name: release
+name: pinrag-release
 description: Cut a new pinrag release: bump version, tag, push, and create a GitHub Release (pinrag repo only)
 disable-model-invocation: true
 ---
 
 # Release pinrag
 
-**Scope:** Use this skill only when the user is working in the pinrag repo (this skill lives in pinrag’s `.cursor/skills/`).
+**Scope:** Use this skill only when the user is working in the pinrag repo (this skill lives at `.cursor/skills/pinrag-release/`).
 
 Cut a new pinrag release: bump version, tag, push, and create a GitHub Release (which triggers PyPI publish).
 
