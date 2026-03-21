@@ -7,15 +7,27 @@
     "url": "https://github.com/ndjordjevic/pinrag",
     "source": "github"
   },
-  "version": "0.9.4",
+  "version": "0.9.5",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "pinrag",
-      "version": "0.9.4",
+      "version": "0.9.5",
       "transport": {
         "type": "stdio"
       },
+      "runtimeHint": "uvx",
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--from",
+          "value": "pinrag"
+        },
+        {
+          "type": "positional",
+          "value": "pinrag-mcp"
+        }
+      ],
       "environmentVariables": [
         {
           "description": "Anthropic API key when using Claude as the LLM (default provider).",
