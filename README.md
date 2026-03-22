@@ -142,6 +142,8 @@ Index a GitHub repository to ask questions about its code and docs. Use `add_doc
 
 Optional parameters for GitHub URLs: `branch`, `include_patterns` (e.g. `["*.md", "src/**/*.py"]`), `exclude_patterns`. Set `GITHUB_TOKEN` in MCP `env` or your shell for private repos or higher API rate limits. Files larger than `PINRAG_GITHUB_MAX_FILE_BYTES` (default 512 KiB) are skipped. By default, only common text/source extensions are indexed; other paths are omitted unless you widen the set with `include_patterns` (defaults also exclude many non-text artifacts such as images and archives).
 
+**Authentication and rate limits:** Without a token, GitHub’s API applies **unauthenticated** per-IP rate limits (suitable for light use of public repos). For **private** repositories, or to reduce throttling when indexing large repos, set **`GITHUB_TOKEN`** (classic PAT or fine-grained token with read access to the repo). PinRAG does not implement OAuth for end users; the token is the supported way to authenticate the server process to GitHub.
+
 ### YouTube indexing and IP blocking
 
 YouTube often blocks transcript requests from IPs that have made too many requests or from cloud provider IPs (AWS, GCP, Azure, etc.). When indexing playlists or many videos, you may see errors like *"YouTube is blocking requests from your IP"*.

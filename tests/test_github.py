@@ -30,10 +30,15 @@ def test_is_github_url_detection() -> None:
     assert _is_github_url("https://github.com/owner/repo/tree/main") is True
     assert _is_github_url("github.com/owner/repo") is True
     assert _is_github_url("http://github.com/foo/bar") is True
+    assert _is_github_url("https://www.github.com/foo/bar") is True
     assert _is_github_url("https://youtu.be/dQw4w9WgXcQ") is False
     assert _is_github_url("/path/to/file.pdf") is False
     assert _is_github_url("") is False
     assert _is_github_url("   ") is False
+    assert _is_github_url("https://evil.com/https://github.com/foo/bar") is False
+    assert _is_github_url("javascript:alert(1)") is False
+    assert _is_github_url("https://github.com/owner") is False
+    assert _is_github_url("https://github.com/../foo/bar") is False
 
 
 def test_detect_source_format_github() -> None:

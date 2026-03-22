@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from langsmith import traceable
 
@@ -32,6 +34,10 @@ from pinrag.vectorstore.docstore import get_parent_docstore
 
 logger = logging.getLogger(__name__)
 
+# GitHub.com /owner/repo path segments (defense-in-depth; indexer also validates).
+_GITHUB_OWNER_RE = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$")
+_GITHUB_REPO_RE = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?$")
+
 
 def _resolve_user_content_path(path_str: str) -> Path:
     """Resolve a local path for add/query tools; rejects null bytes and ``..`` segments."""
@@ -51,11 +57,41 @@ def _resolve_persist_dir_path(path_str: str) -> Path:
 
 
 def _is_github_url(s: str) -> bool:
-    """Return True if string is a GitHub repo URL (github.com/owner/repo)."""
-    if not s or not str(s).strip():
+    """Return True if string is an https (or http) URL to github.com /owner/repo."""
+
+    raw = (s or "").strip()
+    if not raw or "\x00" in raw or "\n" in raw or "\r" in raw:
         return False
-    t = str(s).strip().lower()
-    return "github.com/" in t and "/" in t.split("github.com/", 1)[-1]
+    if raw.startswith("//"):
+        raw = "https:" + raw
+    if "://" not in raw:
+        raw = "https://" + raw
+    try:
+        p = urlparse(raw)
+    except ValueError:
+        return False
+    if p.scheme not in ("http", "https"):
+        return False
+    host = (p.netloc or "").lower()
+    if "@" in host:
+        host = host.rsplit("@", 1)[-1]
+    if host.startswith("www."):
+        host = host[4:]
+    if ":" in host:
+        host = host.split(":", 1)[0]
+    if host != "github.com":
+        return False
+    parts = [x for x in (p.path or "").split("/") if x]
+    if any(x == ".." for x in parts):
+        return False
+    if len(parts) < 2:
+        return False
+    owner, repo = parts[0], parts[1]
+    if repo.endswith(".git"):
+        repo = repo[:-4]
+    if not owner or not repo or len(repo) > 100:
+        return False
+    return bool(_GITHUB_OWNER_RE.match(owner) and _GITHUB_REPO_RE.match(repo))
 
 
 def _categorize_failures(failed: list[dict[str, str]]) -> dict[str, int]:

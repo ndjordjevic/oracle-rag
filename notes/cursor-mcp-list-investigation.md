@@ -1,6 +1,7 @@
 # Investigation: Adding PinRAG MCP to Cursor's MCP Server List
 
 **Date:** March 2025  
+**Updated:** March 2026 — [cursor/mcp-servers](https://github.com/cursor/mcp-servers) deprecated; official listings use [Cursor Directory](https://cursor.directory).  
 **Status:** Investigation complete  
 **Related:** [implementation-checklist.md](../implementation-checklist.md) — "Investigate how to add pinrag mcp to cursor mcp server list"
 
@@ -8,40 +9,37 @@
 
 ## Executive Summary
 
-Cursor does **not** have a single built-in MCP marketplace like VS Code's Extensions view. Instead, discovery happens through **third-party directories** and **Cursor's official GitHub repo**. There are four main paths to get PinRAG listed:
+Cursor does **not** have a single built-in MCP marketplace like VS Code's Extensions view. Discovery happens through **Cursor Directory** ([cursor.directory](https://cursor.directory)), **third-party directories**, and README one-click links. The old GitHub list **[cursor/mcp-servers](https://github.com/cursor/mcp-servers)** is **deprecated** (README redirects to Cursor Directory).
 
 | Platform | Effort | Process | One-Click Install |
 |----------|--------|---------|-------------------|
-| **cursor/mcp-servers** (official) | Low | Submit GitHub issue with template | Yes — `cursor.com/en/install-mcp` |
+| **Cursor Directory** (official) | Low | [Submit a Plugin](https://cursor.directory/plugins/new) — Manual + **MCP Server** component (or Auto if repo has Open Plugins layout) | Yes — **Add to Cursor** on listing; also `cursor.com/en/install-mcp` |
 | **cursor.store** | Low | Web form at cursor.store/mcp/new | Yes |
 | **mcp-marketplace.io** | Low | Sign up, submit at /submit | Yes |
 | **cursormcp.dev** | Unknown | No public submission; may auto-discover from GitHub | N/A |
 
-**Recommendation:** Submit to **cursor/mcp-servers** first (official, highest visibility), then **cursor.store** and **mcp-marketplace.io** for broader reach.
+**Recommendation:** Submit to **Cursor Directory** first, then **cursor.store** and **mcp-marketplace.io** for broader reach.
 
 ---
 
-## 1. Cursor's Official MCP List: cursor/mcp-servers
+## 1. Cursor Directory (replaces deprecated cursor/mcp-servers)
 
 ### 1.1 Overview
 
-- **Repo:** [github.com/cursor/mcp-servers](https://github.com/cursor/mcp-servers)
-- **Purpose:** Curated collection of MCP servers for developer tools
-- **Visibility:** Listed servers get one-click "Install" links that add the server to the user's `mcp.json`
-- **Examples:** GitHub, Slack, Playwright, firecrawl, DuckDB (uvx), dbt Labs, etc.
+- **Site:** [cursor.directory](https://cursor.directory) — submissions at [cursor.directory/plugins/new](https://cursor.directory/plugins/new).
+- **Historical note:** [github.com/cursor/mcp-servers](https://github.com/cursor/mcp-servers) is deprecated; do not use the removed GitHub issue template.
+- **Model:** Listings follow the **[Open Plugins](https://open-plugins.com)** standard. A "plugin" can include an **MCP Server** component (`.mcp.json`–style config). Pure PyPI MCP servers often use **Manual** submit because **Auto (GitHub)** expects files like `mcp.json`, `rules/*.mdc`, or `skills/*/SKILL.md` at the repo root.
+- **Visibility:** Approved listings show **Add to Cursor**; users still configure API keys in `mcp.json` after install.
 
-### 1.2 Submission Process
+**PinRAG:** Submitted Mar 2026 (pending approval). Icon: [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg).
 
-1. Open [Server Request Template](https://github.com/cursor/mcp-servers/issues/new?template=server-request.yml)
-2. Fill in the form:
-   - **Server Name:** PinRAG
-   - **Server URL/Repository:** https://github.com/ndjordjevic/pinrag (or pypi.org/project/pinrag)
-   - **Description:** RAG system for PDFs, YouTube, GitHub repos, Discord exports. Index documents, query with citations via MCP tools.
-   - **Requirements Check:** ✓ Installation docs, ✓ Developer-focused, ✓ Icon (create square SVG)
-   - **Configuration JSON:** See below
-   - **Icon:** Attach square SVG logo
+### 1.2 Submission process
 
-3. Submit the issue. Cursor team reviews, tests, and adds to the README if accepted.
+1. Open [Submit a Plugin](https://cursor.directory/plugins/new) and sign in.
+2. Choose **Manual** (unless you add root `mcp.json` / Open Plugins layout for Auto scan).
+3. Fill **Name**, **Description**, **Repository URL**, optional **Homepage** (e.g. PyPI), **Keywords**, upload **Logo** (square SVG).
+4. Under **Components**, add **Type: MCP Server**, **Name** (e.g. `pinrag`), paste MCP install JSON in **Content** (see below — often wrapped as `{ "mcpServers": { "pinrag": { ... } } }` if the form expects a full `.mcp.json` blob).
+5. **Publish** — listing may show **Under review** until approved.
 
 ### 1.3 Configuration JSON for PinRAG
 
@@ -72,7 +70,7 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
 
 **Recommendation:** Use **Option B (uvx)** as primary — fewer setup steps. The PyPI package exposes **`pinrag-mcp`**, not `pinrag`, so use `uvx --from pinrag pinrag-mcp` (not `uvx pinrag`). Document that users need [uv](https://docs.astral.sh/uv/) installed. PinRAG reads only the process environment (MCP `env` in `mcp.json` or exported shell vars); there is no built-in `.env` loader.
 
-### 1.4 One-Click Install URL Format
+### 1.4 One-Click install URL format
 
 Cursor uses: `https://cursor.com/en/install-mcp?name={name}&config={base64}`
 
@@ -86,21 +84,15 @@ const url = `https://cursor.com/en/install-mcp?name=pinrag&config=${encodeURICom
 
 **Note:** `btoa` in browser; in Node use `Buffer.from(JSON.stringify(config)).toString('base64')`.
 
-### 1.5 Requirements (from CONTRIBUTING.md)
+### 1.5 Listing expectations
 
-- Valid MCP server with proper protocol implementation ✓
-- Actively maintained and publicly available ✓
-- Clear installation and usage documentation ✓
-- Solves real development problems ✓ (RAG for docs, codebases)
-- Professional presentation ✓
+Treat like a public product listing: valid MCP implementation, maintained repo, clear install/docs, developer-focused use case, professional description and icon. Rejected or low-quality submissions are at Cursor Directory’s discretion (same practical bar as the old GitHub list).
 
-**What they don't accept:** Personal projects without broad appeal, consumer apps, duplicates.
+**PinRAG fit:** Developer-focused RAG (PDFs, GitHub repos, YouTube, Discord exports, citations).
 
-**PinRAG fit:** Developer-focused (index PDFs, GitHub repos, ask questions with citations). Fits "knowledge bases, wikis, documentation" and "API documentation" categories.
+### 1.6 Icon
 
-### 1.6 Icon Requirement
-
-The template requires: *"I've attached a square SVG logo to this issue"*. Create or export a square SVG for PinRAG (e.g. from existing assets or a simple RAG/document icon).
+Use a **square SVG** (e.g. [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg), 128×128 viewBox) for the Directory logo field.
 
 ---
 
@@ -170,12 +162,12 @@ PinRAG fits: **AI / ML Helpers**, **Data & APIs**, or **Developer Tools**.
 - **Size:** 1,544 servers, 1,236 developers
 - **Submission:** No public "Submit" or "Add" flow found. May aggregate from:
   - GitHub (stars, MCP-related repos)
-  - cursor/mcp-servers
+  - Cursor Directory / other directories
   - Other sources
 
 ### 4.2 Action
 
-If PinRAG is added to **cursor/mcp-servers**, cursormcp.dev may pick it up automatically. Otherwise, check the site for contact/submission options or wait for organic discovery.
+If PinRAG appears on **Cursor Directory** or gains GitHub visibility, cursormcp.dev may pick it up over time. Otherwise, check the site for contact/submission options or wait for organic discovery.
 
 ---
 
@@ -206,31 +198,29 @@ For enterprise/MDM use, Cursor exposes [vscode.cursor.mcp.registerServer](https:
 
 ## 7. Recommended Action Plan
 
-### Phase 1: Official List (1–2 hours)
+### Phase 1: Official list (1–2 hours)
 
-1. **Create PinRAG icon** — Square SVG (e.g. 64×64 or 128×128)
-2. **Submit to cursor/mcp-servers** via [Server Request Template](https://github.com/cursor/mcp-servers/issues/new?template=server-request.yml)
-   - Use uvx config; document MCP `env` for API keys
-   - Attach SVG icon
-3. **Add one-click install to README** — Link to `cursor.com/en/install-mcp?name=pinrag&config=...` in Cursor section
+1. **Create PinRAG icon** — Square SVG (e.g. [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg))
+2. **Submit to Cursor Directory** via [Submit a Plugin](https://cursor.directory/plugins/new) — Manual + MCP Server component, uvx config, attach SVG (**done** Mar 2026, pending approval)
+3. **Add one-click install to README** — Link to `cursor.com/en/install-mcp?name=pinrag&config=...` in Cursor section (already in README)
 
-### Phase 2: Other Directories (30 min each)
+### Phase 2: Other directories (30 min each)
 
 1. **cursor.store** — Submit at [mcp/new](https://www.cursor.store/mcp/new) with metadata and install snippet
 2. **mcp-marketplace.io** — Sign up, submit at [submit](https://mcp-marketplace.io/submit)
 
 ### Phase 3: Monitor
 
-- Watch for cursormcp.dev listing (may be automatic after cursor/mcp-servers)
-- Respond to any feedback from Cursor team on the GitHub issue
+- Watch for cursormcp.dev listing after Directory approval / GitHub visibility
+- If Cursor Directory shows **Under review**, wait for approval or edit listing as needed
 
 ---
 
 ## 8. References
 
-- [cursor/mcp-servers](https://github.com/cursor/mcp-servers) — Official list
-- [CONTRIBUTING.md](https://github.com/cursor/mcp-servers/blob/main/CONTRIBUTING.md)
-- [Server Request Template](https://github.com/cursor/mcp-servers/issues/new?template=server-request.yml)
+- [Cursor Directory](https://cursor.directory) — [Submit a Plugin](https://cursor.directory/plugins/new)
+- [Open Plugins](https://open-plugins.com) — [MCP servers component](https://open-plugins.com/agent-builders/components/mcp-servers)
+- [cursor/mcp-servers](https://github.com/cursor/mcp-servers) — Deprecated (README → Cursor Directory)
 - [cursor.store](https://www.cursor.store/) — [List MCP](https://www.cursor.store/mcp/new), [Rules](https://www.cursor.store/rules)
 - [mcp-marketplace.io](https://mcp-marketplace.io/) — [Submit](https://mcp-marketplace.io/submit)
 - [cursormcp.dev](https://cursormcp.dev/) — Directory (no clear submit)

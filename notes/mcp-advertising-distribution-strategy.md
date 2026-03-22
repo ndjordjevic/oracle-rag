@@ -2,7 +2,7 @@
 
 **Date:** March 2026  
 **Status:** Investigation complete  
-**Related:** [implementation-checklist.md](implementation-checklist.md) line 299, [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md), [cursor-mcp-list-investigation.md](cursor-mcp-list-investigation.md)
+**Related:** [implementation-checklist.md](implementation-checklist.md) line 299, [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md), [cursor-mcp-list-investigation.md](cursor-mcp-list-investigation.md), plugin repo [ndjordjevic/pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin)
 
 ---
 
@@ -15,16 +15,32 @@ Two complementary tracks:
 
 Neither works alone. Listings without promotion = buried among 17,000+ servers. Promotion without listings = nowhere for interested users to land with a one-click install.
 
+**Two-tier distribution:** (1) **MCP-only** — PyPI package `pinrag` / `pinrag-mcp`; works in every MCP client. (2) **Plugin bundle** — separate repo [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) with `.cursor-plugin/`, `.claude-plugin/`, `.mcp.json`, and `skills/use-pinrag/` for editors that support Open Plugins / Agent Skills (Cursor, Claude Code, VS Code Copilot, Amp) plus a Goose-ready subtree under `pinrag/`. See §1.1 and §2.0.
+
 ---
 
 ## 1. Distribution: Where to List PinRAG
+
+### 1.1 MCP-only vs plugin bundle (ecosystem)
+
+| Tool | Bundling | How PinRAG fits |
+|------|------------|-----------------|
+| **Cursor** | Yes — plugin (MCP + skills + rules + hooks) | [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin): `.cursor-plugin/`, `.mcp.json`, `skills/use-pinrag/` |
+| **Claude Code** | Yes — plugin | Same repo: `.claude-plugin/`, official marketplace submit |
+| **VS Code Copilot** | Yes — agent plugins (Preview); accepts Claude-format | Same repo; install from Git URL or marketplace |
+| **Amp** | Yes — skill dir with `mcp.json` | `amp skill add ndjordjevic/pinrag-plugin/skills/use-pinrag` |
+| **Goose** | Yes — Agent Skills ([block/agent-skills](https://github.com/block/agent-skills)) | `pinrag/SKILL.md` in pinrag-plugin; PR [block/agent-skills#18](https://github.com/block/agent-skills/pull/18) (pending) |
+| **OpenCode** | MCP in `opencode.json`; “plugins” are npm JS hooks — not SKILL bundles | **MCP-only:** add server in config; no pinrag-plugin install path |
+| **JetBrains + Copilot** | MCP only (registry UI + `mcp.json`) | **MCP-only** |
+| **Windsurf** | MCP only (`mcp_config.json` + marketplace) | **MCP-only** |
+| **Zed** | MCP via extensions / settings | **MCP-only** |
 
 ### Tier 1: High-Impact (Do First)
 
 | # | Channel | Why | Effort | Status |
 |---|---------|-----|--------|--------|
 | 1 | **Official MCP Registry** (`modelcontextprotocol.io/registry`) | Authoritative source backed by Anthropic, GitHub, Block, Microsoft. Feeds downstream into VS Code, GitHub MCP, Pulse MCP. Supports PyPI packages. | Medium | **Done** — `io.github.ndjordjevic/pinrag` (latest on registry); [`server.json`](../server.json); verify with `jq` below (search returns multiple versions; do not assume `servers[0]` is latest). |
-| 2 | **cursor/mcp-servers** GitHub issue | Official Cursor curated list. One-click install. High visibility among Cursor users. | Low | Not started |
+| 2 | **Cursor Directory** ([cursor.directory](https://cursor.directory)) | Official Cursor listing (replaces deprecated [cursor/mcp-servers](https://github.com/cursor/mcp-servers)). One-click **Add to Cursor**. | Low | **Submitted** Mar 2026 — pending approval |
 | 3 | **mcp.so** | Largest directory (17,000+ servers). Simple web/CLI submission. | Low | Not started |
 | 4 | **awesome-mcp-servers** GitHub PR | 83.7k stars. Enormous organic visibility. | Low | Not started |
 | 5 | **VS Code one-click install URL** in README | Zero friction for VS Code users. Works today. | Very Low | **Done** — README Quick Start (GitHub Pages → `vscode:` button; see §2.5). |
@@ -70,14 +86,31 @@ curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.githu
 
 Registry is [preview](https://modelcontextprotocol.io/registry/about); published metadata for a version is effectively immutable. Optional: `pip install publish-mcp-server` for a Python-oriented publish helper. Docs: [quickstart](https://modelcontextprotocol.io/registry/quickstart), [authentication](https://modelcontextprotocol.io/registry/authentication).
 
-### 2.2 cursor/mcp-servers
+### 2.0 Plugin bundle ([pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin))
+
+Separate from the Python package: a **Git repo** that bundles the same **`uvx --from pinrag pinrag-mcp`** MCP config with a **`use-pinrag`** skill (and a Goose-formatted copy under `pinrag/`). Keeps PyPI/build concerns out of the main [pinrag](https://github.com/ndjordjevic/pinrag) repo.
+
+**Done (Mar 2026):** Repo published — [github.com/ndjordjevic/pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin). Goose marketplace PR opened — [block/agent-skills#18](https://github.com/block/agent-skills/pull/18) (awaiting maintainer merge / CI).
+
+**Still to do (marketplaces):**
+
+| Channel | Action |
+|---------|--------|
+| **Cursor Marketplace** (curated) | [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish) |
+| **Claude Code official** | [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit) or [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit) |
+| **VS Code Copilot** | PR to [awesome-copilot](https://github.com/github/awesome-copilot) and/or install-via-Git; see [Agent plugins](https://code.visualstudio.com/docs/copilot/customization/agent-plugins) |
+| **Cursor Directory** | Re-submit or edit listing to point at pinrag-plugin so **Auto (GitHub)** can scan `.cursor-plugin/` + `.mcp.json` |
+
+### 2.2 Cursor Directory (official Cursor listing)
+
+The GitHub repo [cursor/mcp-servers](https://github.com/cursor/mcp-servers) is **deprecated**; its README points to **[cursor.directory](https://cursor.directory)**. New listings use the **Open Plugins**–style flow at **[Submit a Plugin](https://cursor.directory/plugins/new)** (Manual if the repo has no `mcp.json` / rules / skills at root for Auto scan).
 
 See full details in [cursor-mcp-list-investigation.md](cursor-mcp-list-investigation.md).
 
 **Steps:**
-1. Create square SVG icon for PinRAG.
-2. Submit via [Server Request Template](https://github.com/cursor/mcp-servers/issues/new?template=server-request.yml).
-3. Config JSON (uvx):
+1. Use square SVG icon — [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg).
+2. Submit via Manual: name, description, repo URL, homepage (e.g. PyPI), keywords; add **Component → MCP Server** and paste install config (below).
+3. Config JSON (uvx) — same as README / one-click install; users add API keys in `mcp.json` after install:
    ```json
    {
      "command": "uvx",
@@ -88,6 +121,9 @@ See full details in [cursor-mcp-list-investigation.md](cursor-mcp-list-investiga
      }
    }
    ```
+   Or full `.mcp.json` wrapper for **Content** if the form expects it: `{ "mcpServers": { "pinrag": { ... } } }`.
+
+**Status (PinRAG):** Submitted to Cursor Directory (pending approval as of Mar 2026).
 
 ### 2.3 mcp.so
 
@@ -216,14 +252,24 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 
 - [x] Add one-click install URLs to README (Cursor + VS Code) — see README **Quick Start → One-click install**
 - [x] Ensure GitHub Topics are set (`mcp`, `mcp-server`, `rag`, etc.) — **done:** repo `ndjordjevic/pinrag` topics (polished): **chromadb, cursor, discord, github-repos, langchain, mcp, mcp-server, model-context-protocol, pdf, pypi, python, rag, vscode, youtube** (removed generic `github`; added MCP + PyPI + language/indexing tags).
-- [x] Create square SVG icon for PinRAG — [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg) (128×128 viewBox; document + pin). Attach or link for `cursor/mcp-servers` / store submissions.
+- [x] Create square SVG icon for PinRAG — [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg) (128×128 viewBox; document + pin). Use for Cursor Directory / store submissions.
 
 ### Phase 2: Tier 1 Listings (half day)
 
 - [x] Submit to **Official MCP Registry** — README `mcp-name` comment, [`server.json`](../server.json), PyPI release then `mcp-publisher publish` (`io.github.ndjordjevic/pinrag`; `description` ≤ 100 chars)
-- [ ] Submit to **cursor/mcp-servers** (GitHub issue with SVG icon)
+- [x] Submit to **Cursor Directory** — [cursor.directory/plugins/new](https://cursor.directory/plugins/new) (Manual + MCP Server component; replaces deprecated [cursor/mcp-servers](https://github.com/cursor/mcp-servers)); **pending approval** (Mar 2026)
+- [ ] After approval: spot-check one-click install / discoverability from Cursor Directory
 - [ ] Submit to **mcp.so** (web form or CLI)
 - [ ] Submit PR to **awesome-mcp-servers**
+
+### Phase 2b: Plugin bundle (pinrag-plugin)
+
+- [x] Publish **[pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin)** — MCP + `skills/use-pinrag/` + Goose subtree `pinrag/`
+- [x] Open **[block/agent-skills](https://github.com/block/agent-skills) PR** — [PR #18](https://github.com/block/agent-skills/pull/18) (Goose Skills Marketplace; pending review)
+- [ ] Submit to **Cursor Marketplace** (official) — [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)
+- [ ] Submit to **Claude Code** official plugin marketplace — [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit)
+- [ ] **VS Code Copilot** — list or PR against [awesome-copilot](https://github.com/github/awesome-copilot); document **Install plugin from source** URL
+- [ ] **Cursor Directory** — update listing to **pinrag-plugin** repo (optional Auto scan) once approved or in parallel
 
 ### Phase 3: Tier 2 Listings (1–2 hours)
 
@@ -267,6 +313,8 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 
 7. **A demo video/GIF is the highest-ROI content asset** — shows value instantly; reusable across README, blog posts, social media, and marketplace listings.
 
+8. **Plugin bundle (pinrag-plugin) targets a subset of tools** — Cursor, Claude Code, VS Code Copilot, Amp, Goose; everyone else stays on PyPI MCP-only. One SKILL.md can serve Goose (block/agent-skills) and the plugin skill with small frontmatter differences.
+
 ---
 
 ## 6. References
@@ -279,10 +327,18 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 - [GitHub Actions automation](https://modelcontextprotocol.io/registry/github-actions)
 - [FAQ](https://modelcontextprotocol.io/registry/faq)
 
+### Plugin bundle & skills
+- [ndjordjevic/pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) — MCP + skill bundle for Cursor, Claude Code, VS Code Copilot, Amp
+- [block/agent-skills#18](https://github.com/block/agent-skills/pull/18) — Goose Agent Skills PR (pending)
+- [Cursor Marketplace — publish](https://cursor.com/marketplace/publish)
+- [Claude Code — submit plugin](https://claude.ai/settings/plugins/submit)
+- [VS Code — Agent plugins](https://code.visualstudio.com/docs/copilot/customization/agent-plugins)
+- [github/awesome-copilot](https://github.com/github/awesome-copilot) — Copilot plugin marketplace repos
+
 ### Directories & Marketplaces
 - [mcp.so/submit](https://mcp.so/submit) — Largest directory (17,000+ servers)
 - [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) — 83.7k stars
-- [cursor/mcp-servers](https://github.com/cursor/mcp-servers) — Official Cursor list
+- [cursor/mcp-servers](https://github.com/cursor/mcp-servers) — Deprecated; use [Cursor Directory](https://cursor.directory) instead
 - [cursor.store/mcp/new](https://www.cursor.store/mcp/new) — Cursor marketplace
 - [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) — Security-scanned marketplace
 - [windsurf.run](https://windsurf.run/) — Windsurf/Codeium directory
