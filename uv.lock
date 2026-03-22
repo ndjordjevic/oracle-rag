@@ -1999,7 +1999,7 @@ wheels = [
 
 [[package]]
 name = "pinrag"
-version = "0.9.6"
+version = "0.9.7"
 source = { editable = "." }
 dependencies = [
     { name = "chromadb" },
@@ -2053,7 +2053,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.1" },
     { name = "youtube-transcript-api", specifier = ">=1.2.0" },
-    { name = "yt-dlp", specifier = ">=2023.0.0" },
+    { name = "yt-dlp", specifier = ">=2024.7.1" },
 ]
 provides-extras = ["cohere", "eval", "dev"]
 

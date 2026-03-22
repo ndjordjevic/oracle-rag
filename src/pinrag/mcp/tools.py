@@ -33,6 +33,23 @@ from pinrag.vectorstore.docstore import get_parent_docstore
 logger = logging.getLogger(__name__)
 
 
+def _resolve_user_content_path(path_str: str) -> Path:
+    """Resolve a local path for add/query tools; rejects null bytes and ``..`` segments."""
+    if "\x00" in path_str:
+        raise ValueError("Path cannot contain null bytes")
+    expanded = Path(path_str).expanduser()
+    if ".." in expanded.parts:
+        raise ValueError("Path must not use parent directory segments (..)")
+    return expanded.resolve()
+
+
+def _resolve_persist_dir_path(path_str: str) -> Path:
+    """Resolve Chroma persist directory; rejects null bytes (``..`` allowed for config)."""
+    if "\x00" in path_str:
+        raise ValueError("Path cannot contain null bytes")
+    return Path(path_str).expanduser().resolve()
+
+
 def _is_github_url(s: str) -> bool:
     """Return True if string is a GitHub repo URL (github.com/owner/repo)."""
     if not s or not str(s).strip():
@@ -112,7 +129,7 @@ def _detect_source_format(
         return "youtube_playlist"
     if has_video:
         return "youtube"
-    base = Path(s).expanduser().resolve()
+    base = _resolve_user_content_path(s)
     if base.exists():
         if base.is_dir():
             return "directory"
@@ -201,7 +218,7 @@ def query(
 
     _persist = (persist_dir or "").strip() or get_persist_dir()
     _collection = (collection or "").strip() or get_collection_name()
-    persist_path = Path(_persist).expanduser().resolve()
+    persist_path = _resolve_persist_dir_path(_persist)
     if not persist_path.exists():
         raise FileNotFoundError(
             f"Persistence directory does not exist: {_persist}. "
@@ -328,7 +345,7 @@ def add_file(
                 "failed": [],
                 "total_indexed": 1,
                 "total_failed": 0,
-                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "persist_directory": str(_resolve_persist_dir_path(_persist)),
                 "collection_name": collection,
             }
         except Exception as e:
@@ -338,7 +355,7 @@ def add_file(
                 "failed": [{"path": path, "error": str(e)}],
                 "total_indexed": 0,
                 "total_failed": 1,
-                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "persist_directory": str(_resolve_persist_dir_path(_persist)),
                 "collection_name": collection,
             }
     if fmt == "youtube_playlist":
@@ -385,7 +402,7 @@ def add_file(
                 "failed": failed_items,
                 "total_indexed": result_pl.total_indexed,
                 "total_failed": result_pl.total_failed,
-                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "persist_directory": str(_resolve_persist_dir_path(_persist)),
                 "collection_name": collection,
             }
             if failed_items:
@@ -398,7 +415,7 @@ def add_file(
                 "failed": [{"path": path, "error": str(e)}],
                 "total_indexed": 0,
                 "total_failed": 1,
-                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "persist_directory": str(_resolve_persist_dir_path(_persist)),
                 "collection_name": collection,
             }
     if fmt == "youtube":
@@ -434,7 +451,7 @@ def add_file(
                 "failed": [],
                 "total_indexed": 1,
                 "total_failed": 0,
-                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "persist_directory": str(_resolve_persist_dir_path(_persist)),
                 "collection_name": collection,
             }
         except Exception as e:
@@ -444,13 +461,13 @@ def add_file(
                 "failed": [{"path": path, "error": str(e)}],
                 "total_indexed": 0,
                 "total_failed": 1,
-                "persist_directory": str(Path(_persist).expanduser().resolve()),
+                "persist_directory": str(_resolve_persist_dir_path(_persist)),
                 "collection_name": collection,
             }
     if fmt == "directory":
         pass
     elif fmt is None:
-        base = Path(path).expanduser().resolve()
+        base = _resolve_user_content_path(path)
         if not base.exists():
             raise FileNotFoundError(f"Path not found: {path}")
         raise ValueError(
@@ -458,7 +475,7 @@ def add_file(
             "Supported: GitHub URL, YouTube URL/video ID, YouTube playlist URL, .pdf, .txt (Discord or plain text)."
         )
 
-    base = Path(path).expanduser().resolve()
+    base = _resolve_user_content_path(path)
     if not base.exists():
         raise FileNotFoundError(f"Path not found: {path}")
 
@@ -482,7 +499,7 @@ def add_file(
             "failed": [],
             "total_indexed": 0,
             "total_failed": 0,
-            "persist_directory": str(Path(_persist).expanduser().resolve()),
+            "persist_directory": str(_resolve_persist_dir_path(_persist)),
             "collection_name": collection,
         }
 
@@ -576,7 +593,7 @@ def add_file(
         "failed": failed,
         "total_indexed": len(indexed),
         "total_failed": len(failed),
-        "persist_directory": str(Path(_persist).expanduser().resolve()),
+        "persist_directory": str(_resolve_persist_dir_path(_persist)),
         "collection_name": collection,
     }
 
@@ -661,7 +678,7 @@ def add_files(
         "failed": all_failed,
         "total_indexed": len(all_indexed),
         "total_failed": len(all_failed),
-        "persist_directory": str(Path(_persist).expanduser().resolve()),
+        "persist_directory": str(_resolve_persist_dir_path(_persist)),
         "collection_name": collection,
     }
     if all_failed:
@@ -701,7 +718,7 @@ def list_documents(
         collection = str(collection).strip()
 
     _persist = (persist_dir or "").strip() or get_persist_dir()
-    persist_path = Path(_persist).expanduser().resolve()
+    persist_path = _resolve_persist_dir_path(_persist)
     if not persist_path.exists():
         return {
             "documents": [],
@@ -821,7 +838,7 @@ def remove_document(
         collection = str(collection).strip()
 
     _persist = (persist_dir or "").strip() or get_persist_dir()
-    persist_path = Path(_persist).expanduser().resolve()
+    persist_path = _resolve_persist_dir_path(_persist)
     if not persist_path.exists():
         raise FileNotFoundError(f"Persistence directory does not exist: {_persist}")
 
