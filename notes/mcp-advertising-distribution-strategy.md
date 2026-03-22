@@ -51,7 +51,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 | # | Channel | Why | Effort | Status |
 |---|---------|-----|--------|--------|
 | 7 | **cursor.store** | Curated Cursor marketplace. Free listing. | Low | Not started |
-| 8 | **mcp-marketplace.io** | Security-scanned marketplace. One-click install. 2,400+ tools. | Low | Not started |
+| 8 | **mcp-marketplace.io** | Security-scanned marketplace. One-click install. ~2,700+ tools ([browse](https://mcp-marketplace.io/browse)). | Low | **Listed** (Mar 2026) — Medium findings addressed in **v0.9.8** on PyPI (`[project.urls]`, dependency floors, GitHub URL validation); **scanner may lag** until the marketplace pulls the new package metadata (no documented force-rescan). |
 | 9 | **Windsurf.run** | Windsurf/Codeium MCP directory. | Low | Not started |
 | 10 | **MCP Market** (`mcpmarket.com`) | Largest marketplace (21,700+ servers). | Low | Not started |
 | 11 | **MCPCentral** (`mcpcentral.io`) | Additional directory with `mcp-publisher` CLI support. | Low | Not started |
@@ -178,7 +178,9 @@ Submit at [cursor.store/mcp/new](https://www.cursor.store/mcp/new). Free listing
 
 ### 2.7 mcp-marketplace.io
 
-Submit at [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) (GitHub sign-in). Category: Developer Tools or Data & Analytics. Pricing: Free. Optional: add `LAUNCHGUIDE.md` to the repo for auto-fill.
+Submit at [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) (GitHub sign-in). Category: Developer Tools or Data & Analytics. Pricing: Free. Optional: add `LAUNCHGUIDE.md` to the repo for auto-fill ([creator docs](https://mcp-marketplace.io/docs)).
+
+**PinRAG (Mar 2026):** Listed; automated scan reads **`pyproject.toml`** from the published PyPI sdist. **v0.9.8** bumps patched dependencies (e.g. `pypdf`, `requests`, `yt-dlp`), adds **`[project.urls]`** (`Homepage` / `Repository` → GitHub) for package verification, and documents **`GITHUB_TOKEN`** tradeoffs in the README. After publishing, the dashboard may still show older findings until the marketplace re-evaluates the new version—there is no documented “rescan” button; a new PyPI release + time, or asking [support](https://mcp-marketplace.io/faq) / [Discord](https://discord.gg/8uWz69aQH), is the practical path.
 
 ### 2.8 Windsurf.run
 
@@ -274,7 +276,7 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 ### Phase 3: Tier 2 Listings (1–2 hours)
 
 - [ ] Submit to **cursor.store**
-- [ ] Submit to **mcp-marketplace.io**
+- [x] **mcp-marketplace.io** — listed; confirm Medium / supply-chain items clear after **v0.9.8** is indexed
 - [ ] Submit to **Windsurf.run** (if submission process exists)
 - [ ] Submit to **MCP Market** (mcpmarket.com)
 - [ ] Submit to **MCPCentral** (mcpcentral.io)
@@ -340,7 +342,7 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 - [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) — 83.7k stars
 - [cursor/mcp-servers](https://github.com/cursor/mcp-servers) — Deprecated; use [Cursor Directory](https://cursor.directory) instead
 - [cursor.store/mcp/new](https://www.cursor.store/mcp/new) — Cursor marketplace
-- [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) — Security-scanned marketplace
+- [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) — Security-scanned marketplace ([docs](https://mcp-marketplace.io/docs), [FAQ](https://mcp-marketplace.io/faq))
 - [windsurf.run](https://windsurf.run/) — Windsurf/Codeium directory
 - [mcpmarket.com](https://mcpmarket.com/) — 21,700+ servers
 - [mcpcentral.io/submit-server](https://mcpcentral.io/submit-server) — MCPCentral
