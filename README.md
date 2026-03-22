@@ -1,7 +1,7 @@
 <!-- mcp-name: io.github.ndjordjevic/pinrag -->
 
 <p align="center">
-  <img src="docs/pinrag-icon.svg" width="96" height="96" alt="PinRAG logo" />
+  <img src="https://raw.githubusercontent.com/ndjordjevic/pinrag/main/docs/pinrag-icon.svg" width="96" height="96" alt="PinRAG logo" />
 </p>
 
 # PinRAG
