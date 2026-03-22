@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.ndjordjevic/pinrag",
   "title": "PinRAG",
-  "description": "RAG MCP: PDFs, repos, YouTube, Discord, plain text. Index and query with citations (stdio).",
+  "description": "MCP RAG server: index PDFs, GitHub Repos, YouTube, Discord, Plain Text; query with citations.",
   "repository": {
     "url": "https://github.com/ndjordjevic/pinrag",
     "source": "github"
   },
-  "version": "0.9.5",
+  "version": "0.9.6",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "pinrag",
-      "version": "0.9.5",
+      "version": "0.9.6",
       "transport": {
         "type": "stdio"
       },
@@ -30,15 +30,15 @@
       ],
       "environmentVariables": [
         {
-          "description": "Anthropic API key when using Claude as the LLM (default provider).",
-          "isRequired": false,
+          "description": "Anthropic API key — required for the default LLM (Claude). Set PINRAG_LLM_PROVIDER=openai to use OpenAI instead.",
+          "isRequired": true,
           "format": "string",
           "isSecret": true,
           "name": "ANTHROPIC_API_KEY"
         },
         {
-          "description": "OpenAI API key (LLM and/or embeddings when using OpenAI). Often set together with or instead of ANTHROPIC_API_KEY.",
-          "isRequired": false,
+          "description": "OpenAI API key — required for default embeddings. Also used when PINRAG_LLM_PROVIDER=openai.",
+          "isRequired": true,
           "format": "string",
           "isSecret": true,
           "name": "OPENAI_API_KEY"
