@@ -8,19 +8,21 @@ PinRAG is a retrieval-augmented generation (RAG) MCP server built with LangChain
 
 ## Setup Requirements
 
-`pinrag-mcp` validates API keys at startup (`require_api_keys_for_server`): it requires a non-empty key for the **embedding** provider (`PINRAG_EMBEDDING_PROVIDER`, default `openai`) and for the **LLM** provider (`PINRAG_LLM_PROVIDER`, default `anthropic`).
+- `OPENAI_API_KEY` (required): Default OpenAI embeddings. https://platform.openai.com/api-keys
+- `ANTHROPIC_API_KEY` (required): Default Anthropic chat. https://console.anthropic.com/
+- `PINRAG_PERSIST_DIR` (optional): Absolute path to the Chroma data directory; defaults to `chroma_db` relative to the server process if unset.
 
-**Required — default stack (OpenAI embeddings + Anthropic chat):** set both keys in MCP `env`.
-- `OPENAI_API_KEY` — [OpenAI API keys](https://platform.openai.com/api-keys)
-- `ANTHROPIC_API_KEY` — [Anthropic console](https://console.anthropic.com/)
+Use `env` keys in this order in `mcp.json` (example):
 
-**Required — other combinations:** If `PINRAG_LLM_PROVIDER=openai`, only `OPENAI_API_KEY` is needed for both chat and default OpenAI embeddings. If `PINRAG_EMBEDDING_PROVIDER=cohere`, set `COHERE_API_KEY` — [Cohere API keys](https://dashboard.cohere.com/api-keys). The chat key must match `PINRAG_LLM_PROVIDER` (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`).
+```json
+{
+  "OPENAI_API_KEY": "your-openai-api-key-here",
+  "ANTHROPIC_API_KEY": "your-anthropic-api-key-here",
+  "PINRAG_PERSIST_DIR": "your-pinrag-persist-dir-here"
+}
+```
 
-**Optional:**
-- `PINRAG_PERSIST_DIR` — Absolute path to the Chroma data directory (default: `chroma_db` next to the process cwd; a stable path is recommended)
-- `PINRAG_LLM_PROVIDER` — `anthropic` (default) or `openai`
-- `PINRAG_EMBEDDING_PROVIDER` — `openai` (default) or `cohere`
-- `GITHUB_TOKEN` — Private repos or higher GitHub API rate limits when indexing — [GitHub tokens](https://github.com/settings/tokens)
+On startup, `pinrag-mcp` validates API keys for the active embedding and LLM providers (`require_api_keys_for_server`). Alternate setups (e.g. OpenAI-only chat, Cohere embeddings, `GITHUB_TOKEN`) are documented in the README.
 
 ## Category
 Developer Tools
