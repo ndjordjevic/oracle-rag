@@ -50,7 +50,7 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
   "command": "pinrag-mcp",
   "env": {
     "OPENAI_API_KEY": "",
-    "ANTHROPIC_API_KEY": ""
+    "PINRAG_PERSIST_DIR": ""
   }
 }
 ```
@@ -63,7 +63,7 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
   "args": ["--from", "pinrag", "pinrag-mcp"],
   "env": {
     "OPENAI_API_KEY": "",
-    "ANTHROPIC_API_KEY": ""
+    "PINRAG_PERSIST_DIR": ""
   }
 }
 ```
@@ -74,10 +74,10 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
 
 Cursor uses: `https://cursor.com/en/install-mcp?name={name}&config={base64}`
 
-Example for PinRAG (uvx — user should fill `env` with API keys):
+Example for PinRAG (uvx — user fills `OPENAI_API_KEY`; optional absolute `PINRAG_PERSIST_DIR`):
 
 ```javascript
-const config = { command: "uvx", args: ["--from", "pinrag", "pinrag-mcp"], env: {} };
+const config = { command: "uvx", args: ["--from", "pinrag", "pinrag-mcp"], env: { OPENAI_API_KEY: "", PINRAG_PERSIST_DIR: "" } };
 const b64 = btoa(JSON.stringify(config));
 const url = `https://cursor.com/en/install-mcp?name=pinrag&config=${encodeURIComponent(b64)}`;
 ```
@@ -109,7 +109,7 @@ Use a **square SVG** (e.g. [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg), 12
 - **Metadata:** name, slug, short/long description, category, tags, author, repo URL, install snippet, permissions
 - **Install snippet:** Must work in Cursor; use secure defaults; no real credentials
 - **Permission level:** Declare `low` | `medium` | `high`
-  - PinRAG: **medium** (uses API keys for OpenAI/Anthropic, reads/writes local files for Chroma)
+  - PinRAG: **medium** (uses `OPENAI_API_KEY` by default; optional Anthropic if configured for LLM; reads/writes local files for Chroma)
 - **Quality:** README with install/usage; valid MCP responses; graceful errors
 
 ### 2.3 Categories
@@ -126,7 +126,7 @@ PinRAG fits: **AI / ML Helpers**, **Data & APIs**, or **Developer Tools**.
       "args": ["--from", "pinrag", "pinrag-mcp"],
       "env": {
         "OPENAI_API_KEY": "<YOUR_OPENAI_KEY>",
-        "ANTHROPIC_API_KEY": "<YOUR_ANTHROPIC_KEY>"
+        "PINRAG_PERSIST_DIR": "<absolute/path/to/chroma_db>"
       }
     }
   }
@@ -160,14 +160,14 @@ PinRAG fits: **AI / ML Helpers**, **Data & APIs**, or **Developer Tools**.
 
 - **URL:** [cursormcp.dev](https://cursormcp.dev/)
 - **Size:** 1,544 servers, 1,236 developers
-- **Submission:** No public "Submit" or "Add" flow found. May aggregate from:
-  - GitHub (stars, MCP-related repos)
-  - Cursor Directory / other directories
-  - Other sources
+- **Submission:** **No public submission form.** Verified March 2026: `/submit`, `/contact`, `/add` all return 404. No contact email in footer (only Privacy Policy link). No public GitHub repo for contributions.
+- **Source:** Aggregates from **GitHub star counts** (primary ranking) and likely the **Anthropic/official MCP Registry**. All listed servers link to GitHub repos and show star counts. Crawl/refresh appears infrequent (many entries show "updated 7 months ago").
 
 ### 4.2 Action
 
-If PinRAG appears on **Cursor Directory** or gains GitHub visibility, cursormcp.dev may pick it up over time. Otherwise, check the site for contact/submission options or wait for organic discovery.
+- **Primary path:** Grow GitHub stars and ensure PinRAG stays listed in the **Anthropic official MCP Registry** (the marketplace listing already says "Imported from the Official MCP Registry" — that's the likely feed cursormcp.dev uses).
+- **Direct outreach:** Find the site owner via Twitter/X or WHOIS and pitch PinRAG directly — there is no self-serve form.
+- **Timeline:** Manual curation means no guaranteed pickup window; organic discovery via star growth is the more reliable long-term path.
 
 ---
 
