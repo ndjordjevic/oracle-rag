@@ -40,18 +40,18 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 | # | Channel | Why | Effort | Status |
 |---|---------|-----|--------|--------|
 | 1 | **Official MCP Registry** (`modelcontextprotocol.io/registry`) | Authoritative source backed by Anthropic, GitHub, Block, Microsoft. Feeds downstream into VS Code, GitHub MCP, Pulse MCP. Supports PyPI packages. | Medium | **Done** — `io.github.ndjordjevic/pinrag` (latest on registry); [`server.json`](../server.json); verify with `jq` below (search returns multiple versions; do not assume `servers[0]` is latest). |
-| 2 | **Cursor Directory** ([cursor.directory](https://cursor.directory)) | Official Cursor listing (replaces deprecated [cursor/mcp-servers](https://github.com/cursor/mcp-servers)). One-click **Add to Cursor**. | Low | **Submitted** Mar 2026 — pending approval |
-| 3 | **mcp.so** | Largest directory (17,000+ servers). Simple web/CLI submission. | Low | Not started |
-| 4 | **awesome-mcp-servers** GitHub PR | 83.7k stars. Enormous organic visibility. | Low | Not started |
-| 5 | **VS Code one-click install URL** in README | Zero friction for VS Code users. Works today. | Very Low | **Done** — README Quick Start (GitHub Pages → `vscode:` button; see §2.5). |
-| 6 | **Cursor one-click install URL** in README | Zero friction for Cursor users. Works today. | Very Low | **Done** — README Quick Start (`cursor.com/en/install-mcp` + base64 config). |
+| 2 | **mcp-marketplace.io** | Security-scanned marketplace; picks up registry-backed servers. One-click install. ~2,700+ tools ([browse](https://mcp-marketplace.io/browse)). | Low | **Listed** (Mar 2026) — Medium findings addressed in **v0.9.8** on PyPI (`[project.urls]`, dependency floors, GitHub URL validation); **scanner may lag** until the marketplace pulls the new package metadata (no documented force-rescan). |
+| 3 | **Cursor Directory** ([cursor.directory](https://cursor.directory)) | Official Cursor listing (replaces deprecated [cursor/mcp-servers](https://github.com/cursor/mcp-servers)). One-click **Add to Cursor**. | Low | **Submitted** Mar 2026 — pending approval |
+| 4 | **mcp.so** | Largest directory (17,000+ servers). Simple web/CLI submission. | Low | Not started |
+| 5 | **awesome-mcp-servers** GitHub PR | 83.7k stars. Enormous organic visibility. | Low | Not started |
+| 6 | **VS Code one-click install URL** in README | Zero friction for VS Code users. Works today. | Very Low | **Done** — README Quick Start (GitHub Pages → `vscode:` button; see §2.5). |
+| 7 | **Cursor one-click install URL** in README | Zero friction for Cursor users. Works today. | Very Low | **Done** — README Quick Start (`cursor.com/en/install-mcp` + base64 config). |
 
 ### Tier 2: Broader Reach (Do Next)
 
 | # | Channel | Why | Effort | Status |
 |---|---------|-----|--------|--------|
-| 7 | **cursor.store** | Curated Cursor marketplace. Free listing. | Low | Not started |
-| 8 | **mcp-marketplace.io** | Security-scanned marketplace. One-click install. ~2,700+ tools ([browse](https://mcp-marketplace.io/browse)). | Low | **Listed** (Mar 2026) — Medium findings addressed in **v0.9.8** on PyPI (`[project.urls]`, dependency floors, GitHub URL validation); **scanner may lag** until the marketplace pulls the new package metadata (no documented force-rescan). |
+| 8 | **cursor.store** | Curated Cursor marketplace. Free listing. | Low | Not started |
 | 9 | **Windsurf.run** | Windsurf/Codeium MCP directory. | Low | Not started |
 | 10 | **MCP Market** (`mcpmarket.com`) | Largest marketplace (21,700+ servers). | Low | Not started |
 | 11 | **MCPCentral** (`mcpcentral.io`) | Additional directory with `mcp-publisher` CLI support. | Low | Not started |
@@ -259,6 +259,7 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 ### Phase 2: Tier 1 Listings (half day)
 
 - [x] Submit to **Official MCP Registry** — README `mcp-name` comment, [`server.json`](../server.json), PyPI release then `mcp-publisher publish` (`io.github.ndjordjevic/pinrag`; `description` ≤ 100 chars)
+- [x] **mcp-marketplace.io** — listed (Mar 2026); confirm Medium / supply-chain items clear after **v0.9.8** is indexed
 - [x] Submit to **Cursor Directory** — [cursor.directory/plugins/new](https://cursor.directory/plugins/new) (Manual + MCP Server component; replaces deprecated [cursor/mcp-servers](https://github.com/cursor/mcp-servers)); **pending approval** (Mar 2026)
 - [ ] After approval: spot-check one-click install / discoverability from Cursor Directory
 - [ ] Submit to **mcp.so** (web form or CLI)
@@ -276,7 +277,6 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 ### Phase 3: Tier 2 Listings (1–2 hours)
 
 - [ ] Submit to **cursor.store**
-- [x] **mcp-marketplace.io** — listed; confirm Medium / supply-chain items clear after **v0.9.8** is indexed
 - [ ] Submit to **Windsurf.run** (if submission process exists)
 - [ ] Submit to **MCP Market** (mcpmarket.com)
 - [ ] Submit to **MCPCentral** (mcpcentral.io)
