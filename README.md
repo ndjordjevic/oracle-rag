@@ -55,10 +55,10 @@ These links add PinRAG to your editor’s MCP config using **`uvx --from pinrag 
 
 | Editor | Action |
 |--------|--------|
-| **Cursor** | [Install PinRAG MCP in Cursor](https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6e319) |
+| **Cursor** | [Install PinRAG MCP in Cursor](https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6eyJPUEVOQUlfQVBJX0tFWSI6IiIsIlBJTlJBR19QRVJTSVNUX0RJUiI6IiJ9fQ) |
 | **VS Code** | [Install PinRAG MCP in VS Code](https://ndjordjevic.github.io/pinrag/vscode-mcp-install.html) |
 
-After the install step, **add your API keys** in the MCP `env` block (same place as in the manual examples below)—the one-click flow does not embed secrets. If you prefer **`pinrag-mcp`** after `pipx install pinrag`, use the JSON snippets in the next section instead of the links above.
+The one-click links **pre-fill** your MCP `env` with empty `OPENAI_API_KEY` (required—paste your key) and `PINRAG_PERSIST_DIR` (optional—set an absolute path for a stable index location, or remove the key). No secrets are embedded. If you prefer **`pinrag-mcp`** after `pipx install pinrag`, use the JSON snippets in the next section instead of the links above.
 
 To pick up a **new PyPI release** with this `uvx` setup, run `uvx --refresh --from pinrag pinrag-mcp` once in a terminal (or `uv cache clean`), then restart your editor so the MCP server reloads.
 

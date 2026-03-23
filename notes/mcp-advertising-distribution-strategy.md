@@ -156,19 +156,19 @@ The PyPI package exposes the **`pinrag-mcp`** console script (not `pinrag`), so 
 
 **Cursor:**
 ```
-https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6e319
+https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6eyJPUEVOQUlfQVBJX0tFWSI6IiIsIlBJTlJBR19QRVJTSVNUX0RJUiI6IiJ9fQ
 ```
-Decodes to `{"command":"uvx","args":["--from","pinrag","pinrag-mcp"],"env":{}}`.
+Decodes to `{"command":"uvx","args":["--from","pinrag","pinrag-mcp"],"env":{"OPENAI_API_KEY":"","PINRAG_PERSIST_DIR":""}}`.
 
 **VS Code:** GitHub’s README renderer does **not** make `vscode:` URLs clickable (custom schemes are stripped). The README therefore links to an **HTTPS landing page** that contains the real `vscode:` button: [`docs/vscode-mcp-install.html`](../docs/vscode-mcp-install.html), served via **GitHub Pages** at `https://ndjordjevic.github.io/pinrag/vscode-mcp-install.html` (Pages enabled on `main:/docs`).
 
 Raw `vscode:` URL (for local README preview or manual paste):
 ```
-vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22pinrag%22%2C%22pinrag-mcp%22%5D%7D
+vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22pinrag%22%2C%22pinrag-mcp%22%5D%2C%22env%22%3A%7B%22OPENAI_API_KEY%22%3A%22%22%2C%22PINRAG_PERSIST_DIR%22%3A%22%22%7D%7D
 ```
-Decodes to `{"name":"pinrag","command":"uvx","args":["--from","pinrag","pinrag-mcp"]}`.
+Decodes to `{"name":"pinrag","command":"uvx","args":["--from","pinrag","pinrag-mcp"],"env":{"OPENAI_API_KEY":"","PINRAG_PERSIST_DIR":""}}`.
 
-Add Cursor link + VS Code HTTPS landing page in the README Quick Start section. Users still need to add API keys to `mcp.json` after install.
+Add Cursor link + VS Code HTTPS landing page in the README Quick Start section. One-click installs pre-fill `OPENAI_API_KEY` and optional `PINRAG_PERSIST_DIR` (empty strings); users paste their OpenAI key.
 
 ### 2.6 cursor.store
 
