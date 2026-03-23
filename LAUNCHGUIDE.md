@@ -8,8 +8,7 @@ PinRAG is a retrieval-augmented generation (RAG) MCP server built with LangChain
 
 ## Setup Requirements
 
-- `OPENAI_API_KEY` (required): Default OpenAI embeddings. https://platform.openai.com/api-keys
-- `ANTHROPIC_API_KEY` (required): Default Anthropic chat. https://console.anthropic.com/
+- `OPENAI_API_KEY` (required): Default OpenAI embeddings and default OpenAI chat. https://platform.openai.com/api-keys
 - `PINRAG_PERSIST_DIR` (optional): Absolute path to the Chroma data directory; defaults to `chroma_db` relative to the server process if unset.
 
 Use `env` keys in this order in `mcp.json` (example):
@@ -17,12 +16,11 @@ Use `env` keys in this order in `mcp.json` (example):
 ```json
 {
   "OPENAI_API_KEY": "your-openai-api-key-here",
-  "ANTHROPIC_API_KEY": "your-anthropic-api-key-here",
   "PINRAG_PERSIST_DIR": "your-pinrag-persist-dir-here"
 }
 ```
 
-On startup, `pinrag-mcp` validates API keys for the active embedding and LLM providers (`require_api_keys_for_server`). Alternate setups (e.g. OpenAI-only chat, Cohere embeddings, `GITHUB_TOKEN`) are documented in the README.
+On startup, `pinrag-mcp` validates API keys for the active embedding and LLM providers (`require_api_keys_for_server`). Additional providers and options are documented in the README.
 
 ## Category
 Developer Tools
@@ -35,7 +33,7 @@ Coding assistants, documentation Q&A, research, onboarding, technical support, c
 - Query with source citations and optional metadata filters (tags, doc type, page range, paths)
 - MCP tools: add documents, add URL, query, list, remove
 - MCP resources and `use_pinrag` prompt for guided workflows
-- Configurable LLM (Anthropic/OpenAI) and embeddings (OpenAI/Cohere)
+- Configurable LLM and embeddings (OpenAI defaults; other providers in README)
 
 ## Getting Started
 - "Index the PDFs in ./docs and summarize the deployment steps."
@@ -47,7 +45,7 @@ Coding assistants, documentation Q&A, research, onboarding, technical support, c
 - Tool: `remove_document_tool` — Remove a document by ID from `list_documents_tool`
 
 ## Tags
-rag, mcp, langchain, chromadb, pdf, github, youtube, discord, embeddings, anthropic, openai, cursor, vscode, retrieval, citations
+rag, mcp, langchain, chromadb, pdf, github, youtube, discord, embeddings, openai, cursor, vscode, retrieval, citations
 
 ## Documentation URL
 https://github.com/ndjordjevic/pinrag#readme

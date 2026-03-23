@@ -23,7 +23,7 @@ PinRAG provides intelligent document querying and retrieval for PDFs, plain text
 - **MCP tools** — `add_document_tool` (files, dirs, or URLs), `add_url_tool` (YouTube/GitHub URLs only), `query_tool`, `list_documents_tool`, `remove_document_tool`
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
-- **Configurable LLM** — Anthropic (default) or OpenAI; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
+- **Configurable LLM** — OpenAI (default) or Anthropic; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
 - **Configurable embeddings** — OpenAI (default) or Cohere; set via `PINRAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
 - **Retrieval & chunking options** — Structure-aware chunking (on by default); optional Cohere re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
 - **Observability** — Optional [LangSmith](https://smith.langchain.com) tracing; optional stderr logging via `PINRAG_LOG_TO_STDERR`
@@ -75,9 +75,9 @@ Add `pinrag` to your editor’s MCP config and set API keys in the same `env` bl
 The server validates required API keys at startup and exits with a clear error
 if any are missing. Set keys in your MCP `env` block as in the examples below.
 
-- **Default setup** (Anthropic LLM + OpenAI embeddings): set both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`. Embeddings use OpenAI; queries use Anthropic.
-- **OpenAI only:** set `PINRAG_LLM_PROVIDER=openai` and only `OPENAI_API_KEY` (one key for both embeddings and chat).
-- **Cohere embeddings:** set `PINRAG_EMBEDDING_PROVIDER=cohere` and `COHERE_API_KEY`; you still need an LLM key (OpenAI or Anthropic) per above.
+- **Default setup** (OpenAI embeddings + OpenAI chat): set `OPENAI_API_KEY` only.
+- **Anthropic for queries:** set `PINRAG_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (keep `OPENAI_API_KEY` for default embeddings unless you also change embedding provider).
+- **Cohere embeddings:** set `PINRAG_EMBEDDING_PROVIDER=cohere` and `COHERE_API_KEY`; you still need an LLM key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY` depending on `PINRAG_LLM_PROVIDER`).
 
 A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
 
@@ -89,8 +89,7 @@ A longer commented reference for optional `PINRAG_*` variables is in [`notes/env
     "pinrag": {
       "command": "pinrag-mcp",
       "env": {
-        "OPENAI_API_KEY": "sk-...",
-        "ANTHROPIC_API_KEY": "sk-ant-..."
+        "OPENAI_API_KEY": "sk-..."
       }
     }
   }
@@ -105,8 +104,7 @@ A longer commented reference for optional `PINRAG_*` variables is in [`notes/env
     "pinrag": {
       "command": "pinrag-mcp",
       "env": {
-        "OPENAI_API_KEY": "sk-...",
-        "ANTHROPIC_API_KEY": "sk-ant-..."
+        "OPENAI_API_KEY": "sk-..."
       }
     }
   }
@@ -175,7 +173,7 @@ Environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | **LLM** | | |
-| `PINRAG_LLM_PROVIDER` | `anthropic` | `openai` or `anthropic` |
+| `PINRAG_LLM_PROVIDER` | `openai` | `openai` or `anthropic` |
 | `PINRAG_LLM_MODEL` | *(provider default)* | e.g. `claude-haiku-4-5`, `claude-sonnet-4-6`, `gpt-4o-mini` |
 | `OPENAI_API_KEY` | *(required for OpenAI)* | OpenAI API key (LLM or embeddings) |
 | `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`) |

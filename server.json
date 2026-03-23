@@ -30,14 +30,7 @@
       ],
       "environmentVariables": [
         {
-          "description": "Anthropic API key — required for the default LLM (Claude). Set PINRAG_LLM_PROVIDER=openai to use OpenAI instead.",
-          "isRequired": true,
-          "format": "string",
-          "isSecret": true,
-          "name": "ANTHROPIC_API_KEY"
-        },
-        {
-          "description": "OpenAI API key — required for default embeddings. Also used when PINRAG_LLM_PROVIDER=openai.",
+          "description": "OpenAI API key — required for default embeddings and default LLM (OpenAI).",
           "isRequired": true,
           "format": "string",
           "isSecret": true,

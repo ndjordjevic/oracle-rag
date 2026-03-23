@@ -7,10 +7,10 @@ See also the configuration table in the project `README.md`.
 ---
 
 ## LLM (required for generation)
-# Provider: openai | anthropic (default: anthropic)
-# PINRAG_LLM_PROVIDER=anthropic
+# Provider: openai | anthropic (default: openai)
+# PINRAG_LLM_PROVIDER=openai
 # Model name (provider-specific). If unset: openai=gpt-4o-mini, anthropic=claude-haiku-4-5
-# PINRAG_LLM_MODEL=claude-haiku-4-5
+# PINRAG_LLM_MODEL=gpt-4o-mini
 
 # OpenAI (required for OpenAI LLM or OpenAI embeddings; default embedding provider)
 #OPENAI_API_KEY=your_openai_api_key_here

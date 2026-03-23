@@ -15,7 +15,7 @@ DEFAULT_PERSIST_DIR = "chroma_db"
 DEFAULT_COLLECTION_NAME = "pinrag"
 
 # --- LLM (PINRAG_LLM_*) ---
-DEFAULT_LLM_PROVIDER = "anthropic"
+DEFAULT_LLM_PROVIDER = "openai"
 DEFAULT_LLM_MODEL_OPENAI = "gpt-4o-mini"
 DEFAULT_LLM_MODEL_ANTHROPIC = "claude-haiku-4-5"
 

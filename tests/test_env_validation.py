@@ -84,11 +84,11 @@ def test_require_embedding_api_key_unknown_provider_exits(
 def test_require_api_keys_for_server_checks_embedding_before_llm(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """With default providers, missing embedding key fails before LLM key is considered."""
+    """Default providers use OpenAI for embeddings and LLM; missing OPENAI_API_KEY fails first."""
     monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
     monkeypatch.delenv("PINRAG_EMBEDDING_PROVIDER", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-only")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit) as exc_info:
         require_api_keys_for_server()
     assert exc_info.value.code == 1
@@ -154,10 +154,10 @@ def test_require_llm_api_key_openai_set(monkeypatch: pytest.MonkeyPatch) -> None
     require_llm_api_key()
 
 
-def test_require_api_keys_for_server_defaults_exits_without_both(
+def test_require_api_keys_for_server_defaults_exits_without_openai_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """require_api_keys_for_server exits when defaults (anthropic LLM, openai embedding) and keys missing."""
+    """require_api_keys_for_server exits when defaults (OpenAI LLM + embeddings) and OPENAI_API_KEY missing."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
@@ -167,12 +167,14 @@ def test_require_api_keys_for_server_defaults_exits_without_both(
     assert exc_info.value.code == 1
 
 
-def test_require_api_keys_for_server_defaults_passes_with_both(
+def test_require_api_keys_for_server_defaults_passes_with_openai_key_only(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """require_api_keys_for_server passes when defaults and both keys set."""
+    """require_api_keys_for_server passes when defaults and only OPENAI_API_KEY is set."""
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("PINRAG_EMBEDDING_PROVIDER", raising=False)
     require_api_keys_for_server()
 
 
