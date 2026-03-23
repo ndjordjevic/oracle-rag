@@ -1,7 +1,7 @@
 # PinRAG
 
 ## Tagline
-RAG MCP server: index PDFs, GitHub, YouTube, Discord, text; query with citations.
+MCP RAG server: index PDFs, GitHub Repos, YouTube, Discord, Plain Text; query with citations.
 
 ## Description
 PinRAG is a retrieval-augmented generation (RAG) MCP server built with LangChain and Chroma. Index PDFs, plain text, Discord exports, YouTube transcripts, and GitHub repositories, then ask questions in Cursor, VS Code (Copilot), or any MCP-capable client. Answers include citations (pages, timestamps, paths). Install via PyPI (`pipx`, `uv tool`, or `uvx --from pinrag pinrag-mcp`). Configure API keys in your editor’s MCP `env` block.
