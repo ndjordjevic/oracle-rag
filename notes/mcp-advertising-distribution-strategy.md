@@ -32,53 +32,53 @@ PinRAG reaches users through two mechanisms:
 
 | # | Channel | Type | Status | Effort |
 |---|---------|------|--------|--------|
-| 1 | Official MCP Registry | MCP | **Done** | Medium |
-| 2 | mcp-marketplace.io | MCP | **Done** | Low |
-| 3 | cursor.store | MCP | **Done** | Low |
-| 4 | Cursor Directory | MCP | **Done** | Low |
-| 5 | One-click install — Cursor (README) | MCP | **Done** | Very Low |
-| 6 | One-click install — VS Code (README) | MCP | **Done** | Very Low |
-| 7 | Manual install (README) | MCP | **Done** | — |
-| 8 | Plugin bundle (pinrag-plugin) | Plugin | **Done** (repo published) | Medium |
-| 9 | Goose Agent Skills PR | Plugin | **PR pending** ([#18](https://github.com/block/agent-skills/pull/18)) | Low |
+| 1 | [Official MCP Registry](https://modelcontextprotocol.io/registry) | MCP | **Done** | Medium |
+| 2 | [mcp-marketplace.io](https://mcp-marketplace.io/server/io-github-ndjordjevic-pinrag) | MCP | **Done** | Low |
+| 3 | [cursor.store](https://www.cursor.store/mcp/ndjordjevic/pinrag) | MCP | **Done** | Low |
+| 4 | [Cursor Directory](https://cursor.directory) | MCP | **Done** | Low |
+| 5 | [One-click install — Cursor (README)](https://github.com/ndjordjevic/pinrag#quick-start) | MCP | **Done** | Very Low |
+| 6 | [One-click install — VS Code (README)](https://github.com/ndjordjevic/pinrag#quick-start) | MCP | **Done** | Very Low |
+| 7 | [Manual install (README)](https://github.com/ndjordjevic/pinrag#configure-mcp-server) | MCP | **Done** | — |
+| 8 | [Plugin bundle (pinrag-plugin)](https://github.com/ndjordjevic/pinrag-plugin) | Plugin | **Done** | Medium |
+| 9 | [Goose Agent Skills PR](https://github.com/block/agent-skills/pull/18) | Plugin | **PR pending** ([#18](https://github.com/block/agent-skills/pull/18)) | Low |
 | 10 | [mcp.so](https://mcp.so) | MCP | **Submitted** ([web form](https://mcp.so/submit); pending listing) | Low |
-| 11 | [MCPRepository](https://mcprepository.com) | MCP | **Listed** ([PinRAG](https://mcprepository.com/ndjordjevic/pinrag); [`mcp-index` CLI](https://github.com/mcprepository/mcp-index)) | Low |
-| 12 | awesome-mcp-servers PR | Visibility | **PR open** — [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) (pending merge) | Low |
-| 13 | Windsurf.run | MCP | Not started | Low |
-| 14 | MCP Market (mcpmarket.com) | MCP | Not started | Low |
-| 15 | MCPCentral (mcpcentral.io) | MCP | Not started | Low |
-| 16 | Cursor Marketplace (official plugin) | Plugin | Not started | Low |
-| 17 | Claude Code marketplace | Plugin | Not started | Low |
-| 18 | VS Code Copilot marketplace | Plugin | Not started | Low |
-| 19 | VS Code Extension (marketplace) | Extension | Not started | 1–2 days |
-| 20 | Smithery (smithery.ai) | Hosted | **Blocked** — needs HTTP transport | High |
-| 21 | Glama (glama.ai) | MCP | **Done** — [PinRAG on Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag); [`glama.json`](../glama.json) in repo | Medium |
+| 11 | [MCPRepository](https://mcprepository.com/ndjordjevic/pinrag) | MCP | **Done** ([PinRAG](https://mcprepository.com/ndjordjevic/pinrag); [`mcp-index` CLI](https://github.com/mcprepository/mcp-index)) | Low |
+| 12 | [awesome-mcp-servers PR](https://github.com/punkpeye/awesome-mcp-servers) | Visibility | **PR open** — [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) (pending merge) | Low |
+| 13 | [Claude Code marketplace](https://claude.ai/settings/plugins/submit) | Plugin | **Submitted** — [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit) (Mar 2026); pending review | Low |
+| 14 | [MCP Market](https://mcpmarket.com/) | MCP | **Done** — [PinRAG on MCP Market](https://mcpmarket.com/server/pinrag) (submitted [mcpmarket.com/submit](https://mcpmarket.com/submit) with `https://github.com/ndjordjevic/pinrag`, Mar 2026). See §2.14. | Low |
+| 15 | [MCPCentral](https://mcpcentral.io/) | MCP | **Done** — [registry search `pinrag`](https://mcpcentral.io/registry?q=pinrag) returns PinRAG (`github.com/ndjordjevic/pinrag`; Mar 2026 browser verification). Updates via `mcp-publisher` + `-registry https://registry.mcpcentral.io` ([submit-server](https://mcpcentral.io/submit-server)). See §2.15. | Low |
+| 16 | [Cursor Marketplace](https://cursor.com/marketplace/publish) (official plugin) | Plugin | **Submitted** — publisher application for [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) (Mar 2026); “Thanks for applying” on [publish](https://cursor.com/marketplace/publish); follow-up at contact email — pending review. See §2.16. | Low |
+| 17 | [Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag) | MCP | **Done** — [PinRAG on Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag); [`glama.json`](../glama.json) in repo. See §2.17. | Medium |
+| 18 | [Windsurf.run](https://windsurf.run/) | MCP | **Blocked (site)** — [plugins/new](https://windsurf.run/plugins/new) throws a client-side error when signed in (Mar 2026); `/submit` without a slug shows “Rule not found” (rules flow, not MCP). See §2.18. | Low |
+| 19 | [VS Code Copilot marketplace](https://github.com/github/awesome-copilot) | Plugin | Not started | Low |
+| 20 | [VS Code Extension](https://code.visualstudio.com/api/extension-guides/mcp) (marketplace) | Extension | Not started | 1–2 days |
+| 21 | [Smithery](https://smithery.ai/) | Hosted | **Blocked** — needs HTTP transport | High |
 | 22 | [cursormcp.dev](https://cursormcp.dev/) | Directory | **Unknown** — no public “add server” / submit UI; unclear how PinRAG could be listed | — |
-| 23 | .well-known/mcp.json | Auto-discovery | Future — needs PinRAG Cloud | Low |
+| 23 | [.well-known/mcp.json](https://modelcontextprotocol.io) | Auto-discovery | Future — needs PinRAG Cloud | Low |
 
 ### 1.2 Tool → Channel Matrix
 
-**Bold** = live today.
+**Bold** = PinRAG is listed on that channel **or** the install path works for that tool today (README / plugin / registry).
 
 | Tool | Live channels | Planned channels |
 |------|--------------|-----------------|
-| **Cursor** | **MCP Registry**, **mcp-marketplace.io**, **cursor.store**, **Cursor Directory**, **mcp.so** (submitted), **MCPRepository** (listed), **Glama**, **one-click README**, **manual config**, **pinrag-plugin** | awesome-mcp-servers ([PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) pending), Cursor Marketplace (plugin), [cursormcp.dev](https://cursormcp.dev/) (no submit path known) |
-| **VS Code Copilot** | **MCP Registry**, **mcp-marketplace.io**, **Glama**, **one-click README**, **manual config**, **pinrag-plugin** | mcp.so, VS Code Extension, VS Code Copilot marketplace |
-| **Claude Code** | **MCP Registry**, **Glama**, **manual config**, **pinrag-plugin** | Claude Code marketplace, mcp.so |
-| **JetBrains + Copilot** | **MCP Registry**, **Glama**, **manual config** | mcp.so |
-| **Windsurf** | **MCP Registry**, **Glama**, **manual config** | Windsurf.run, mcp.so |
-| **Zed** | **MCP Registry**, **Glama**, **manual config** | mcp.so |
-| **OpenCode** | **MCP Registry**, **Glama**, **manual config** | mcp.so |
-| **Amp** | **manual config**, **pinrag-plugin** | — |
-| **Goose** | **pinrag-plugin** (local clone) | Goose Agent Skills (PR [#18](https://github.com/block/agent-skills/pull/18) pending) |
+| **Cursor** | **MCP Registry**, **mcp-marketplace.io**, **cursor.store**, **Cursor Directory**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **one-click README**, **manual config**, **pinrag-plugin** | mcp.so (submitted; pending listing — §1.1), awesome-mcp-servers ([PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) pending), Cursor Marketplace (publisher application submitted Mar 2026 — §1.1 row 16; pending review), [cursormcp.dev](https://cursormcp.dev/) (no submit path known) |
+| **VS Code Copilot** | **MCP Registry**, **mcp-marketplace.io**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **one-click README**, **manual config**, **pinrag-plugin** | mcp.so, VS Code Extension, VS Code Copilot marketplace |
+| **Claude Code** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config**, **pinrag-plugin** | Claude Code marketplace (submitted Mar 2026; pending review — §1.1 row 13), mcp.so |
+| **JetBrains + Copilot** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config** | mcp.so |
+| **Windsurf** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config** | windsurf.run listing blocked — broken submit UI (§1.1 row 18); mcp.so |
+| **Zed** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config** | mcp.so |
+| **OpenCode** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config** | mcp.so |
+| **Amp** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config**, **pinrag-plugin** | — |
+| **Goose** | **pinrag-plugin** (local clone), **MCP Market** ([MCP server listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)) | Goose Agent Skills (PR [#18](https://github.com/block/agent-skills/pull/18) pending) |
 
 ---
 
 ## 2. Channel Details
 
-### Live
+Subsections follow **§1.1 Status Overview** row order (1–23). Each `####` heading is prefixed with the matching table row number (**5–6** is one subsection covering both one-click README rows). Each subsection notes whether the channel is live, pending, or not started — the former **Live** vs **Not Yet** split is folded into this single sequence so the doc matches the table.
 
-#### Official MCP Registry
+#### 1. Official MCP Registry
 
 **URL:** [modelcontextprotocol.io/registry](https://modelcontextprotocol.io/registry) | **Server id:** `io.github.ndjordjevic/pinrag` | **Source:** [`server.json`](../server.json)
 
@@ -96,7 +96,7 @@ curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.githu
 
 Registry is [preview](https://modelcontextprotocol.io/registry/about); published metadata per version is immutable. Docs: [quickstart](https://modelcontextprotocol.io/registry/quickstart), [authentication](https://modelcontextprotocol.io/registry/authentication).
 
-#### mcp-marketplace.io
+#### 2. mcp-marketplace.io
 
 **URL:** [mcp-marketplace.io](https://mcp-marketplace.io) — [browse](https://mcp-marketplace.io/browse)
 
@@ -104,13 +104,13 @@ Security-scanned marketplace (~2,700+ tools). One-click install. Listed Mar 2026
 
 Submit at [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) (GitHub sign-in). Optional: `LAUNCHGUIDE.md` for auto-fill ([creator docs](https://mcp-marketplace.io/docs)).
 
-#### cursor.store
+#### 3. cursor.store
 
 **URL:** [cursor.store/mcp/ndjordjevic/pinrag](https://www.cursor.store/mcp/ndjordjevic/pinrag)
 
 Curated Cursor marketplace. Listed Mar 2026. New submissions: [cursor.store/mcp/new](https://www.cursor.store/mcp/new). See [cursor-mcp-list-investigation.md §2](cursor-mcp-list-investigation.md).
 
-#### Cursor Directory
+#### 4. Cursor Directory
 
 **URL:** [cursor.directory](https://cursor.directory)
 
@@ -131,25 +131,7 @@ Official Cursor listing (replaces deprecated [cursor/mcp-servers](https://github
    }
    ```
 
-#### mcp.so
-
-**URL:** [mcp.so](https://mcp.so) — submit at [mcp.so/submit](https://mcp.so/submit)
-
-Large public directory (~17,000+ servers). MIT license required (✓). **Submitted Mar 2026** via manual web form (name **PinRAG**, repo `https://github.com/ndjordjevic/pinrag`, server config with `uvx` / `pinrag-mcp` per README). Pending listing on mcp.so — spot-check when live.
-
-#### MCPRepository (mcprepository.com)
-
-**URL:** [mcprepository.com](https://mcprepository.com) — CLI: [`mcprepository/mcp-index`](https://github.com/mcprepository/mcp-index)
-
-Independent of mcp.so (separate site and index; submitting to one does not list you on the other). Submit a GitHub repo with:
-
-```bash
-npx mcp-index https://github.com/ndjordjevic/pinrag
-```
-
-This calls MCPRepository’s index API (`POST https://mcprepository.com/api/index`). **Listed** Mar 2026 — [PinRAG on MCPRepository](https://mcprepository.com/ndjordjevic/pinrag).
-
-#### One-Click Install URLs (README)
+#### 5–6. One-Click Install URLs (README)
 
 The PyPI package exposes **`pinrag-mcp`** (not `pinrag`), so the correct invocation is **`uvx --from pinrag pinrag-mcp`**.
 
@@ -168,11 +150,11 @@ vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%2
 
 One-click installs pre-fill `OPENAI_API_KEY` and optional `PINRAG_PERSIST_DIR` (empty strings); users paste their key.
 
-#### Manual Install (README)
+#### 7. Manual Install (README)
 
 Users add PinRAG to their MCP client config manually — works in every MCP client (Cursor, VS Code, Claude Code, JetBrains, Windsurf, Zed, OpenCode, Amp). The README Quick Start documents the config for each.
 
-#### Plugin Bundle ([pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin))
+#### 8. Plugin Bundle ([pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin))
 
 Separate from the PyPI package: a Git repo bundling the same **`uvx --from pinrag pinrag-mcp`** MCP config with a **`use-pinrag`** skill (and a Goose-formatted copy under `pinrag/`). Keeps build concerns out of the main [pinrag](https://github.com/ndjordjevic/pinrag) repo. Published Mar 2026.
 
@@ -184,9 +166,31 @@ Separate from the PyPI package: a Git repo bundling the same **`uvx --from pinra
 | **Amp** | `amp skill add ndjordjevic/pinrag-plugin/skills/use-pinrag` |
 | **Goose** | Local clone; marketplace PR [#18](https://github.com/block/agent-skills/pull/18) pending |
 
-### Not Yet Started or In Progress
+#### 9. Goose Agent Skills PR (block/agent-skills)
 
-#### awesome-mcp-servers
+**URL:** [github.com/block/agent-skills](https://github.com/block/agent-skills) — [PR #18](https://github.com/block/agent-skills/pull/18)
+
+List `pinrag-plugin` in the Goose Agent Skills marketplace so Goose users can install without a local clone. **PR pending** — watch [#18](https://github.com/block/agent-skills/pull/18) for merge. Until then Goose uses **local clone** of [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) (see Plugin Bundle table above).
+
+#### 10. mcp.so
+
+**URL:** [mcp.so](https://mcp.so) — submit at [mcp.so/submit](https://mcp.so/submit)
+
+Large public directory (~17,000+ servers). MIT license required (✓). **Submitted Mar 2026** via manual web form (name **PinRAG**, repo `https://github.com/ndjordjevic/pinrag`, server config with `uvx` / `pinrag-mcp` per README). **Pending listing** on mcp.so (§1.1 row 10) — spot-check when live.
+
+#### 11. MCPRepository (mcprepository.com)
+
+**URL:** [mcprepository.com](https://mcprepository.com) — CLI: [`mcprepository/mcp-index`](https://github.com/mcprepository/mcp-index)
+
+Independent of mcp.so (separate site and index; submitting to one does not list you on the other). Submit a GitHub repo with:
+
+```bash
+npx mcp-index https://github.com/ndjordjevic/pinrag
+```
+
+This calls MCPRepository’s index API (`POST https://mcprepository.com/api/index`). **Listed** Mar 2026 — [PinRAG on MCPRepository](https://mcprepository.com/ndjordjevic/pinrag).
+
+#### 12. awesome-mcp-servers
 
 [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) (~84k stars). **Mechanism unchanged:** fork → branch → edit root [`README.md`](https://github.com/punkpeye/awesome-mcp-servers/blob/main/README.md) → open PR — see upstream [CONTRIBUTING.md](https://github.com/punkpeye/awesome-mcp-servers/blob/main/CONTRIBUTING.md).
 
@@ -200,47 +204,71 @@ One line under **🧠 Knowledge & Memory** (local-first RAG; fits alongside simi
 
 Optional: [CONTRIBUTING.md](https://github.com/punkpeye/awesome-mcp-servers/blob/main/CONTRIBUTING.md) says automated-agent PRs can append `🤖🤖🤖` to the PR title for fast-track merge. Large PR backlog — expect delay.
 
-#### Windsurf.run
-
-[windsurf.run](https://windsurf.run/) — Windsurf/Codeium MCP directory. Check for "Submit" flow. PinRAG config for Windsurf (`~/.codeium/windsurf/mcp_config.json`) uses Claude Desktop schema.
-
-#### MCP Market (mcpmarket.com)
-
-Submit via web form. 21,700+ servers.
-
-#### MCPCentral (mcpcentral.io)
-
-Submit at [mcpcentral.io/submit-server](https://mcpcentral.io/submit-server). Supports `mcp-publisher` CLI.
-
-#### Cursor Marketplace (official plugin)
-
-Submit pinrag-plugin at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish). Distinct from cursor.store — this is Cursor's curated marketplace for plugins with skills/rules.
-
-#### Claude Code Marketplace
+#### 13. Claude Code Marketplace
 
 Submit at [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit) or [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit). Lists pinrag-plugin so Claude Code users can discover and install from inside the tool.
 
-#### VS Code Copilot Marketplace
+**Status (Mar 2026):** [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) submitted via Claude Console — **pending review** (confirmation: “Plugin submitted for review”). After approval, spot-check in the Claude Code plugin directory and update this table.
 
-PR to [github/awesome-copilot](https://github.com/github/awesome-copilot) and/or install-via-Git. See [Agent plugins docs](https://code.visualstudio.com/docs/copilot/customization/agent-plugins).
+#### 14. MCP Market (mcpmarket.com)
 
-#### VS Code Extension
+**URL:** [mcpmarket.com](https://mcpmarket.com/) | **Submit:** [mcpmarket.com/submit](https://mcpmarket.com/submit) — single field for the **GitHub repo URL** of the MCP server (tab **MCP Server** vs **Agent Skill**).
 
-TypeScript extension spawning `uvx --from pinrag pinrag-mcp`. Registers via `mcpServerDefinitionProviders`. Makes PinRAG discoverable via `@mcp pinrag` in Extensions view. Effort: 1–2 days. See [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md). Do after other listings — one-click URL + MCP Registry cover most of the value.
+**Status (Mar 2026):** Submitted `https://github.com/ndjordjevic/pinrag`; form returned **Success** with immediate listing. **Live:** [mcpmarket.com/server/pinrag](https://mcpmarket.com/server/pinrag). ~21,700+ servers in the directory.
 
-#### Smithery (smithery.ai)
+#### 15. MCPCentral (mcpcentral.io)
 
-2,880+ servers. Hosted gateway. **Blocked:** requires Streamable HTTP transport (PinRAG is stdio-only). Only viable with PinRAG Cloud or adding HTTP transport.
+**URL:** [mcpcentral.io](https://mcpcentral.io/) | **Guide (updates):** [mcpcentral.io/submit-server](https://mcpcentral.io/submit-server)
 
-#### Glama (glama.ai)
+**Status (Mar 2026, browser):** PinRAG is **listed**. Registry search [`?q=pinrag`](https://mcpcentral.io/registry?q=pinrag) shows **1 result**; card links **`github.com/ndjordjevic/pinrag`** and opens **PinRAG** with Quick Install (e.g. VS Code, Cursor, Goose). There is no separate “submit” web form — [submit-server](https://mcpcentral.io/submit-server) documents **`mcp-publisher`** against **`https://registry.mcpcentral.io`** for publishing updates (same `server.json` as the official MCP Registry flow, different `-registry`).
+
+**Commands (from site docs):**
+
+```bash
+# Interactive (opens browser for GitHub OAuth)
+mcp-publisher login github --registry https://registry.mcpcentral.io
+mcp-publisher publish
+
+# CI / GitHub Actions (OIDC) — same pattern as official registry but different -registry
+mcp-publisher login github-oidc --registry https://registry.mcpcentral.io
+mcp-publisher publish
+```
+
+**Relation to §1.1 row 1:** [`.github/workflows/publish.yml`](../.github/workflows/publish.yml) publishes to **`https://registry.modelcontextprotocol.io`** only. To push **MCPCentral-only** metadata updates, run the commands above or add a second workflow job with the MCPCentral `-registry` URL.
+
+#### 16. Cursor Marketplace (official plugin)
+
+**URL:** [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish) (requires sign-in). **Distinct from** [cursor.store](https://www.cursor.store/mcp/ndjordjevic/pinrag) (§1.1 row 3) — this is Cursor’s **curated marketplace** for plugins (skills, MCPs, rules, etc.).
+
+**Status (Mar 2026):** [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) submitted via **Become a plugin publisher** — form fields included GitHub repo, logotype URL, description, website. Confirmation: **“Thanks for applying”** / follow-up by email after review.
+
+#### 17. Glama (glama.ai)
 
 9,000–19,000+ servers. Directory, scoring, and optional hosted deploy. **Listed Mar 2026** — [PinRAG on Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag); [score page](https://glama.ai/mcp/servers/ndjordjevic/pinrag/score). Root [`glama.json`](../glama.json) lists maintainers for ownership verification; [`Dockerfile`](../Dockerfile) supports Glama’s build checks. README badge: `badges/score.svg` (compact) or `badges/card.svg` (detailed) — use paths **`/mcp/servers/ndjordjevic/pinrag/...`** (not `@ndjordjevic/...`).
 
-#### CursorMCP.dev ([cursormcp.dev](https://cursormcp.dev/))
+#### 18. Windsurf.run
+
+[windsurf.run](https://windsurf.run/) — Windsurf/Codeium MCP directory (footer links [pontusab/cursor.directory](https://github.com/pontusab/cursor.directory)). PinRAG config for Windsurf uses `~/.codeium/windsurf/mcp_config.json` (stdio; same idea as [Codeium MCP docs](https://docs.codeium.com/windsurf/mcp)).
+
+**Submission (Mar 2026, browser check while signed in):** There is still **no working self-serve path** to add an MCP/plugin here: [windsurf.run/plugins/new](https://windsurf.run/plugins/new) and [windsurf.run/rules/new](https://windsurf.run/rules/new) hit a Next.js **client-side exception**; [windsurf.run/submit](https://windsurf.run/submit) without a rule slug returns **“Rule not found”**; the **Submit** control on [Learn](https://windsurf.run/learn) does not navigate to a form. **Next steps:** retry in a normal browser after a site fix; contact the [Midday](https://midday.ai) / Windsurf Directory operators; or use **[cursor.directory/plugins/new](https://cursor.directory/plugins/new)** for Open Plugins + `.mcp.json` (sibling flow — PinRAG is already on **[cursor.store](https://www.cursor.store/mcp/ndjordjevic/pinrag)** per §1.1 row 3).
+
+#### 19. VS Code Copilot Marketplace
+
+PR to [github/awesome-copilot](https://github.com/github/awesome-copilot) and/or install-via-Git. See [Agent plugins docs](https://code.visualstudio.com/docs/copilot/customization/agent-plugins).
+
+#### 20. VS Code Extension
+
+TypeScript extension spawning `uvx --from pinrag pinrag-mcp`. Registers via `mcpServerDefinitionProviders`. Makes PinRAG discoverable via `@mcp pinrag` in Extensions view. Effort: 1–2 days. See [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md). Do after other listings — one-click URL + MCP Registry cover most of the value.
+
+#### 21. Smithery (smithery.ai)
+
+2,880+ servers. Hosted gateway. **Blocked:** requires Streamable HTTP transport (PinRAG is stdio-only). Only viable with PinRAG Cloud or adding HTTP transport.
+
+#### 22. CursorMCP.dev ([cursormcp.dev](https://cursormcp.dev/))
 
 Third-party **hand-picked** Cursor MCP directory (featured servers, categories such as Knowledge & Memory, browse/search). **No “add server,” submit form, or documented inclusion process** on the site (checked Mar 2026). **Unknown** how PinRAG could end up there (e.g. editorial curation, scraping registries, or partnerships). Treat as **out of band** until the operator publishes criteria or a submission channel.
 
-#### .well-known/mcp.json
+#### 23. .well-known/mcp.json
 
 Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude, ChatGPT, Cursor) auto-detect MCP servers at `/.well-known/mcp.json`. Only relevant when PinRAG has a web endpoint (PinRAG Cloud).
 
@@ -292,6 +320,8 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 
 ## 4. Execution Checklist
 
+Same channels as **§1.1**. **Phase 2** stays **in progress** until **mcp.so** lists PinRAG and [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) merges.
+
 ### Phase 1: Foundation — done
 
 - [x] One-click install URLs in README (Cursor + VS Code)
@@ -302,27 +332,28 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 
 - [x] **Official MCP Registry** — `io.github.ndjordjevic/pinrag`; [`server.json`](../server.json)
 - [x] **mcp-marketplace.io** — listed (Mar 2026)
+- [x] **cursor.store** — [listed](https://www.cursor.store/mcp/ndjordjevic/pinrag) (Mar 2026)
 - [x] **Cursor Directory** — submitted Mar 2026 via [cursor.directory](https://cursor.directory); **approved** (listed)
-- [ ] **mcp.so** — submitted (Mar 2026) via [web form](https://mcp.so/submit); pending listing / approval
+- [ ] **mcp.so** — submitted (Mar 2026) via [web form](https://mcp.so/submit); pending listing (§1.1 row 10)
 - [x] **MCPRepository** — [listed](https://mcprepository.com/ndjordjevic/pinrag) (Mar 2026); submitted via [`npx mcp-index`](https://github.com/mcprepository/mcp-index)
-- [x] **Glama** — [listed](https://glama.ai/mcp/servers/ndjordjevic/pinrag) (Mar 2026); [`glama.json`](../glama.json) + [`Dockerfile`](../Dockerfile) in repo
+- [x] **Glama** — [listed](https://glama.ai/mcp/servers/ndjordjevic/pinrag) (Mar 2026); [`glama.json`](../glama.json) + [`Dockerfile`](../Dockerfile) in repo — §1.1 row 17 / §2.17
+- [x] **MCPCentral** — [listed](https://mcpcentral.io/registry?q=pinrag) (Mar 2026; browser verified — §1.1 row 15 / §2.15)
 - [ ] **awesome-mcp-servers** — [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) **open** (pending merge); after merge, confirm line on `main` and check this off
 
 ### Phase 3: Plugin Bundle — in progress
 
 - [x] **[pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin)** published
 - [ ] **Goose Agent Skills** — [PR #18](https://github.com/block/agent-skills/pull/18) (pending review)
-- [ ] **Cursor Marketplace** (official plugin) — [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)
+- [x] **Cursor Marketplace** (official plugin) — [submitted](https://cursor.com/marketplace/publish) (Mar 2026); publisher application pending review — §1.1 row 16 / §2.16
 - [ ] **Claude Code marketplace** — [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit)
 - [ ] **VS Code Copilot** — PR to [awesome-copilot](https://github.com/github/awesome-copilot); document "Install plugin from source" URL
 - [ ] **Cursor Directory** — update listing to point at pinrag-plugin (Auto scan)
 
 ### Phase 4: Remaining Directories — not started
 
-- [x] **cursor.store** — [listed](https://www.cursor.store/mcp/ndjordjevic/pinrag) (Mar 2026)
-- [ ] **Windsurf.run** — check for submission process
-- [ ] **MCP Market** (mcpmarket.com) — submit via web form
-- [ ] **MCPCentral** (mcpcentral.io) — submit at [mcpcentral.io/submit-server](https://mcpcentral.io/submit-server)
+- [ ] **Windsurf.run** — submit UI broken (Mar 2026); retry later or contact operator — see §2.18 / §1.1 row 18
+- [x] **MCP Market** (mcpmarket.com) — [listed](https://mcpmarket.com/server/pinrag) (Mar 2026); submitted via [mcpmarket.com/submit](https://mcpmarket.com/submit) — §1.1 row 14 / §2.14
+- [x] **MCPCentral** (mcpcentral.io) — [listed](https://mcpcentral.io/registry?q=pinrag) (Mar 2026); updates via [submit-server](https://mcpcentral.io/submit-server) / `mcp-publisher` — §2.15
 
 ### Phase 5: Content & Community — not started
 
@@ -372,7 +403,7 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 
 ### Plugin Submission URLs
 
-- [Cursor Marketplace — publish](https://cursor.com/marketplace/publish)
+- [Cursor Marketplace — publish](https://cursor.com/marketplace/publish) — publisher application submitted Mar 2026 ([pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin)); pending review — §2.16
 - [Claude Code — submit plugin](https://claude.ai/settings/plugins/submit)
 - [VS Code — Agent plugins](https://code.visualstudio.com/docs/copilot/customization/agent-plugins)
 - [github/awesome-copilot](https://github.com/github/awesome-copilot)
@@ -386,9 +417,9 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 - [mcp.so/submit](https://mcp.so/submit) — large public directory (~17,000+ servers); independent of MCPRepository
 - [MCPRepository](https://mcprepository.com) — [`mcp-index` CLI](https://github.com/mcprepository/mcp-index) (`POST /api/index`); not mcp.so
 - [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) — 83.7k stars; PinRAG: [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) (open)
-- [Glama — PinRAG](https://glama.ai/mcp/servers/ndjordjevic/pinrag) — directory + [score](https://glama.ai/mcp/servers/ndjordjevic/pinrag/score); badge SVGs under `/badges/score.svg` and `/badges/card.svg` (use `ndjordjevic/pinrag`, not `@ndjordjevic/...`)
-- [mcpmarket.com](https://mcpmarket.com/) — 21,700+ servers
-- [mcpcentral.io/submit-server](https://mcpcentral.io/submit-server)
+- [Glama — PinRAG](https://glama.ai/mcp/servers/ndjordjevic/pinrag) — directory + [score](https://glama.ai/mcp/servers/ndjordjevic/pinrag/score); badge SVGs under `/badges/score.svg` and `/badges/card.svg` (use `ndjordjevic/pinrag`, not `@ndjordjevic/...`) — §2.17 / §1.1 row 17
+- [PinRAG on MCP Market](https://mcpmarket.com/server/pinrag) — [submit form](https://mcpmarket.com/submit); ~21,700+ servers
+- [PinRAG on MCPCentral](https://mcpcentral.io/registry?q=pinrag) — registry search; [submit-server](https://mcpcentral.io/submit-server) — `mcp-publisher login … --registry https://registry.mcpcentral.io` then `publish` (separate from official MCP Registry)
 - [windsurf.run](https://windsurf.run/) — Windsurf/Codeium directory
 - [cursormcp.dev](https://cursormcp.dev/) — hand-picked Cursor MCP catalog; no documented submission path (Mar 2026)
 
