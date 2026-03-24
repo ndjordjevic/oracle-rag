@@ -62,7 +62,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 |---|---------|-----|--------|---------|
 | 12 | **VS Code Extension** (marketplace) | Discoverability in Extensions view (`@mcp pinrag`). | 1–2 days | TypeScript wrapper needed; see [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md) |
 | 13 | **Smithery** (`smithery.ai`) | 2,880+ servers. Hosted gateway. | High | Requires Streamable HTTP transport (PinRAG is stdio-only). Only viable with PinRAG Cloud or adding HTTP transport. |
-| 14 | **Glama** (`glama.ai`) | 9,000–19,000+ servers. Managed hosting. | Medium | Uses MCP Registry; may auto-discover once published there. |
+| 14 | **Glama** (`glama.ai`) | 9,000–19,000+ servers. [MCP directory](https://glama.ai/mcp/servers). | Medium | **Submit:** [Add Server](https://glama.ai/mcp/servers) (Glama account). Expect Docker build + release checks; **`Dockerfile` in repo** (Mar 2026). Pending listing. |
 
 ---
 
