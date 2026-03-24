@@ -297,6 +297,8 @@
 - [x] Check README.md for the pinrag mcp server and update it if needed. Check it how it looks like on GitHub.
 - [x] Check pinrag repo and what's been pushed there and should we expose it to the users?
 - [x] Investigate advertising & distribution for the PinRAG MCP server (IDE lists, directories, promotion) — see `notes/mcp-advertising-distribution-strategy.md`.
+- [ ] Implement distribution strategies
+- [ ] Implement advertising strategies
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 
 ---
