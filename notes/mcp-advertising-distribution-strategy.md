@@ -44,7 +44,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 | 3 | **Cursor Directory** ([cursor.directory](https://cursor.directory)) | Official Cursor listing (replaces deprecated [cursor/mcp-servers](https://github.com/cursor/mcp-servers)). One-click **Add to Cursor**. | Low | **Submitted** Mar 2026 — pending approval |
 | 4 | **mcp.so** | Largest directory (17,000+ servers). Simple web/CLI submission. | Low | Not started |
 | 5 | **awesome-mcp-servers** GitHub PR | 83.7k stars. Enormous organic visibility. | Low | Not started |
-| 6 | **VS Code one-click install URL** in README | Zero friction for VS Code users. Works today. | Very Low | **Done** — README Quick Start (GitHub Pages → `vscode:` button; see §2.5). |
+| 6 | **VS Code one-click install URL** in README | Zero friction for VS Code users. Works today. | Very Low | **Done** — README Quick Start (GitHub Pages → `vscode:` button; see §2.6). |
 | 7 | **Cursor one-click install URL** in README | Zero friction for Cursor users. Works today. | Very Low | **Done** — README Quick Start (`cursor.com/en/install-mcp` + base64 config). |
 
 ### Tier 2: Broader Reach (Do Next)
@@ -62,7 +62,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 |---|---------|-----|--------|---------|
 | 12 | **VS Code Extension** (marketplace) | Discoverability in Extensions view (`@mcp pinrag`). | 1–2 days | TypeScript wrapper needed; see [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md) |
 | 13 | **Smithery** (`smithery.ai`) | 2,880+ servers. Hosted gateway. | High | Requires Streamable HTTP transport (PinRAG is stdio-only). Only viable with PinRAG Cloud or adding HTTP transport. |
-| 14 | **Glama** (`glama.ai`) | 9,000–19,000+ servers. [MCP directory](https://glama.ai/mcp/servers). | Medium | **Submitted** Mar 2026 (Add Server → `ndjordjevic/pinrag`; `POST /api/mcp/servers/submit` succeeded). **`Dockerfile` in repo.** Pending public page / review — spot-check [`…/@ndjordjevic/pinrag`](https://glama.ai/mcp/servers/@ndjordjevic/pinrag), then complete Glama Docker **release** in admin if prompted. |
+| 14 | **Glama** (`glama.ai`) | 9,000–19,000+ servers. [MCP directory](https://glama.ai/mcp/servers). | Medium | **Approved & listed** Mar 2026 — [PinRAG on Glama](https://glama.ai/mcp/servers/@ndjordjevic/pinrag). **Claim** the server + add **Dockerfile** in Glama admin (for checks / search); root [`Dockerfile`](../Dockerfile) can be pasted there (Glama says it need not live only in the repo). |
 
 ---
 
@@ -136,7 +136,13 @@ Alternative: `npx mcp-index https://github.com/ndjordjevic/pinrag`
 
 **Requirements:** Open-source with permissive license (MIT ✓).
 
-### 2.4 awesome-mcp-servers
+### 2.4 Glama (glama.ai)
+
+**Status:** **Approved & listed** (Mar 2026) — [PinRAG on Glama](https://glama.ai/mcp/servers/@ndjordjevic/pinrag).
+
+Per Glama (email from support): **claim** the server on the server’s **admin** page, then provide a **Dockerfile** there so Glama can run automated safety and quality checks. The Dockerfile does **not** have to exist only in the GitHub repo (you can paste into admin); PinRAG already ships a root [`Dockerfile`](../Dockerfile) you can reuse. Servers that pass checks are eligible for **Glama search**; use the **score badge** on listings such as [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) once the badge URL resolves.
+
+### 2.5 awesome-mcp-servers
 
 **Repo:** [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) (83.7k stars)
 
@@ -170,31 +176,31 @@ Decodes to `{"name":"pinrag","command":"uvx","args":["--from","pinrag","pinrag-m
 
 Add Cursor link + VS Code HTTPS landing page in the README Quick Start section. One-click installs pre-fill `OPENAI_API_KEY` and optional `PINRAG_PERSIST_DIR` (empty strings); users paste their OpenAI key.
 
-### 2.6 cursor.store
+### 2.7 cursor.store
 
 See [cursor-mcp-list-investigation.md §2](cursor-mcp-list-investigation.md).
 
 Submit at [cursor.store/mcp/new](https://www.cursor.store/mcp/new). Free listing. Category: AI / ML Helpers or Developer Tools. Permission: medium.
 
-### 2.7 mcp-marketplace.io
+### 2.8 mcp-marketplace.io
 
 Submit at [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) (GitHub sign-in). Category: Developer Tools or Data & Analytics. Pricing: Free. Optional: add `LAUNCHGUIDE.md` to the repo for auto-fill ([creator docs](https://mcp-marketplace.io/docs)).
 
 **PinRAG (Mar 2026):** Listed; automated scan reads **`pyproject.toml`** from the published PyPI sdist. **v0.9.8** bumps patched dependencies (e.g. `pypdf`, `requests`, `yt-dlp`), adds **`[project.urls]`** (`Homepage` / `Repository` → GitHub) for package verification, and documents **`GITHUB_TOKEN`** tradeoffs in the README. After publishing, the dashboard may still show older findings until the marketplace re-evaluates the new version—there is no documented “rescan” button; a new PyPI release + time, or asking [support](https://mcp-marketplace.io/faq) / [Discord](https://discord.gg/8uWz69aQH), is the practical path.
 
-### 2.8 Windsurf.run
+### 2.9 Windsurf.run
 
 [windsurf.run](https://windsurf.run/) — Windsurf/Codeium MCP directory. Check for a "Submit" flow or contact. PinRAG config for Windsurf (`~/.codeium/windsurf/mcp_config.json`) uses the same Claude Desktop schema.
 
-### 2.9 MCP Market (mcpmarket.com)
+### 2.10 MCP Market (mcpmarket.com)
 
 Submit via their web form. 21,700+ servers. Additional reach.
 
-### 2.10 MCPCentral (mcpcentral.io)
+### 2.11 MCPCentral (mcpcentral.io)
 
 Submit at [mcpcentral.io/submit-server](https://mcpcentral.io/submit-server). Uses `mcp-publisher` CLI.
 
-### 2.11 VS Code Extension
+### 2.12 VS Code Extension
 
 See full details in [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md).
 
@@ -202,7 +208,7 @@ See full details in [vscode-marketplace-investigation.md](vscode-marketplace-inv
 
 **Decision:** Do after Tier 1 & 2 listings. The one-click URL and MCP Registry give most of the value without building an extension.
 
-### 2.12 .well-known/mcp.json (Future)
+### 2.13 .well-known/mcp.json (Future)
 
 Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude, ChatGPT, Cursor) can auto-detect MCP servers at `/.well-known/mcp.json` endpoints. Only relevant when PinRAG has a web endpoint (PinRAG Cloud). Not applicable to stdio-only distribution.
 

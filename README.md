@@ -36,6 +36,8 @@ Most people add PinRAG **through the editor**—you do **not** need `pip install
 | Where | Link |
 |-------|------|
 | **MCP Marketplace** | [PinRAG on MCP Marketplace](https://mcp-marketplace.io/server/io-github-ndjordjevic-pinrag) |
+| **MCPRepository** | [PinRAG on MCPRepository](https://mcprepository.com/ndjordjevic/pinrag) |
+| **Glama** | [PinRAG on Glama](https://glama.ai/mcp/servers/@ndjordjevic/pinrag) |
 | **Cursor Store** | [PinRAG on Cursor Store](https://www.cursor.store/mcp/ndjordjevic/pinrag) |
 | **One-click (Cursor & VS Code)** | [Quick Start — One-click install](#one-click-install-cursor--vs-code) below |
 
