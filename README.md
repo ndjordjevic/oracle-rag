@@ -6,7 +6,7 @@
 
 # PinRAG
 
-[![PyPI](https://img.shields.io/github/v/release/ndjordjevic/pinrag?logo=pypi&logoColor=white&label=PyPI&sort=semver)](https://pypi.org/project/pinrag/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![io.github.ndjordjevic/pinrag on MCP Marketplace](https://mcp-marketplace.io/api/badge?slug=io-github-ndjordjevic-pinrag)](https://mcp-marketplace.io/server/io-github-ndjordjevic-pinrag)
+[![PyPI](https://img.shields.io/github/v/release/ndjordjevic/pinrag?logo=pypi&logoColor=white&label=PyPI&sort=semver)](https://pypi.org/project/pinrag/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![io.github.ndjordjevic/pinrag on MCP Marketplace](https://mcp-marketplace.io/api/badge?slug=io-github-ndjordjevic-pinrag)](https://mcp-marketplace.io/server/io-github-ndjordjevic-pinrag) [![PinRAG on Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag/badges/score.svg)](https://glama.ai/mcp/servers/ndjordjevic/pinrag)
 
 A powerful RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP (Model Context Protocol) server for Cursor, VS Code (GitHub Copilot), and other AI assistants.
 
@@ -37,7 +37,7 @@ Most people add PinRAG **through the editor**—you do **not** need `pip install
 |-------|------|
 | **MCP Marketplace** | [PinRAG on MCP Marketplace](https://mcp-marketplace.io/server/io-github-ndjordjevic-pinrag) |
 | **MCPRepository** | [PinRAG on MCPRepository](https://mcprepository.com/ndjordjevic/pinrag) |
-| **Glama** | [PinRAG on Glama](https://glama.ai/mcp/servers/@ndjordjevic/pinrag) |
+| **Glama** | [PinRAG on Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag) |
 | **Cursor Store** | [PinRAG on Cursor Store](https://www.cursor.store/mcp/ndjordjevic/pinrag) |
 | **One-click (Cursor & VS Code)** | [Quick Start — One-click install](#one-click-install-cursor--vs-code) below |
 

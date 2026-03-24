@@ -62,7 +62,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 |---|---------|-----|--------|---------|
 | 12 | **VS Code Extension** (marketplace) | Discoverability in Extensions view (`@mcp pinrag`). | 1–2 days | TypeScript wrapper needed; see [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md) |
 | 13 | **Smithery** (`smithery.ai`) | 2,880+ servers. Hosted gateway. | High | Requires Streamable HTTP transport (PinRAG is stdio-only). Only viable with PinRAG Cloud or adding HTTP transport. |
-| 14 | **Glama** (`glama.ai`) | 9,000–19,000+ servers. [MCP directory](https://glama.ai/mcp/servers). | Medium | **Approved & listed** Mar 2026 — [PinRAG on Glama](https://glama.ai/mcp/servers/@ndjordjevic/pinrag). **Claim** the server + add **Dockerfile** in Glama admin (for checks / search); root [`Dockerfile`](../Dockerfile) can be pasted there (Glama says it need not live only in the repo). |
+| 14 | **Glama** (`glama.ai`) | 9,000–19,000+ servers. [MCP directory](https://glama.ai/mcp/servers). | Medium | **Approved & listed** Mar 2026 — [PinRAG on Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag). **Claim** the server + add **Dockerfile** in Glama admin (for checks / search); root [`Dockerfile`](../Dockerfile) can be pasted there (Glama says it need not live only in the repo). |
 
 ---
 
@@ -138,7 +138,7 @@ Alternative: `npx mcp-index https://github.com/ndjordjevic/pinrag`
 
 ### 2.4 Glama (glama.ai)
 
-**Status:** **Approved & listed** (Mar 2026) — [PinRAG on Glama](https://glama.ai/mcp/servers/@ndjordjevic/pinrag).
+**Status:** **Approved & listed** (Mar 2026) — [PinRAG on Glama](https://glama.ai/mcp/servers/ndjordjevic/pinrag).
 
 Per Glama (email from support): **claim** the server on the server’s **admin** page, then provide a **Dockerfile** there so Glama can run automated safety and quality checks. The Dockerfile does **not** have to exist only in the GitHub repo (you can paste into admin); PinRAG already ships a root [`Dockerfile`](../Dockerfile) you can reuse. Servers that pass checks are eligible for **Glama search**; use the **score badge** on listings such as [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) once the badge URL resolves.
 
