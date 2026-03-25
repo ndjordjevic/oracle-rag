@@ -53,28 +53,16 @@ Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated envi
 
 ### Updating
 
-**`uvx` / marketplace / one-click** (no global `pipx` install): PinRAG is resolved from PyPI when the MCP server starts, but **`uv` caches** that environment.
+**`uvx` (marketplace / one-click / manual MCP config):** The docs and install links use **`"args": ["--refresh", "pinrag"]`**. That tells `uvx` to **re-resolve PinRAG from PyPI on every MCP startup**, so you normally **do not** bump versions by hand—new releases show up after you restart the editor or restart the server. Tradeoff: a bit **slower cold start** than `uvx` hitting a warm cache (`"args": ["pinrag"]` only).
 
-**Recommended:** Use **`"args": ["--refresh", "pinrag"]`** in MCP config (as in the [one-click](#one-click-install-cursor--vs-code) links) so **each editor start** refreshes the cached `uvx` env and picks up new PyPI releases automatically. Tradeoff: **slower MCP startup** (network + resolution) than a plain `uvx pinrag` cache hit.
+If you **removed `--refresh`** and want the latest build without changing config, run `uvx --refresh pinrag` once, or use `uv cache clean` (broader). Then restart the MCP server or the editor. Re-applying a one-click link **without** `--refresh` in `args` will not fix a stale cache by itself.
 
-If your config uses **`"args": ["pinrag"]`** without `--refresh`, refresh manually after a new PyPI release:
-
-```bash
-uvx --refresh pinrag
-```
-
-Alternatively, clear the tool cache (broader than refresh): `uv cache clean`. Then **restart Cursor / VS Code** (or toggle the MCP server) so it spawns a fresh `pinrag` process.
-
-Re-running a marketplace “install” or re-applying one-click usually **does not** bump the cached `uvx` env by itself unless the generated config includes `--refresh` or you run one of the commands above.
-
-If you use **`pipx` / `uv tool`**:
+**`pipx` / `uv tool`** (global `pinrag` on `PATH`): upgrade explicitly, then restart the editor:
 
 ```bash
 pipx upgrade pinrag
 # or: uv tool upgrade pinrag
 ```
-
-Restart your editor after updating so the MCP server picks up the new version.
 
 ## Quick Start
 
