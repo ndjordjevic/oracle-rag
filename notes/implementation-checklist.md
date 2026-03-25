@@ -299,6 +299,7 @@
 - [x] Investigate advertising & distribution for the PinRAG MCP server (IDE lists, directories, promotion) — see `notes/mcp-advertising-distribution-strategy.md`.
 - [x] Implement distribution strategies
 - [ ] Implement advertising strategies
+- [ ] Investigate how to smartly extract YouTube video content beside just the transcript.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 
 ---
