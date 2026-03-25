@@ -1999,7 +1999,7 @@ wheels = [
 
 [[package]]
 name = "pinrag"
-version = "0.9.17"
+version = "0.9.18"
 source = { editable = "." }
 dependencies = [
     { name = "chromadb" },
