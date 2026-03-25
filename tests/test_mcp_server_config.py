@@ -30,6 +30,7 @@ def test_server_config_resource_includes_effective_config() -> None:
     with patch("pinrag.config.get_persist_dir", return_value="/my/chroma"):
         with patch("pinrag.config.get_collection_name", return_value="my_coll"):
             out = asyncio.run(mcp_server.server_config_resource())
+    assert "PINRAG_VERSION:" in out
     assert "PINRAG_PERSIST_DIR: /my/chroma" in out
     assert "PINRAG_COLLECTION_NAME: my_coll" in out
     assert "PINRAG_LOG_TO_STDERR:" in out

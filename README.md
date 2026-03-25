@@ -87,7 +87,7 @@ The one-click links **pre-fill** your MCP `env` with empty `OPENAI_API_KEY` (req
 
 To pick up a **new PyPI release** with this `uvx` setup, follow [Updating](#updating) above (`uvx --refresh`, then restart the editor).
 
-To **see which version you’re on**, run `pipx list` if you use pipx, or `uvx --from pinrag python -c "import importlib.metadata as m; print(m.version('pinrag'))"` to print the version `uvx` resolves (PyPI metadata).
+To **see which version you’re on**, run `pipx list` if you use pipx, or `uvx --from pinrag python -c "import importlib.metadata as m; print(m.version('pinrag'))"` to print the version `uvx` resolves (PyPI metadata). With the MCP server running, open **`pinrag://server-config`** in the MCP panel—the output starts with **`PINRAG_VERSION`**, which is the package version of that process.
 
 > **VS Code:** GitHub does not allow `vscode:` URLs as clickable links in READMEs. The table link opens a small landing page (GitHub Pages) with the real **Install in VS Code** button. If the page is not yet live, open [`docs/vscode-mcp-install.html`](docs/vscode-mcp-install.html) from a local clone.
 
@@ -151,7 +151,7 @@ Or create `.vscode/mcp.json` in your workspace for project-specific setup. Resta
 | List indexed documents | `list_documents_tool` — document IDs, chunk counts, optional tag filter; `document_details` includes metadata such as tags, page counts, titles, and `upload_timestamp` when stored |
 | Query with filters | `query_tool` — optional `document_id`, `tag`, `document_type`, `page_min`/`page_max` (PDF), `file_path` (GitHub), `response_style` |
 | Remove a document | `remove_document_tool` |
-| View resources (read-only) | In the MCP panel, open **Resources** and select `pinrag://documents` (indexed docs) or `pinrag://server-config` (effective config) |
+| View resources (read-only) | In the MCP panel, open **Resources** and select `pinrag://documents` (indexed docs) or `pinrag://server-config` (effective config, including **`PINRAG_VERSION`**) |
 
 Ask in chat: *"Add /path/to/amiga-book.pdf with tag AMIGA"*, *"Index https://youtu.be/xyz and ask what it says"*, or *"Index https://github.com/owner/repo and ask about the codebase"*. The AI will invoke the tools for you. Citations show page numbers for PDFs, timestamps (e.g. `t. 1:23`) for YouTube, document names for plain text and Discord exports, and file paths for GitHub.
 
@@ -187,11 +187,11 @@ When `add_document_tool` or `add_url_tool` returns any failed paths (e.g. some v
 - **`pinrag` not found:** The editor runs MCP with your login environment. After `pipx` / `uv tool install`, restart the editor and confirm `pinrag` is on `PATH` (e.g. `which pinrag` in a terminal).
 - **Stable vector store path:** Add `PINRAG_PERSIST_DIR` to the MCP `env` block (absolute path, e.g. `~/.pinrag/chroma_db`) so indexes are not tied to the server process working directory.
 - **Cohere embeddings or re-ranking:** Install the extra in the same environment as `pinrag`, e.g. `pipx install 'pinrag[cohere]'` or `uv tool install 'pinrag[cohere]'` (see **Configuration**).
-- **Check the running server:** Open the `pinrag://server-config` resource in the MCP panel to see effective LLM, embeddings, chunking, and API key status.
+- **Check the running server:** Open the `pinrag://server-config` resource in the MCP panel to see **`PINRAG_VERSION`**, effective LLM, embeddings, chunking, and API key status.
 
 ## Configuration
 
-The MCP resource `pinrag://server-config` shows the main operational vars (LLM, embeddings, chunking, retrieval, logging) and API key status. The table below documents all supported variables.
+The MCP resource `pinrag://server-config` shows **`PINRAG_VERSION`** (running package version) and the main operational vars (LLM, embeddings, chunking, retrieval, logging), plus API key status. The table below documents all supported environment variables (`PINRAG_VERSION` is read-only output from the resource, not an env var you set).
 
 Environment variables:
 

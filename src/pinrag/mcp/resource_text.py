@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 from pinrag import config
+from pinrag import __version__ as pinrag_version
 from pinrag.mcp.tools import list_documents
 
 
@@ -131,6 +132,8 @@ def format_server_config() -> str:
     lines = [
         "PinRAG MCP Server Configuration",
         "=" * 40,
+        "",
+        f"PINRAG_VERSION: {pinrag_version}",
         "",
         "--- Explicitly set (runtime env) ---",
         *set_items,
