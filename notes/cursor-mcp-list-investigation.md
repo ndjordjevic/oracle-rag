@@ -43,11 +43,11 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
 
 ### 1.3 Configuration JSON for PinRAG
 
-**Option A — pinrag-mcp (user must `pipx install pinrag` first):**
+**Option A — `pinrag` on PATH (user must `pipx install pinrag` first):**
 
 ```json
 {
-  "command": "pinrag-mcp",
+  "command": "pinrag",
   "env": {
     "OPENAI_API_KEY": "",
     "PINRAG_PERSIST_DIR": ""
@@ -60,7 +60,7 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
 ```json
 {
   "command": "uvx",
-  "args": ["--from", "pinrag", "pinrag-mcp"],
+  "args": ["pinrag"],
   "env": {
     "OPENAI_API_KEY": "",
     "PINRAG_PERSIST_DIR": ""
@@ -68,7 +68,7 @@ Cursor does **not** have a single built-in MCP marketplace like VS Code's Extens
 }
 ```
 
-**Recommendation:** Use **Option B (uvx)** as primary — fewer setup steps. The PyPI package exposes **`pinrag-mcp`**, not `pinrag`, so use `uvx --from pinrag pinrag-mcp` (not `uvx pinrag`). Document that users need [uv](https://docs.astral.sh/uv/) installed. PinRAG reads only the process environment (MCP `env` in `mcp.json` or exported shell vars); there is no built-in `.env` loader.
+**Recommendation:** Use **Option B (uvx)** as primary — fewer setup steps. Use **`uvx pinrag`** (`"command": "uvx"`, `"args": ["pinrag"]`). Document that users need [uv](https://docs.astral.sh/uv/) installed. PinRAG reads only the process environment (MCP `env` in `mcp.json` or exported shell vars); there is no built-in `.env` loader.
 
 ### 1.4 One-Click install URL format
 
@@ -77,7 +77,7 @@ Cursor uses: `https://cursor.com/en/install-mcp?name={name}&config={base64}`
 Example for PinRAG (uvx — user fills `OPENAI_API_KEY`; optional absolute `PINRAG_PERSIST_DIR`):
 
 ```javascript
-const config = { command: "uvx", args: ["--from", "pinrag", "pinrag-mcp"], env: { OPENAI_API_KEY: "", PINRAG_PERSIST_DIR: "" } };
+const config = { command: "uvx", args: ["pinrag"], env: { OPENAI_API_KEY: "", PINRAG_PERSIST_DIR: "" } };
 const b64 = btoa(JSON.stringify(config));
 const url = `https://cursor.com/en/install-mcp?name=pinrag&config=${encodeURIComponent(b64)}`;
 ```
@@ -123,7 +123,7 @@ PinRAG fits: **AI / ML Helpers**, **Data & APIs**, or **Developer Tools**.
   "mcpServers": {
     "pinrag": {
       "command": "uvx",
-      "args": ["--from", "pinrag", "pinrag-mcp"],
+      "args": ["pinrag"],
       "env": {
         "OPENAI_API_KEY": "<YOUR_OPENAI_KEY>",
         "PINRAG_PERSIST_DIR": "<absolute/path/to/chroma_db>"
@@ -176,15 +176,15 @@ PinRAG fits: **AI / ML Helpers**, **Data & APIs**, or **Developer Tools**.
 Even without being listed, you can provide a one-click install link in the PinRAG README:
 
 ```
-https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6e319
+https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJwaW5yYWciXSwiZW52Ijp7fX0
 ```
 
-(Decodes to `{"command":"uvx","args":["--from","pinrag","pinrag-mcp"],"env":{}}` — user should add keys to `env` in `mcp.json` or export them before starting the client.)
+(Decodes to `{"command":"uvx","args":["pinrag"],"env":{}}` — user should add keys to `env` in `mcp.json` or export them before starting the client.)
 
 **Generate dynamically:**
 
 ```javascript
-const config = { command: "uvx", args: ["--from", "pinrag", "pinrag-mcp"], env: {} };
+const config = { command: "uvx", args: ["pinrag"], env: {} };
 const url = `https://cursor.com/en/install-mcp?name=pinrag&config=${btoa(JSON.stringify(config))}`;
 ```
 

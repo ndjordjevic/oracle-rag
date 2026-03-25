@@ -33,7 +33,7 @@ Examples:
 **Discovery (pick one):**
 
 1. **Workspace MCP descriptors (best):** Under the Cursor project’s MCP folder (see system MCP instructions), look for folders `mcps/user-*/tools/` that contain **`add_document_tool.json`**. The folder name (e.g. `user-io-github-ndjordjevic-pinrag`) **is** the `server` string for `call_mcp_tool`.
-2. **`~/.cursor/mcp.json`:** Find entries whose `command`/`args` run PinRAG (`pinrag-mcp`, `uvx … pinrag`, or `uv run … pinrag`). Each top-level key under `mcpServers` maps to `user-<that-key>`.
+2. **`~/.cursor/mcp.json`:** Find entries whose `command`/`args` run PinRAG (`pinrag`, `uvx` with `args` containing `pinrag`, or `uv run … pinrag`). Each top-level key under `mcpServers` maps to `user-<that-key>`.
 
 **If several PinRAG servers appear:**
 

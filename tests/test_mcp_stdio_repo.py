@@ -1,4 +1,4 @@
-"""Integration test: stdio MCP from the **local repo** via ``uv run --project <repo> pinrag-mcp``.
+"""Integration test: stdio MCP from the **local repo** via ``uv run --project <repo> pinrag``.
 
 API keys (required for the subprocess server):
 
@@ -59,7 +59,7 @@ def _uv_bin() -> str | None:
 
 @pytest.mark.integration
 def test_pdf_roundtrip_local_repo(tmp_path: Path) -> None:
-    """Local checkout: spawn ``pinrag-mcp``, index PDF, list, query, remove; isolated Chroma."""
+    """Local checkout: spawn ``pinrag``, index PDF, list, query, remove; isolated Chroma."""
     pdf = resolve_mcp_stdio_itest_pdf(_REPO_ROOT)
     if pdf is None:
         override = (os.environ.get("PINRAG_MCP_ITEST_PDF") or "").strip()
@@ -93,7 +93,7 @@ def test_pdf_roundtrip_local_repo(tmp_path: Path) -> None:
     async def _run() -> None:
         params = StdioServerParameters(
             command=uv_bin,
-            args=["run", "--project", str(_REPO_ROOT), "pinrag-mcp"],
+            args=["run", "--project", str(_REPO_ROOT), "pinrag"],
             env=env,
         )
         logger.info(

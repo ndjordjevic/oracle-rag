@@ -37,13 +37,12 @@ dev = [
 
 [project.scripts]
 pinrag = "pinrag.cli:main"
-pinrag-mcp = "pinrag.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
     "integration: needs network, API keys, or optional assets (e.g. sample PDF)",
-    "pypi_mcp: stdio MCP against published PyPI pinrag package (network, uv tool run)",
+    "pypi_mcp: stdio MCP against published PyPI pinrag package (network, uv tool run pinrag)",
 ]
 filterwarnings = [
     "ignore::pydantic.warnings.PydanticDeprecatedSince20",

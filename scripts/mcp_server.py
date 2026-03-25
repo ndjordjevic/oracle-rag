@@ -1,6 +1,6 @@
 """Dev entry: run the PinRAG MCP server from a git checkout.
 
-Same wire protocol as the packaged ``pinrag-mcp`` console script. Environment
+Same wire protocol as the packaged ``pinrag`` console script. Environment
 variables are not loaded from any file — set them in MCP ``env`` or export
 in your shell before running.
 """

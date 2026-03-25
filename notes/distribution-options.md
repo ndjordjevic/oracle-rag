@@ -22,10 +22,10 @@ pip install pinrag
 
 **Cons:**
 - Requires Python 3.12+ on the user's machine
-- User must configure Cursor MCP to run `pinrag-mcp` (no cwd needed; .env and chroma_db use ~/.pinrag/)
+- User must configure Cursor MCP to run `pinrag` (no cwd needed; .env and chroma_db use ~/.pinrag/)
 
 **Implementation (current state):**
-- `[project.scripts]` in `pyproject.toml` exposes `pinrag-mcp = "pinrag.cli:main"`.
+- `[project.scripts]` in `pyproject.toml` exposes `pinrag = "pinrag.cli:main"`.
 - Config is loaded from `~/.config/pinrag/.env`, `~/.pinrag/.env`, or `{cwd}/.env`; the Chroma index defaults to `~/.pinrag/chroma_db` (overridable via `PINRAG_PERSIST_DIR`).
 - Publish flow: bump `version` in `pyproject.toml` → `git commit` → `git tag -a vX.Y.Z -m "Release vX.Y.Z"` → `git push origin main` → `git push origin vX.Y.Z`. A GitHub Action publishes to PyPI on tag push. For manual publish (e.g. if the Action fails): run `uv build && uv publish` locally.
 
@@ -108,7 +108,7 @@ uv sync   # or pip install -e .
 
 ## 5. Standalone Executable (PyInstaller / Nuitka)
 
-**What:** Build a single binary (e.g. `pinrag-mcp.exe` on Windows, `pinrag-mcp` on macOS/Linux). No Python install needed.
+**What:** Build a single binary (e.g. `pinrag.exe` on Windows, `pinrag` on macOS/Linux). No Python install needed.
 
 **Pros:**
 - One binary; no Python, pip, or uv
@@ -121,7 +121,7 @@ uv sync   # or pip install -e .
 
 **Implementation:**
 - Use PyInstaller or Nuitka; entry point = MCP server
-- Distribute via GitHub Releases (e.g. `pinrag-mcp-1.0.0-macos-arm64`)
+- Distribute via GitHub Releases (e.g. `pinrag-1.0.0-macos-arm64`)
 
 ---
 
@@ -175,7 +175,7 @@ uv sync   # or pip install -e .
 
 ## Implementation Checklist (for PyPI)
 
-- [x] Add `[project.scripts]` entry point for `pinrag-mcp`
+- [x] Add `[project.scripts]` entry point for `pinrag`
 - [x] Configure default paths: `.env` from `~/.config/pinrag/`, `~/.pinrag/`, cwd; `chroma_db` at `~/.pinrag/chroma_db` by default
 - [x] Document `pip install pinrag` and Cursor MCP config in README
 - [x] Create PyPI account; `uv build` and `uv publish`
@@ -207,13 +207,13 @@ uv sync   # or pip install -e .
    ```
 3. **Verify:**
    ```bash
-   pinrag-mcp
+   pinrag
    ```
    Server should start and wait for stdio input (Ctrl+C to stop).
 4. **Cursor MCP:** Add to `~/.cursor/mcp.json`:
    ```json
    "pinrag": {
-     "command": "pinrag-mcp"
+     "command": "pinrag"
    }
    ```
    Restart Cursor; verify `add_pdf`, `list_pdfs`, `query_pdf`, `remove_pdf` tools appear.

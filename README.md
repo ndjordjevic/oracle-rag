@@ -40,26 +40,26 @@ Most people add PinRAG **through the editor**—you do **not** need `pip install
 | **Cursor Store** | [PinRAG on Cursor Store](https://www.cursor.store/mcp/ndjordjevic/pinrag) |
 | **One-click (Cursor & VS Code)** | [Quick Start — One-click install](#one-click-install-cursor--vs-code) below |
 
-Those flows use **`uvx --from pinrag pinrag-mcp`** (or the same idea in generated config) so the package is pulled from PyPI when the MCP server starts.
+Those flows use **`uvx pinrag`** (or the same idea in generated config) so the package is pulled from PyPI when the MCP server starts.
 
-**Optional — global CLI on `PATH`:** If you want to run `pinrag-mcp` without `uvx` (for example `"command": "pinrag-mcp"` in `mcp.json`):
+**Optional — global CLI on `PATH`:** If you want to run `pinrag` without `uvx` (for example `"command": "pinrag"` in `mcp.json`):
 
 ```bash
 pipx install pinrag
 # or: uv tool install pinrag
 ```
 
-Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated environment and put `pinrag-mcp` on your PATH.
+Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated environment and put `pinrag` on your PATH.
 
 ### Updating
 
 **`uvx` / marketplace / one-click** (no global `pipx` install): PinRAG is resolved from PyPI when the MCP server starts, but **`uv` caches** that environment. After a new release on PyPI, refresh the cache so the next launch gets the latest build:
 
 ```bash
-uvx --refresh --from pinrag pinrag-mcp
+uvx --refresh pinrag
 ```
 
-Alternatively, clear the tool cache (broader than refresh): `uv cache clean`. Then **restart Cursor / VS Code** (or toggle the MCP server) so it spawns a fresh `pinrag-mcp` process.
+Alternatively, clear the tool cache (broader than refresh): `uv cache clean`. Then **restart Cursor / VS Code** (or toggle the MCP server) so it spawns a fresh `pinrag` process.
 
 Re-running a marketplace “install” or re-applying one-click usually **does not** bump the cached `uvx` env by itself—you still need `--refresh` / cache clean when you want a new PyPI version.
 
@@ -76,14 +76,14 @@ Restart your editor after updating so the MCP server picks up the new version.
 
 ### One-click install (Cursor & VS Code)
 
-These links add PinRAG to your editor’s MCP config using **`uvx --from pinrag pinrag-mcp`** (runs the latest PinRAG from PyPI without a prior `pip install`). You need [**uv**](https://docs.astral.sh/uv/) installed and on your `PATH`.
+These links add PinRAG to your editor’s MCP config using **`uvx pinrag`** (runs the latest PinRAG from PyPI without a prior `pip install`). You need [**uv**](https://docs.astral.sh/uv/) installed and on your `PATH`.
 
 | Editor | Action |
 |--------|--------|
-| **Cursor** | [Install PinRAG MCP in Cursor](https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6eyJPUEVOQUlfQVBJX0tFWSI6IiIsIlBJTlJBR19QRVJTSVNUX0RJUiI6IiJ9fQ) |
+| **Cursor** | [Install PinRAG MCP in Cursor](https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJwaW5yYWciXSwiZW52Ijp7Ik9QRU5BSV9BUElfS0VZIjoiIiwiUElOUkFHX1BFUlNJU1RfRElSIjoiIn19) |
 | **VS Code** | [Install PinRAG MCP in VS Code](https://ndjordjevic.github.io/pinrag/vscode-mcp-install.html) |
 
-The one-click links **pre-fill** your MCP `env` with empty `OPENAI_API_KEY` (required—paste your key) and `PINRAG_PERSIST_DIR` (optional—set an absolute path for a stable index location, or remove the key). No secrets are embedded. If you prefer **`pinrag-mcp`** after `pipx install pinrag`, use the JSON snippets in the next section instead of the links above.
+The one-click links **pre-fill** your MCP `env` with empty `OPENAI_API_KEY` (required—paste your key) and `PINRAG_PERSIST_DIR` (optional—set an absolute path for a stable index location, or remove the key). No secrets are embedded. If you prefer **`pinrag`** on `PATH` after `pipx install pinrag`, use the JSON snippets in the next section instead of the links above.
 
 To pick up a **new PyPI release** with this `uvx` setup, follow [Updating](#updating) above (`uvx --refresh`, then restart the editor).
 
@@ -93,7 +93,7 @@ To **see which version you’re on**, run `pipx list` if you use pipx, or `uvx -
 
 ### Configure MCP server
 
-Add `pinrag` to your editor’s MCP config and set API keys in the same `env` block. This is the recommended setup for OSS: `pinrag-mcp` is launched by the editor from MCP config, not from a shell that loads `.env`.
+Add `pinrag` to your editor’s MCP config and set API keys in the same `env` block. This is the recommended setup for OSS: the `pinrag` CLI is launched by the editor from MCP config, not from a shell that loads `.env`.
 
 **Minimum required env vars (validated at startup):**
 
@@ -112,7 +112,7 @@ A longer commented reference for optional `PINRAG_*` variables is in [`notes/env
 {
   "mcpServers": {
     "pinrag": {
-      "command": "pinrag-mcp",
+      "command": "pinrag",
       "env": {
         "OPENAI_API_KEY": "sk-..."
       }
@@ -127,7 +127,7 @@ A longer commented reference for optional `PINRAG_*` variables is in [`notes/env
 {
   "servers": {
     "pinrag": {
-      "command": "pinrag-mcp",
+      "command": "pinrag",
       "env": {
         "OPENAI_API_KEY": "sk-..."
       }
@@ -138,10 +138,10 @@ A longer commented reference for optional `PINRAG_*` variables is in [`notes/env
 
 Or create `.vscode/mcp.json` in your workspace for project-specific setup. Restart VS Code or Cursor after editing.
 
-> **Env vars and `.env`:** The `pinrag-mcp` entry point does not load `.env` files.
+> **Env vars and `.env`:** The `pinrag` entry point does not load `.env` files.
 > Configure variables in your MCP `env` block (or export them in your shell when running other scripts).
 > If you previously used `~/.pinrag/.env` or project `.env`, move those keys to MCP `env`.
-> **Backup:** Back up your vector store directory (`PINRAG_PERSIST_DIR`). If unset, the default is `chroma_db` relative to the **current working directory of the `pinrag-mcp` process** (depends on the editor—often the folder you have open, but not guaranteed). Set `PINRAG_PERSIST_DIR` to an absolute path (e.g. `~/.pinrag/chroma_db`) if you want a predictable location. Deleting that directory removes all indexes.
+> **Backup:** Back up your vector store directory (`PINRAG_PERSIST_DIR`). If unset, the default is `chroma_db` relative to the **current working directory of the `pinrag` process** (depends on the editor—often the folder you have open, but not guaranteed). Set `PINRAG_PERSIST_DIR` to an absolute path (e.g. `~/.pinrag/chroma_db`) if you want a predictable location. Deleting that directory removes all indexes.
 
 ### Use in chat
 
@@ -184,9 +184,9 @@ When `add_document_tool` or `add_url_tool` returns any failed paths (e.g. some v
 
 ### Tips
 
-- **`pinrag-mcp` not found:** The editor runs MCP with your login environment. After `pipx` / `uv tool install`, restart the editor and confirm `pinrag-mcp` is on `PATH` (e.g. `which pinrag-mcp` in a terminal).
+- **`pinrag` not found:** The editor runs MCP with your login environment. After `pipx` / `uv tool install`, restart the editor and confirm `pinrag` is on `PATH` (e.g. `which pinrag` in a terminal).
 - **Stable vector store path:** Add `PINRAG_PERSIST_DIR` to the MCP `env` block (absolute path, e.g. `~/.pinrag/chroma_db`) so indexes are not tied to the server process working directory.
-- **Cohere embeddings or re-ranking:** Install the extra in the same environment as `pinrag-mcp`, e.g. `pipx install 'pinrag[cohere]'` or `uv tool install 'pinrag[cohere]'` (see **Configuration**).
+- **Cohere embeddings or re-ranking:** Install the extra in the same environment as `pinrag`, e.g. `pipx install 'pinrag[cohere]'` or `uv tool install 'pinrag[cohere]'` (see **Configuration**).
 - **Check the running server:** Open the `pinrag://server-config` resource in the MCP panel to see effective LLM, embeddings, chunking, and API key status.
 
 ## Configuration
@@ -263,7 +263,7 @@ Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid
 
 ## MCP reference
 
-Tools, optional prompt, and read-only resources from the PinRAG MCP server (`pinrag-mcp`). Indexing tools return `indexed` / `failed` / totals (and `fail_summary` when some paths fail); `query_tool` returns an answer plus citation metadata.
+Tools, optional prompt, and read-only resources from the PinRAG MCP server (`pinrag`). Indexing tools return `indexed` / `failed` / totals (and `fail_summary` when some paths fail); `query_tool` returns an answer plus citation metadata.
 
 ### `query_tool`
 
@@ -344,7 +344,7 @@ Read-only URIs; open from the MCP panel in Cursor or VS Code:
 From the repo root (with dev dependencies, e.g. `uv sync --extra dev`):
 
 - **Fast (exclude `integration`):** `uv run pytest tests/ -q -m "not integration"` — skips tests marked `integration` (see `pyproject.toml`: API keys, network, optional assets, MCP stdio). Tests that use the `sample_pdf_path` fixture are tagged as `integration` automatically (`tests/conftest.py`). A few non-integration tests may still `skip` if `data/pdfs/sample-text.pdf` is missing.
-- **Full suite:** `uv run pytest tests/ -q` — set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` via the environment or `tests/.mcp_stdio_integration.env` (copy from `tests/mcp_stdio_integration.env.example`; environment wins over the file). PDF/RAG tests and MCP stdio integration tests (`test_mcp_stdio_*.py`) expect `data/pdfs/sample-text.pdf` locally (under `data/`, gitignored); override path or query with `PINRAG_MCP_ITEST_PDF` / `PINRAG_MCP_ITEST_QUERY` for the stdio tests. To skip the PyPI-based MCP test (network / `uv tool run --from pinrag pinrag-mcp`), use `-m "not pypi_mcp"` or `PINRAG_MCP_ITEST_SKIP_PYPI=1`. For live logs from those tests, add `--log-cli-level=INFO`.
+- **Full suite:** `uv run pytest tests/ -q` — set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` via the environment or `tests/.mcp_stdio_integration.env` (copy from `tests/mcp_stdio_integration.env.example`; environment wins over the file). PDF/RAG tests and MCP stdio integration tests (`test_mcp_stdio_*.py`) expect `data/pdfs/sample-text.pdf` locally (under `data/`, gitignored); override path or query with `PINRAG_MCP_ITEST_PDF` / `PINRAG_MCP_ITEST_QUERY` for the stdio tests. To skip the PyPI-based MCP test (network / `uv tool run --from pinrag pinrag`), use `-m "not pypi_mcp"` or `PINRAG_MCP_ITEST_SKIP_PYPI=1`. For live logs from those tests, add `--log-cli-level=INFO`.
 
 The `data/` tree is gitignored (create `data/pdfs/` or `data/discord-channels/` locally; nothing under `data/` is committed).
 

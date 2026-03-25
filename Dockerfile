@@ -28,4 +28,4 @@ WORKDIR /home/pinrag
 
 VOLUME ["/data/pinrag"]
 
-CMD ["pinrag-mcp"]
+CMD ["pinrag"]

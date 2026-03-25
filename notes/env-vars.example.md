@@ -1,6 +1,6 @@
 # PinRAG environment variables (reference)
 
-Set these in the MCP server `env` object in `mcp.json` (for example `~/.cursor/mcp.json` or `.vscode/mcp.json`), or export them in your shell when running repo scripts (`uv run python scripts/...`). The packaged `pinrag-mcp` entry point does not load any dotenv file.
+Set these in the MCP server `env` object in `mcp.json` (for example `~/.cursor/mcp.json` or `.vscode/mcp.json`), or export them in your shell when running repo scripts (`uv run python scripts/...`). The packaged `pinrag` entry point does not load any dotenv file.
 
 See also the configuration table in the project `README.md`.
 

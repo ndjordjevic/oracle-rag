@@ -15,7 +15,7 @@ Two complementary tracks:
 
 Neither works alone. Listings without promotion = buried among 17,000+ servers. Promotion without listings = nowhere for interested users to land with a one-click install.
 
-**Two-tier distribution:** (1) **MCP-only** — PyPI package `pinrag` / `pinrag-mcp`; works in every MCP client. (2) **Plugin bundle** — separate repo [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) with `.cursor-plugin/`, `.claude-plugin/`, `.mcp.json`, and `skills/use-pinrag/` for editors that support Open Plugins / Agent Skills (Cursor, Claude Code, VS Code Copilot, Amp) plus a Goose-ready subtree under `pinrag/`. See §1 and §2.
+**Two-tier distribution:** (1) **MCP-only** — PyPI package `pinrag` with the **`pinrag`** MCP CLI entrypoint; works in every MCP client. (2) **Plugin bundle** — separate repo [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) with `.cursor-plugin/`, `.claude-plugin/`, `.mcp.json`, and `skills/use-pinrag/` for editors that support Open Plugins / Agent Skills (Cursor, Claude Code, VS Code Copilot, Amp) plus a Goose-ready subtree under `pinrag/`. See §1 and §2.
 
 **Third-party directories:** [mcp.so](https://mcp.so) and [MCPRepository](https://mcprepository.com) are **different products**. The web form on mcp.so does not submit to MCPRepository, and `npx mcp-index` (MCPRepository’s CLI) does not submit to mcp.so — track and spot-check each separately (§1.1 row 10–11, §2).
 
@@ -25,7 +25,7 @@ Neither works alone. Listings without promotion = buried among 17,000+ servers. 
 
 PinRAG reaches users through two mechanisms:
 
-1. **MCP-only** — the PyPI package (`pinrag`) added to any MCP client's config via `uvx --from pinrag pinrag-mcp`. Works in every MCP client.
+1. **MCP-only** — the PyPI package (`pinrag`) added to any MCP client's config via `uvx pinrag` (`"command": "uvx"`, `"args": ["pinrag"]`). Works in every MCP client.
 2. **Plugin bundle** — the [pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin) repo ships `.cursor-plugin/`, `.claude-plugin/`, `.mcp.json`, and `skills/use-pinrag/` for editors supporting Open Plugins / Agent Skills (Cursor, Claude Code, VS Code Copilot, Amp, Goose).
 
 ### 1.1 Status Overview
@@ -123,7 +123,7 @@ Official Cursor listing (replaces deprecated [cursor/mcp-servers](https://github
    ```json
    {
      "command": "uvx",
-     "args": ["--from", "pinrag", "pinrag-mcp"],
+     "args": ["pinrag"],
      "env": {
        "OPENAI_API_KEY": "",
        "ANTHROPIC_API_KEY": ""
@@ -133,19 +133,19 @@ Official Cursor listing (replaces deprecated [cursor/mcp-servers](https://github
 
 #### 5–6. One-Click Install URLs (README)
 
-The PyPI package exposes **`pinrag-mcp`** (not `pinrag`), so the correct invocation is **`uvx --from pinrag pinrag-mcp`**.
+The PyPI package exposes a **`pinrag`** console script; the usual `uvx` invocation is **`uvx pinrag`** (`"args": ["pinrag"]`).
 
 **Cursor:**
 ```
-https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJwaW5yYWciLCJwaW5yYWctbWNwIl0sImVudiI6eyJPUEVOQUlfQVBJX0tFWSI6IiIsIlBJTlJBR19QRVJTSVNUX0RJUiI6IiJ9fQ
+https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJwaW5yYWciXSwiZW52Ijp7Ik9QRU5BSV9BUElfS0VZIjoiIiwiUElOUkFHX1BFUlNJU1RfRElSIjoiIn19
 ```
-Decodes to `{"command":"uvx","args":["--from","pinrag","pinrag-mcp"],"env":{"OPENAI_API_KEY":"","PINRAG_PERSIST_DIR":""}}`.
+Decodes to `{"command":"uvx","args":["pinrag"],"env":{"OPENAI_API_KEY":"","PINRAG_PERSIST_DIR":""}}`.
 
 **VS Code:** GitHub strips custom URL schemes, so the README links to an HTTPS landing page with the `vscode:` button: [`docs/vscode-mcp-install.html`](../docs/vscode-mcp-install.html), served via GitHub Pages at `https://ndjordjevic.github.io/pinrag/vscode-mcp-install.html`.
 
 Raw `vscode:` URL (for local preview / manual paste):
 ```
-vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22pinrag%22%2C%22pinrag-mcp%22%5D%2C%22env%22%3A%7B%22OPENAI_API_KEY%22%3A%22%22%2C%22PINRAG_PERSIST_DIR%22%3A%22%22%7D%7D
+vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22pinrag%22%5D%2C%22env%22%3A%7B%22OPENAI_API_KEY%22%3A%22%22%2C%22PINRAG_PERSIST_DIR%22%3A%22%22%7D%7D
 ```
 
 One-click installs pre-fill `OPENAI_API_KEY` and optional `PINRAG_PERSIST_DIR` (empty strings); users paste their key.
@@ -156,7 +156,7 @@ Users add PinRAG to their MCP client config manually — works in every MCP clie
 
 #### 8. Plugin Bundle ([pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin))
 
-Separate from the PyPI package: a Git repo bundling the same **`uvx --from pinrag pinrag-mcp`** MCP config with a **`use-pinrag`** skill (and a Goose-formatted copy under `pinrag/`). Keeps build concerns out of the main [pinrag](https://github.com/ndjordjevic/pinrag) repo. Published Mar 2026.
+Separate from the PyPI package: a Git repo bundling the same **`uvx pinrag`** MCP config with a **`use-pinrag`** skill (and a Goose-formatted copy under `pinrag/`). Keeps build concerns out of the main [pinrag](https://github.com/ndjordjevic/pinrag) repo. Published Mar 2026.
 
 | Tool | Install method |
 |------|---------------|
@@ -176,7 +176,7 @@ List `pinrag-plugin` in the Goose Agent Skills marketplace so Goose users can in
 
 **URL:** [mcp.so](https://mcp.so) — submit at [mcp.so/submit](https://mcp.so/submit)
 
-Large public directory (~17,000+ servers). MIT license required (✓). **Submitted Mar 2026** via manual web form (name **PinRAG**, repo `https://github.com/ndjordjevic/pinrag`, server config with `uvx` / `pinrag-mcp` per README). **Pending listing** on mcp.so (§1.1 row 10) — spot-check when live.
+Large public directory (~17,000+ servers). MIT license required (✓). **Submitted Mar 2026** via manual web form (name **PinRAG**, repo `https://github.com/ndjordjevic/pinrag`, server config with `uvx` / `pinrag` per README). **Pending listing** on mcp.so (§1.1 row 10) — spot-check when live.
 
 #### 11. MCPRepository (mcprepository.com)
 
@@ -258,7 +258,7 @@ PR to [github/awesome-copilot](https://github.com/github/awesome-copilot) and/or
 
 #### 20. VS Code Extension
 
-TypeScript extension spawning `uvx --from pinrag pinrag-mcp`. Registers via `mcpServerDefinitionProviders`. Makes PinRAG discoverable via `@mcp pinrag` in Extensions view. Effort: 1–2 days. See [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md). Do after other listings — one-click URL + MCP Registry cover most of the value.
+TypeScript extension spawning `uvx pinrag`. Registers via `mcpServerDefinitionProviders`. Makes PinRAG discoverable via `@mcp pinrag` in Extensions view. Effort: 1–2 days. See [vscode-marketplace-investigation.md](vscode-marketplace-investigation.md). Do after other listings — one-click URL + MCP Registry cover most of the value.
 
 #### 21. Smithery (smithery.ai)
 

@@ -216,7 +216,7 @@ uv run python scripts/rag_cli.py "Summarize the main points." --k 8
 
 ## mcp_server.py
 
-Dev entry point to run the PinRAG MCP server over **stdio** for MCP-compatible clients (Cursor, Claude Desktop, MCP Inspector). Packaged installs use the **`pinrag-mcp`** console script (`pyproject` `[project.scripts]`). Neither loads a dotenv file — set variables in MCP `env` or export in your shell.
+Dev entry point to run the PinRAG MCP server over **stdio** for MCP-compatible clients (Cursor, Claude Desktop, MCP Inspector). Packaged installs use the **`pinrag`** console script (`pyproject` `[project.scripts]`). Neither loads a dotenv file — set variables in MCP `env` or export in your shell.
 
 **Requirements**
 
@@ -248,7 +248,7 @@ npx -y @modelcontextprotocol/inspector uv run python scripts/mcp_server.py
 
 **Integration**
 
-Point your MCP client at **`pinrag-mcp`** (recommended when installed) or:
+Point your MCP client at **`pinrag`** (recommended when installed) or:
 
 ```bash
 uv run python scripts/mcp_server.py

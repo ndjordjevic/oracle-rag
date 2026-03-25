@@ -37,7 +37,7 @@ PinRAG is started with **`uvx pinrag`**. Add something like this under `mcpServe
 
 If your IDE’s MCP UI cannot find `uvx` on `PATH`, set `command` to the full path from `which uvx` (e.g. `/opt/homebrew/bin/uvx` on Apple Silicon Homebrew).
 
-On startup, `pinrag-mcp` validates API keys for the active embedding and LLM providers (`require_api_keys_for_server`). Additional providers and options are documented in the README.
+On startup, `pinrag` validates API keys for the active embedding and LLM providers (`require_api_keys_for_server`). Additional providers and options are documented in the README.
 
 ## Category
 Developer Tools

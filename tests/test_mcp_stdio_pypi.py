@@ -1,9 +1,9 @@
-"""Integration test: stdio MCP from **PyPI** via ``uv tool run --from pinrag pinrag-mcp``.
+"""Integration test: stdio MCP from **PyPI** via ``uv tool run --from pinrag pinrag``.
 
 Same tool sequence as ``test_mcp_stdio_repo.py``, but the subprocess runs the published
 package from PyPI (not the local repo).
 
-Requires ``uv`` (same as ``uvx --from <spec> pinrag-mcp``). API keys: same as the repo
+Requires ``uv`` (same as ``uvx <spec>`` / ``uv tool run --from <spec> pinrag``). API keys: same as the repo
 stdio test — see ``tests/mcp_stdio_integration.env.example``.
 
 **PDF / query:** same defaults as the repo test (``data/pdfs/sample-text.pdf`` and a
@@ -64,7 +64,7 @@ def _pypi_spec() -> str:
 @pytest.mark.integration
 @pytest.mark.pypi_mcp
 def test_pdf_roundtrip_pypi_package(tmp_path: Path) -> None:
-    """PyPI package: spawn ``pinrag-mcp`` from the index, same PDF roundtrip; isolated Chroma."""
+    """PyPI package: spawn ``pinrag`` from the index, same PDF roundtrip; isolated Chroma."""
     if truthy_env("PINRAG_MCP_ITEST_SKIP_PYPI"):
         pytest.skip("PINRAG_MCP_ITEST_SKIP_PYPI set")
 
@@ -101,7 +101,7 @@ def test_pdf_roundtrip_pypi_package(tmp_path: Path) -> None:
     async def _run() -> None:
         params = StdioServerParameters(
             command=uv_bin,
-            args=["tool", "run", "--from", pypi_spec, "pinrag-mcp"],
+            args=["tool", "run", "--from", pypi_spec, "pinrag"],
             env=env,
         )
         logger.info(
