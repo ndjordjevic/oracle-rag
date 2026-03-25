@@ -20,6 +20,23 @@ Use `env` keys in this order in `mcp.json` (example):
 }
 ```
 
+### MCP client block (`mcp.json`)
+
+PinRAG is started with **`uvx`** and **`--from pinrag pinrag-mcp`** (the console script lives in the `pinrag` PyPI package). Add something like this under `mcpServers` (the object key can be a slug such as `io-github-ndjordjevic-pinrag` in Cursor):
+
+```json
+"io.github.ndjordjevic/pinrag": {
+  "command": "uvx",
+  "args": ["--from", "pinrag", "pinrag-mcp"],
+  "env": {
+    "OPENAI_API_KEY": "your-openai-api-key-here",
+    "PINRAG_PERSIST_DIR": "your-pinrag-persist-dir-here"
+  }
+}
+```
+
+If your IDE’s MCP UI cannot find `uvx` on `PATH`, set `command` to the full path from `which uvx` (e.g. `/opt/homebrew/bin/uvx` on Apple Silicon Homebrew).
+
 On startup, `pinrag-mcp` validates API keys for the active embedding and LLM providers (`require_api_keys_for_server`). Additional providers and options are documented in the README.
 
 ## Category

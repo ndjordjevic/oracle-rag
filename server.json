@@ -19,8 +19,11 @@
       "runtimeHint": "uvx",
       "runtimeArguments": [
         {
-          "type": "named",
-          "name": "--from",
+          "type": "positional",
+          "value": "--from"
+        },
+        {
+          "type": "positional",
           "value": "pinrag"
         },
         {
