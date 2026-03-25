@@ -1,8 +1,7 @@
 <!-- mcp-name: io.github.ndjordjevic/pinrag -->
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/ndjordjevic/pinrag/main/docs/pinrag-icon.svg" width="96" height="96" alt="PinRAG logo" />
-</p>
+<!-- Raster PNG: many directories (e.g. MCP Market) strip HTML or block SVG in READMEs; plain Markdown image survives more often. -->
+![PinRAG logo](https://raw.githubusercontent.com/ndjordjevic/pinrag/main/docs/pinrag-icon.png)
 
 # PinRAG
 
