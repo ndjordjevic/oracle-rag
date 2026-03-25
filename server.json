@@ -20,15 +20,7 @@
       "runtimeArguments": [
         {
           "type": "positional",
-          "value": "--from"
-        },
-        {
-          "type": "positional",
           "value": "pinrag"
-        },
-        {
-          "type": "positional",
-          "value": "pinrag-mcp"
         }
       ],
       "environmentVariables": [
