@@ -81,7 +81,7 @@ An extension that **wraps** the existing Python MCP server:
 1. **Extension** (TypeScript) — contributes `mcpServerDefinitionProviders`, registers the PinRAG MCP server
 2. **MCP server** — the existing `pinrag` CLI, invoked as a subprocess
 
-The extension does **not** reimplement the MCP server. It spawns `pinrag` (or `uvx pinrag` / `python -m pinrag.cli`) and connects via stdio.
+The extension does **not** reimplement the MCP server. It spawns `pinrag` (or `uvx --refresh pinrag` / `python -m pinrag.cli`) and connects via stdio.
 
 ### 2.2 Key API: `vscode.lm.registerMcpServerDefinitionProvider`
 
@@ -104,7 +104,7 @@ vscode.lm.registerMcpServerDefinitionProvider('pinrag.mcpServer', {
       new vscode.McpStdioServerDefinition({
         label: 'PinRAG',
         command: 'uvx',  // or 'pinrag' if on PATH
-        args: ['pinrag'],
+        args: ['--refresh', 'pinrag'],
         env: { /* optional: pass PINRAG_PERSIST_DIR etc */ },
         version: '0.8.5'
       })
@@ -123,12 +123,12 @@ PinRAG is a Python package. Options:
 
 | Option | Command | Pros | Cons |
 |--------|---------|------|------|
-| **uvx** | `uvx pinrag` | No user install; uv fetches and runs | Requires `uv` on PATH; Windows quirks |
+| **uvx** | `uvx --refresh pinrag` | No user install; uv fetches latest PyPI build each launch | Requires `uv` on PATH; slower cold start than omitting `--refresh` |
 | **pipx** | `pipx run --spec pinrag pinrag` | Common for Python tools | Requires pipx |
 | **pinrag** | `pinrag` | Simple if already installed | User must `pipx install pinrag` first |
 | **Bundled Python** | Extension ships Python + venv | No external deps | Large package, complex build |
 
-**Recommended:** Use `uvx pinrag` (or `uv tool run --from pinrag pinrag`) as the default. Document that `uv` must be installed. Fallback: check for `pinrag` on PATH and use that if present.
+**Recommended:** Use `uvx --refresh pinrag` (or `uv tool run --from pinrag pinrag`) as the default so the extension tracks latest PyPI releases. Document that `uv` must be installed. Fallback: check for `pinrag` on PATH and use that if present.
 
 ### 2.4 Extension Project Structure
 
@@ -145,7 +145,7 @@ pinrag-vscode/
 ### 2.5 Publishing Steps
 
 1. **Scaffold:** `npm install -g yo generator-code && yo code` (or copy [mcp-extension-sample](https://github.com/microsoft/vscode-extension-samples/tree/main/mcp-extension-sample))
-2. **Implement:** Add `mcpServerDefinitionProviders` and spawn `uvx pinrag` (or `pinrag` on PATH)
+2. **Implement:** Add `mcpServerDefinitionProviders` and spawn `uvx --refresh pinrag` (or `pinrag` on PATH)
 3. **Package:** `npm install -g @vscode/vsce && vsce package`
 4. **Publish:** Create publisher at [marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage), then `vsce publish`
 5. **Ongoing:** Bump version in `package.json`, run `vsce publish patch`
@@ -171,11 +171,11 @@ Create a URL with the MCP server config (JSON-stringified and URL-encoded). When
 const config = {
   name: "pinrag",
   command: "uvx",
-  args: ["pinrag"],
+  args: ["--refresh", "pinrag"],
   env: {}  // User adds keys via input variables or env file
 };
 const url = `vscode:mcp/install?${encodeURIComponent(JSON.stringify(config))}`;
-// Result: vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22pinrag%22%5D%7D
+// Result: vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--refresh%22%2C%22pinrag%22%5D%7D
 ```
 
 ### 3.3 With Input Variables (API Keys)
@@ -238,7 +238,7 @@ Example README addition:
 ```markdown
 ### One-Click Install (VS Code)
 
-Click to add PinRAG to VS Code's MCP configuration: [Install PinRAG MCP](vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22pinrag%22%5D%7D)
+Click to add PinRAG to VS Code's MCP configuration: [Install PinRAG MCP](vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--refresh%22%2C%22pinrag%22%5D%7D)
 
 Requires [uv](https://docs.astral.sh/uv/) on your PATH. Alternatively, install PinRAG first (`pipx install pinrag`) and use [this config](vscode:mcp/install?%7B%22name%22%3A%22pinrag%22%2C%22command%22%3A%22pinrag%22%7D) with `command: "pinrag"` only.
 ```
@@ -246,7 +246,7 @@ Requires [uv](https://docs.astral.sh/uv/) on your PATH. Alternatively, install P
 ### Phase 2: Marketplace Extension (1–2 days)
 
 1. Create `pinrag-vscode` repo (or `vscode/` in pinrag monorepo).
-2. Implement extension with `mcpServerDefinitionProviders` spawning `uvx pinrag`.
+2. Implement extension with `mcpServerDefinitionProviders` spawning `uvx --refresh pinrag`.
 3. Publish to Visual Studio Marketplace.
 4. Add CI to bump and publish extension on PinRAG releases.
 

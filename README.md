@@ -40,7 +40,7 @@ Most people add PinRAG **through the editor**—you do **not** need `pip install
 | **Cursor Store** | [PinRAG on Cursor Store](https://www.cursor.store/mcp/ndjordjevic/pinrag) |
 | **One-click (Cursor & VS Code)** | [Quick Start — One-click install](#one-click-install-cursor--vs-code) below |
 
-Those flows use **`uvx pinrag`** (or the same idea in generated config) so the package is pulled from PyPI when the MCP server starts.
+Those flows use **`uvx --refresh pinrag`** (or the same idea in generated config: `"command": "uvx"`, `"args": ["--refresh", "pinrag"]`) so each MCP launch resolves the latest `pinrag` from PyPI (`uv` caches tool environments; `--refresh` avoids stale installs).
 
 **Optional — global CLI on `PATH`:** If you want to run `pinrag` without `uvx` (for example `"command": "pinrag"` in `mcp.json`):
 
@@ -53,7 +53,11 @@ Requires Python 3.12+. Both `pipx` and `uv tool install` create an isolated envi
 
 ### Updating
 
-**`uvx` / marketplace / one-click** (no global `pipx` install): PinRAG is resolved from PyPI when the MCP server starts, but **`uv` caches** that environment. After a new release on PyPI, refresh the cache so the next launch gets the latest build:
+**`uvx` / marketplace / one-click** (no global `pipx` install): PinRAG is resolved from PyPI when the MCP server starts, but **`uv` caches** that environment.
+
+**Recommended:** Use **`"args": ["--refresh", "pinrag"]`** in MCP config (as in the [one-click](#one-click-install-cursor--vs-code) links) so **each editor start** refreshes the cached `uvx` env and picks up new PyPI releases automatically. Tradeoff: **slower MCP startup** (network + resolution) than a plain `uvx pinrag` cache hit.
+
+If your config uses **`"args": ["pinrag"]`** without `--refresh`, refresh manually after a new PyPI release:
 
 ```bash
 uvx --refresh pinrag
@@ -61,7 +65,7 @@ uvx --refresh pinrag
 
 Alternatively, clear the tool cache (broader than refresh): `uv cache clean`. Then **restart Cursor / VS Code** (or toggle the MCP server) so it spawns a fresh `pinrag` process.
 
-Re-running a marketplace “install” or re-applying one-click usually **does not** bump the cached `uvx` env by itself—you still need `--refresh` / cache clean when you want a new PyPI version.
+Re-running a marketplace “install” or re-applying one-click usually **does not** bump the cached `uvx` env by itself unless the generated config includes `--refresh` or you run one of the commands above.
 
 If you use **`pipx` / `uv tool`**:
 
@@ -76,16 +80,16 @@ Restart your editor after updating so the MCP server picks up the new version.
 
 ### One-click install (Cursor & VS Code)
 
-These links add PinRAG to your editor’s MCP config using **`uvx pinrag`** (runs the latest PinRAG from PyPI without a prior `pip install`). You need [**uv**](https://docs.astral.sh/uv/) installed and on your `PATH`.
+These links add PinRAG to your editor’s MCP config using **`uvx --refresh pinrag`** (same as `"args": ["--refresh", "pinrag"]`; always resolves the latest PinRAG from PyPI without a prior `pip install`). You need [**uv**](https://docs.astral.sh/uv/) installed and on your `PATH`.
 
 | Editor | Action |
 |--------|--------|
-| **Cursor** | [Install PinRAG MCP in Cursor](https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJwaW5yYWciXSwiZW52Ijp7Ik9QRU5BSV9BUElfS0VZIjoiIiwiUElOUkFHX1BFUlNJU1RfRElSIjoiIn19) |
+| **Cursor** | [Install PinRAG MCP in Cursor](https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLXJlZnJlc2giLCJwaW5yYWciXSwiZW52Ijp7Ik9QRU5BSV9BUElfS0VZIjoiIiwiUElOUkFHX1BFUlNJU1RfRElSIjoiIn19) |
 | **VS Code** | [Install PinRAG MCP in VS Code](https://ndjordjevic.github.io/pinrag/vscode-mcp-install.html) |
 
 The one-click links **pre-fill** your MCP `env` with empty `OPENAI_API_KEY` (required—paste your key) and `PINRAG_PERSIST_DIR` (optional—set an absolute path for a stable index location, or remove the key). No secrets are embedded. If you prefer **`pinrag`** on `PATH` after `pipx install pinrag`, use the JSON snippets in the next section instead of the links above.
 
-To pick up a **new PyPI release** with this `uvx` setup, follow [Updating](#updating) above (`uvx --refresh`, then restart the editor).
+To pick up a **new PyPI release** with this `uvx` setup, use **`--refresh`** in `args` (see [Updating](#updating) above) or run `uvx --refresh pinrag` once, then restart the editor.
 
 To **see which version you’re on**, run `pipx list` if you use pipx, or `uvx --from pinrag python -c "import importlib.metadata as m; print(m.version('pinrag'))"` to print the version `uvx` resolves (PyPI metadata). With the MCP server running, open **`pinrag://server-config`** in the MCP panel—the output starts with **`PINRAG_VERSION`**, which is the package version of that process.
 
@@ -93,7 +97,7 @@ To **see which version you’re on**, run `pipx list` if you use pipx, or `uvx -
 
 ### Configure MCP server
 
-Add `pinrag` to your editor’s MCP config and set API keys in the same `env` block. This is the recommended setup for OSS: the `pinrag` CLI is launched by the editor from MCP config, not from a shell that loads `.env`.
+Add PinRAG to your editor’s MCP config and set API keys in the same `env` block. For **PyPI installs via `uvx`**, use `"command": "uvx"` and `"args": ["--refresh", "pinrag"]` so each launch picks up the latest release (see [Updating](#updating)). If you use a **global** `pinrag` on `PATH` (`pipx` / `uv tool install`), set `"command": "pinrag"` and omit `args`. The server is launched by the editor from MCP config, not from a shell that loads `.env`.
 
 **Minimum required env vars (validated at startup):**
 
@@ -106,13 +110,14 @@ if any are missing. Set keys in your MCP `env` block as in the examples below.
 
 A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
 
-**Cursor:** Add to `~/.cursor/mcp.json`:
+**Cursor:** Add to `~/.cursor/mcp.json` (recommended **PyPI via `uvx`** — matches one-click and always-latest behavior):
 
 ```json
 {
   "mcpServers": {
     "pinrag": {
-      "command": "pinrag",
+      "command": "uvx",
+      "args": ["--refresh", "pinrag"],
       "env": {
         "OPENAI_API_KEY": "sk-..."
       }
@@ -121,13 +126,16 @@ A longer commented reference for optional `PINRAG_*` variables is in [`notes/env
 }
 ```
 
+If you installed **`pinrag` globally** (`pipx` / `uv tool install`), you can use `"command": "pinrag"` without `args` instead.
+
 **VS Code (GitHub Copilot):** Run **MCP: Open User Configuration** from the Command Palette, then add:
 
 ```json
 {
   "servers": {
     "pinrag": {
-      "command": "pinrag",
+      "command": "uvx",
+      "args": ["--refresh", "pinrag"],
       "env": {
         "OPENAI_API_KEY": "sk-..."
       }

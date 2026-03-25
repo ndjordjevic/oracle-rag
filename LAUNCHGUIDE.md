@@ -4,7 +4,7 @@
 MCP RAG server: index PDFs, GitHub Repos, YouTube, Discord, Plain Text; query with citations.
 
 ## Description
-PinRAG is a retrieval-augmented generation (RAG) MCP server built with LangChain and Chroma. Index PDFs, plain text, Discord exports, YouTube transcripts, and GitHub repositories, then ask questions in Cursor, VS Code (Copilot), or any MCP-capable client. Answers include citations (pages, timestamps, paths). Install via PyPI (`pipx`, `uv tool`, or `uvx pinrag`). Configure API keys in your editor’s MCP `env` block.
+PinRAG is a retrieval-augmented generation (RAG) MCP server built with LangChain and Chroma. Index PDFs, plain text, Discord exports, YouTube transcripts, and GitHub repositories, then ask questions in Cursor, VS Code (Copilot), or any MCP-capable client. Answers include citations (pages, timestamps, paths). Install via PyPI (`pipx`, `uv tool`, or `uvx --refresh pinrag`). Configure API keys in your editor’s MCP `env` block.
 
 ## Setup Requirements
 
@@ -22,12 +22,12 @@ Use `env` keys in this order in `mcp.json` (example):
 
 ### MCP client block (`mcp.json`)
 
-PinRAG is started with **`uvx pinrag`**. Add something like this under `mcpServers` (the object key can be a slug such as `io-github-ndjordjevic-pinrag` in Cursor):
+PinRAG is started with **`uvx --refresh pinrag`** (or the same idea: `"command": "uvx"`, `"args": ["--refresh", "pinrag"]`). Add something like this under `mcpServers` (the object key can be a slug such as `io-github-ndjordjevic-pinrag` in Cursor):
 
 ```json
 "io-github-ndjordjevic-pinrag": {
   "command": "uvx",
-  "args": ["pinrag"],
+  "args": ["--refresh", "pinrag"],
   "env": {
     "OPENAI_API_KEY": "your-openai-api-key-here",
     "PINRAG_PERSIST_DIR": "your-pinrag-persist-dir-here"

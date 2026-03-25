@@ -20,6 +20,10 @@
       "runtimeArguments": [
         {
           "type": "positional",
+          "value": "--refresh"
+        },
+        {
+          "type": "positional",
           "value": "pinrag"
         }
       ],

@@ -138,7 +138,7 @@
 ### Deployment & Distribution - MVP
 - [x] **Document how others can start and use this MCP**
   - [x] PyPI install: `pip install pinrag` → `pinrag` CLI; config from cwd or `~/.config/pinrag/` (see `README.md`, `notes/distribution-options.md`)
-  - [x] Cursor MCP config: command `pinrag` or `uvx` + `args: ["pinrag"]` (no cwd needed; Chroma under `PINRAG_PERSIST_DIR`, default project-local `chroma_db`)
+  - [x] Cursor MCP config: command `pinrag` (global install) or `uvx` + `args: ["--refresh", "pinrag"]` (no cwd needed; Chroma under `PINRAG_PERSIST_DIR`, default project-local `chroma_db`)
   - **Publish new version to PyPI:** Bump `version` in `pyproject.toml` → `git add -A && git commit -m "vX.Y.Z: ..." && git push` → `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z` → `uv build && uv publish` (use `__token__` + PyPI API token when prompted; or `uv cache clean` before `uv tool install pinrag --force` to get latest)
   - [x] Github action to publish to PyPI on a new tag/release
 
@@ -287,7 +287,7 @@
 - [x] Update PyPi package description: set in `pyproject.toml` — `description` = one-line summary (PyPI summary); `readme = "README.md"` = long description (PyPI project page body). Re-publish to PyPI for changes to appear.
 - [x] Test pinrag mcp in visual studio code locally.
 - [x] Polish README.md
-- [x] **Investigate** to add pinrag mcp to visual studio code extensions marketplace — see `notes/vscode-marketplace-investigation.md`. Summary: (A) VS Code extension wrapping `uvx pinrag` for Extensions view; (B) one-click install URL (`vscode:mcp/install?…`) for README; (C) curated list (process TBD). Recommend B first, then A.
+- [x] **Investigate** to add pinrag mcp to visual studio code extensions marketplace — see `notes/vscode-marketplace-investigation.md`. Summary: (A) VS Code extension wrapping `uvx --refresh pinrag` for Extensions view; (B) one-click install URL (`vscode:mcp/install?…`) for README; (C) curated list (process TBD). Recommend B first, then A.
 - [x] **Investigate** how to add pinrag mcp to cursor mcp server list — see `notes/cursor-mcp-list-investigation.md`. Summary: Submit via (1) [Cursor Directory](https://cursor.directory/plugins/new) (replaces deprecated cursor/mcp-servers), (2) cursor.store/mcp/new, (3) mcp-marketplace.io/submit. One-click install: `cursor.com/en/install-mcp?name=pinrag&config=...`
 - [x] Code review of the src and tests folders.
 - [x] Fix code review findings.
