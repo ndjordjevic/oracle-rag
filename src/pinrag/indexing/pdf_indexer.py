@@ -25,8 +25,11 @@ from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
-from pinrag.vectorstore.docstore import get_parent_docstore
 from pinrag.vectorstore.chroma_filters import build_retrieval_filter
+from pinrag.vectorstore.docstore import (
+    get_parent_docstore,
+    remove_parent_docs_for_document,
+)
 
 PathLike = str | Path
 
@@ -217,6 +220,11 @@ def _index_pdf_parent_child(
         c.metadata["doc_total_chunks"] = total_chunks
     for _, parent_doc in parent_docstore_entries:
         parent_doc.metadata["doc_total_chunks"] = total_chunks
+    remove_parent_docs_for_document(
+        store=store,
+        docstore=docstore,
+        document_id=document_id,
+    )
 
     store._collection.delete(where={"document_id": document_id})
 

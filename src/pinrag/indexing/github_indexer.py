@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -30,7 +30,10 @@ from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
-from pinrag.vectorstore.docstore import get_parent_docstore
+from pinrag.vectorstore.docstore import (
+    get_parent_docstore,
+    remove_parent_docs_for_document,
+)
 
 PathLike = str | Path
 
@@ -46,6 +49,7 @@ class GitHubIndexResult:
     total_chunks: int
     persist_directory: Path
     collection_name: str
+    failed_files: list[dict[str, str]] = field(default_factory=list)
 
 
 def index_github(
@@ -77,7 +81,8 @@ def index_github(
         max_file_bytes: Skip files larger than this. If None, uses config.
 
     Returns:
-        GitHubIndexResult with owner, repo, branch, files_indexed, total_chunks.
+        GitHubIndexResult with owner, repo, branch, files_indexed, total_chunks,
+        and per-file loader failures in ``failed_files`` when applicable.
 
     """
     if collection_name is None:
@@ -104,6 +109,11 @@ def index_github(
             embedding=embedding,
         )
         repo_id = f"{load_result.owner}/{load_result.repo}"
+        if get_use_parent_child():
+            docstore = get_parent_docstore(persist_directory, collection_name)
+            remove_parent_docs_for_document(
+                store=store, docstore=docstore, document_id=repo_id
+            )
         store._collection.delete(where={"document_id": repo_id})
         return GitHubIndexResult(
             owner=load_result.owner,
@@ -113,6 +123,7 @@ def index_github(
             total_chunks=0,
             persist_directory=Path(persist_directory).expanduser().resolve(),
             collection_name=collection_name,
+            failed_files=list(load_result.failed_files),
         )
 
     store = get_chroma_store(
@@ -122,6 +133,11 @@ def index_github(
     )
 
     repo_id = f"{load_result.owner}/{load_result.repo}"
+    if get_use_parent_child():
+        docstore = get_parent_docstore(persist_directory, collection_name)
+        remove_parent_docs_for_document(
+            store=store, docstore=docstore, document_id=repo_id
+        )
     store._collection.delete(where={"document_id": repo_id})
 
     upload_ts = datetime.now(UTC).isoformat()
@@ -155,6 +171,7 @@ def index_github(
         total_chunks=total_chunks,
         persist_directory=Path(persist_directory).expanduser().resolve(),
         collection_name=collection_name,
+        failed_files=list(load_result.failed_files),
     )
 
 

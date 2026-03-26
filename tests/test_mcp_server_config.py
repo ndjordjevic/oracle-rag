@@ -320,6 +320,23 @@ def test_query_tool_schema_has_expected_parameters() -> None:
     assert "ctx" in params
 
 
+def test_query_tool_uses_pinrag_response_style_when_response_style_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Omitted or empty response_style forwards get_response_style() (e.g. PINRAG_RESPONSE_STYLE)."""
+    captured: dict[str, str] = {}
+
+    def fake_query(**kwargs: object) -> dict[str, str]:
+        captured["response_style"] = str(kwargs.get("response_style", ""))
+        return {"answer": "ok", "sources": []}
+
+    monkeypatch.setenv("PINRAG_RESPONSE_STYLE", "concise")
+    with patch("pinrag.mcp.server.query_index", side_effect=fake_query):
+        asyncio.run(mcp_server.query_tool(query="hello"))
+
+    assert captured.get("response_style") == "concise"
+
+
 def test_add_document_tool_schema_has_expected_parameters() -> None:
     """add_document_tool MCP schema includes expected parameters."""
     import inspect

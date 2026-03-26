@@ -27,7 +27,10 @@ from pinrag.vectorstore.chroma_client import (
     DEFAULT_PERSIST_DIR,
     get_chroma_store,
 )
-from pinrag.vectorstore.docstore import get_parent_docstore
+from pinrag.vectorstore.docstore import (
+    get_parent_docstore,
+    remove_parent_docs_for_document,
+)
 
 PathLike = str | Path
 
@@ -106,6 +109,13 @@ def index_discord(
             collection_name=collection_name,
             embedding=embedding,
         )
+        if get_use_parent_child():
+            docstore = get_parent_docstore(persist_directory, collection_name)
+            remove_parent_docs_for_document(
+                store=store,
+                docstore=docstore,
+                document_id=doc_id,
+            )
         store._collection.delete(where={"document_id": doc_id})
         return DiscordIndexResult(
             source_path=load_result.source_path,
@@ -246,6 +256,11 @@ def _index_discord_parent_child(
         c.metadata["doc_total_chunks"] = total_chunks
     for _, parent_doc in parent_docstore_entries:
         parent_doc.metadata["doc_total_chunks"] = total_chunks
+    remove_parent_docs_for_document(
+        store=store,
+        docstore=docstore,
+        document_id=document_id,
+    )
 
     store._collection.delete(where={"document_id": document_id})
 

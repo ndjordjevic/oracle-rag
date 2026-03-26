@@ -58,7 +58,6 @@ def _resolve_persist_dir_path(path_str: str) -> Path:
 
 def _is_github_url(s: str) -> bool:
     """Return True if string is an https (or http) URL to github.com /owner/repo."""
-
     raw = (s or "").strip()
     if not raw or "\x00" in raw or "\n" in raw or "\r" in raw:
         return False
@@ -367,17 +366,18 @@ def add_file(
                 result_gh.files_indexed,
                 result_gh.total_chunks,
             )
+            gh_item: dict[str, Any] = {
+                "path": path,
+                "format": "github",
+                "repo": f"{result_gh.owner}/{result_gh.repo}",
+                "branch": result_gh.branch,
+                "files_indexed": result_gh.files_indexed,
+                "total_chunks": result_gh.total_chunks,
+            }
+            if result_gh.failed_files:
+                gh_item["failed_files"] = result_gh.failed_files
             return {
-                "indexed": [
-                    {
-                        "path": path,
-                        "format": "github",
-                        "repo": f"{result_gh.owner}/{result_gh.repo}",
-                        "branch": result_gh.branch,
-                        "files_indexed": result_gh.files_indexed,
-                        "total_chunks": result_gh.total_chunks,
-                    }
-                ],
+                "indexed": [gh_item],
                 "failed": [],
                 "total_indexed": 1,
                 "total_failed": 0,

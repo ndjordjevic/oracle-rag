@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 
-from pinrag import config
 from pinrag import __version__ as pinrag_version
+from pinrag import config
 from pinrag.mcp.tools import list_documents
 
 

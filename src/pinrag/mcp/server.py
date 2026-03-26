@@ -69,8 +69,14 @@ async def query_tool(
         ),
     ] = "",
     response_style: Annotated[
-        str, Field(description="Answer style: 'thorough' (detailed) or 'concise'.")
-    ] = "thorough",
+        str,
+        Field(
+            description=(
+                "Answer style: 'thorough' (detailed) or 'concise'. "
+                "Leave empty to use PINRAG_RESPONSE_STYLE."
+            ),
+        ),
+    ] = "",
     ctx: Context | None = None,
 ) -> dict:
     """Query indexed documents and return an answer with citations.
@@ -86,7 +92,7 @@ async def query_tool(
         tag: Optional tag to filter retrieval (from list_documents).
         document_type: Optional type to filter: "pdf", "youtube", "discord", "github", or "plaintext".
         file_path: Optional file path within a document (GitHub: e.g. src/ria/api/atr.c). Use list_documents to see files.
-        response_style: Answer style: "thorough" (detailed) or "concise" (default: "thorough").
+        response_style: Answer style; omit or empty string uses PINRAG_RESPONSE_STYLE.
         ctx: MCP request context (injected by the server; unused).
 
     Returns:

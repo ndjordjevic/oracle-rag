@@ -162,6 +162,42 @@ def test_index_pdf_parent_child_adds_to_chroma_and_docstore(
     assert len(ids) > 0
 
 
+def test_index_pdf_parent_child_reindex_docstore_key_count_stable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    fake_embeddings: Embeddings,
+) -> None:
+    """Indexing the same PDF twice keeps parent docstore size stable (no orphaned parents)."""
+    repo_root = Path(__file__).resolve().parents[1]
+    sample_pdf = repo_root / "data" / "pdfs" / "sample-text.pdf"
+    if not sample_pdf.exists():
+        pytest.skip("sample PDF not present; skipping parent-child reindex test")
+
+    monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "true")
+    persist_dir = tmp_path / "chroma_pc_re"
+    from pinrag.indexing import index_pdf
+
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="pc_re_test",
+        embedding=fake_embeddings,
+    )
+    docstore = get_parent_docstore(str(persist_dir), "pc_re_test")
+    n1 = len(list(docstore.yield_keys()))
+
+    index_pdf(
+        sample_pdf,
+        persist_directory=str(persist_dir),
+        collection_name="pc_re_test",
+        embedding=fake_embeddings,
+    )
+    n2 = len(list(docstore.yield_keys()))
+
+    assert n2 == n1
+    assert n1 > 0
+
+
 def test_index_discord_parent_child_adds_to_chroma_and_docstore(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

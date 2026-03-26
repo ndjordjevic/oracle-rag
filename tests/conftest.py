@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def fake_embeddings() -> "Embeddings":
+def fake_embeddings() -> Embeddings:
     """Deterministic embeddings for Chroma tests (no API keys)."""
     from langchain_core.embeddings import FakeEmbeddings
 

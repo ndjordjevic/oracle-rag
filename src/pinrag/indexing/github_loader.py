@@ -5,8 +5,8 @@ from __future__ import annotations
 import base64
 import fnmatch
 import logging
-import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from urllib.parse import unquote, urlparse
 
 import requests
 from langchain_core.documents import Document
@@ -15,11 +15,6 @@ from pinrag.config import get_github_default_branch
 
 logger = logging.getLogger(__name__)
 
-# GitHub URL patterns: github.com/owner/repo, github.com/owner/repo/tree/branch
-_GITHUB_REPO_RE = re.compile(
-    r"(?:https?://)?(?:www\.)?github\.com/([^/]+)/([^/]+?)(?:/tree/([^/?#]+))?(?:[/?#]|$)",
-    re.IGNORECASE,
-)
 
 # Default exclude: lock files, caches, binaries, large artifacts
 _DEFAULT_EXCLUDE = (
@@ -104,9 +99,7 @@ _TEXT_EXTENSIONS = frozenset(
         ".vue",
         ".svelte",
         ".astro",
-        ".dockerfile",
         ".gitignore",
-        ".env.example",
         ".pio",
         ".cmake",
         ".ld",
@@ -114,23 +107,59 @@ _TEXT_EXTENSIONS = frozenset(
         ".asm",
     }
 )
+_TEXT_BASENAMES = frozenset({"dockerfile", ".env.example"})
 
 
 def _parse_github_url(url: str) -> tuple[str, str, str]:
-    """Parse GitHub URL into (owner, repo, branch). Branch defaults to 'main'."""
-    s = (url or "").strip()
-    m = _GITHUB_REPO_RE.search(s)
-    if not m:
+    """Parse GitHub URL into (owner, repo, branch). Branch defaults to configured default branch."""
+    raw = (url or "").strip()
+    if not raw:
         raise ValueError(
             f"Invalid GitHub URL: {url!r}. "
             "Expected https://github.com/owner/repo or github.com/owner/repo/tree/branch"
         )
-    owner, repo, branch = m.group(1), m.group(2), m.group(3)
+    if raw.startswith("//"):
+        raw = "https:" + raw
+    if "://" not in raw:
+        raw = "https://" + raw
+    try:
+        parsed = urlparse(raw)
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid GitHub URL: {url!r}. "
+            "Expected https://github.com/owner/repo or github.com/owner/repo/tree/branch"
+        ) from e
+
+    host = (parsed.netloc or "").lower()
+    if "@" in host:
+        host = host.rsplit("@", 1)[-1]
+    if host.startswith("www."):
+        host = host[4:]
+    if ":" in host:
+        host = host.split(":", 1)[0]
+    if host != "github.com":
+        raise ValueError(
+            f"Invalid GitHub URL: {url!r}. "
+            "Expected https://github.com/owner/repo or github.com/owner/repo/tree/branch"
+        )
+
+    parts = [unquote(p) for p in (parsed.path or "").split("/") if p]
+    if any(p == ".." for p in parts):
+        raise ValueError(f"Invalid GitHub URL: {url!r}. Path cannot contain '..'")
+    if len(parts) < 2:
+        raise ValueError(
+            f"Invalid GitHub URL: {url!r}. "
+            "Expected https://github.com/owner/repo or github.com/owner/repo/tree/branch"
+        )
+    owner, repo = parts[0], parts[1]
     if not owner or not repo:
         raise ValueError(f"Could not parse owner/repo from GitHub URL: {url!r}")
     # Remove .git suffix if present
     if repo.endswith(".git"):
         repo = repo[:-4]
+    branch: str | None = None
+    if len(parts) >= 3 and parts[2] == "tree":
+        branch = "/".join(parts[3:]).strip("/") or None
     return owner, repo, branch or get_github_default_branch()
 
 
@@ -153,6 +182,16 @@ def _matches_patterns(path: str, include: list[str] | None, exclude: list[str]) 
             if fnmatch.fnmatch(parts[-1] if parts else path, p):
                 return False
     return True
+
+
+def _is_default_text_file(path: str) -> bool:
+    """Return True when path is considered text under default include behavior."""
+    lower = path.lower()
+    name = lower.rsplit("/", 1)[-1]
+    if name in _TEXT_BASENAMES:
+        return True
+    ext = "." + name.rsplit(".", 1)[-1] if "." in name else ""
+    return ext in _TEXT_EXTENSIONS
 
 
 def _infer_language(file_path: str) -> str:
@@ -208,6 +247,7 @@ class GitHubLoadResult:
     documents: list[Document]
     files_loaded: int
     total_chars: int
+    failed_files: list[dict[str, str]] = field(default_factory=list)
 
 
 def load_github_repo_as_documents(
@@ -298,14 +338,14 @@ def load_github_repo_as_documents(
             continue
         if not _matches_patterns(path, include_patterns, exclude):
             continue
-        ext = "." + path.rsplit(".", 1)[-1].lower() if "." in path else ""
-        if not include_patterns and ext not in _TEXT_EXTENSIONS:
+        if not include_patterns and not _is_default_text_file(path):
             continue
         file_paths.append(path)
 
     # 4. Fetch each file's content
     base_url = f"https://api.github.com/repos/{owner}/{repo}/contents"
     documents: list[Document] = []
+    failed_files: list[dict[str, str]] = []
     total_chars = 0
 
     for path in file_paths:
@@ -317,6 +357,12 @@ def load_github_repo_as_documents(
                 timeout=30,
             )
             if file_resp.status_code != 200:
+                failed_files.append(
+                    {
+                        "path": path,
+                        "error": f"GitHub contents API returned HTTP {file_resp.status_code}",
+                    }
+                )
                 continue
             file_data = file_resp.json()
             if file_data.get("type") != "file":
@@ -326,12 +372,24 @@ def load_github_repo_as_documents(
                 continue
             content_b64 = file_data.get("content")
             if not content_b64:
+                failed_files.append(
+                    {
+                        "path": path,
+                        "error": "GitHub contents API returned empty file content",
+                    }
+                )
                 continue
             try:
                 raw = base64.b64decode(content_b64).decode("utf-8", errors="replace")
-            except Exception:
+            except Exception as e:
                 logger.debug(
                     "Failed decoding GitHub content for %s/%s:%s", owner, repo, path
+                )
+                failed_files.append(
+                    {
+                        "path": path,
+                        "error": f"Could not decode GitHub file content: {e}",
+                    }
                 )
                 continue
             total_chars += len(raw)
@@ -348,9 +406,19 @@ def load_github_repo_as_documents(
                 "doc_bytes": size,
             }
             documents.append(Document(page_content=raw, metadata=meta))
-        except Exception:
+        except Exception as e:
             logger.debug("Failed fetching GitHub file %s/%s:%s", owner, repo, path)
+            failed_files.append({"path": path, "error": str(e)})
             continue
+
+    if failed_files:
+        logger.warning(
+            "GitHub load partial failures for %s/%s @ %s: %d file(s) failed",
+            owner,
+            repo,
+            use_branch,
+            len(failed_files),
+        )
 
     return GitHubLoadResult(
         owner=owner,
@@ -359,4 +427,5 @@ def load_github_repo_as_documents(
         documents=documents,
         files_loaded=len(documents),
         total_chars=total_chars,
+        failed_files=failed_files,
     )

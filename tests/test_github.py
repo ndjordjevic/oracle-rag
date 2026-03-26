@@ -75,6 +75,44 @@ def test_parse_github_url() -> None:
         _parse_github_url("not-a-url")
 
 
+def test_parse_github_url_branch_with_slash() -> None:
+    """Branch names may contain slashes (e.g. feature/foo)."""
+    assert _parse_github_url("https://github.com/owner/repo/tree/feature/foo") == (
+        "owner",
+        "repo",
+        "feature/foo",
+    )
+    assert _parse_github_url(
+        "https://github.com/owner/repo/tree/release/v1.0/patches"
+    ) == (
+        "owner",
+        "repo",
+        "release/v1.0/patches",
+    )
+
+
+def test_parse_github_url_branch_url_encoded() -> None:
+    """Path segments are URL-decoded (e.g. feature%2Ffoo -> feature/foo)."""
+    assert _parse_github_url(
+        "https://github.com/owner/repo/tree/feature%2Ffoo%2Fbar"
+    ) == (
+        "owner",
+        "repo",
+        "feature/foo/bar",
+    )
+
+
+def test_is_default_text_file_special_basenames() -> None:
+    """Dockerfile and .env.example match without relying on naive extension parsing."""
+    from pinrag.indexing.github_loader import _is_default_text_file
+
+    assert _is_default_text_file("Dockerfile") is True
+    assert _is_default_text_file("path/to/Dockerfile") is True
+    assert _is_default_text_file("path/to/.env.example") is True
+    assert _is_default_text_file("foo.env.example") is False
+    assert _is_default_text_file("README.md") is True
+
+
 def test_parse_github_url_uses_default_branch_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -144,6 +182,7 @@ def test_load_github_repo_documents_mocked(mock_get: object) -> None:
     assert result.repo == "repo"
     assert result.branch == "main"
     assert result.files_loaded == 2
+    assert result.failed_files == []
     assert len(result.documents) == 2
     doc_ids = {d.metadata["document_id"] for d in result.documents}
     assert "owner/repo" in doc_ids
@@ -221,6 +260,47 @@ def test_load_github_repo_skips_oversized_files(mock_get: object) -> None:
 
     assert result.files_loaded == 0
     assert len(result.documents) == 0
+
+
+@patch("pinrag.indexing.github_loader.requests.get")
+def test_load_github_repo_records_per_file_fetch_failures(mock_get: object) -> None:
+    """Non-200 per-file responses are listed in failed_files; other files still load."""
+    commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "t1"}}})
+    tree_resp = _mock_resp(
+        200,
+        {
+            "tree": [
+                {"type": "blob", "path": "ok.py"},
+                {"type": "blob", "path": "missing.py"},
+            ],
+        },
+    )
+    ok_resp = _mock_resp(
+        200,
+        {"type": "file", "size": 5, "content": base64.b64encode(b"x=1").decode()},
+    )
+
+    def side_effect(url: str, **kwargs: object) -> object:
+        if "commits/" in url:
+            return commit_resp
+        if "git/trees/" in url:
+            return tree_resp
+        if "ok.py" in url:
+            return ok_resp
+        if "missing.py" in url:
+            return _mock_resp(500, {})
+        return _mock_resp(404, {})
+
+    mock_get.side_effect = side_effect
+
+    result = load_github_repo_as_documents("https://github.com/x/y")
+
+    assert result.files_loaded == 1
+    assert len(result.documents) == 1
+    assert result.documents[0].metadata["file_path"] == "ok.py"
+    assert len(result.failed_files) == 1
+    assert result.failed_files[0]["path"] == "missing.py"
+    assert "500" in result.failed_files[0]["error"]
 
 
 @patch("pinrag.indexing.github_loader.requests.get")
@@ -320,6 +400,58 @@ def test_index_github_replaces_on_reindex(mock_get: object, tmp_path: Path) -> N
 
     assert count2 == count1
     assert r2.total_chunks == r1.total_chunks
+
+
+@patch("pinrag.indexing.github_loader.requests.get")
+def test_index_github_parent_child_reindex_docstore_stable(
+    mock_get: object, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Re-indexing in parent-child mode does not accumulate orphan parent docstore keys."""
+    monkeypatch.setenv("PINRAG_USE_PARENT_CHILD", "true")
+
+    commit_resp = _mock_resp(200, {"commit": {"tree": {"sha": "t1"}}})
+    tree_resp = _mock_resp(200, {"tree": [{"type": "blob", "path": "a.py"}]})
+    file_resp = _mock_resp(
+        200,
+        {"type": "file", "size": 10, "content": base64.b64encode(b"x = 1").decode()},
+    )
+
+    def side_effect(url: str, **kwargs: object) -> object:
+        if "commits/" in url:
+            return commit_resp
+        if "git/trees/" in url:
+            return tree_resp
+        if "a.py" in url:
+            return file_resp
+        return _mock_resp(404, {})
+
+    mock_get.side_effect = side_effect
+
+    persist = str(tmp_path / "chroma")
+    coll = "test_pc_reindex"
+    emb = _MockEmbeddings()
+
+    index_github(
+        "https://github.com/x/y",
+        persist_directory=persist,
+        collection_name=coll,
+        embedding=emb,
+    )
+    from pinrag.vectorstore.docstore import get_parent_docstore
+
+    ds = get_parent_docstore(persist, coll)
+    n1 = len(list(ds.yield_keys()))
+
+    index_github(
+        "https://github.com/x/y",
+        persist_directory=persist,
+        collection_name=coll,
+        embedding=emb,
+    )
+    n2 = len(list(ds.yield_keys()))
+
+    assert n2 == n1
+    assert n1 > 0
 
 
 @patch("pinrag.indexing.github_loader.requests.get")
