@@ -1,14 +1,14 @@
 ---
-name: run-pinrag-mcp-tool
+name: run-pinrag-local-mcp-tool
 description: >-
   Use when the user wants to query, list, add, or remove documents in PinRAG, or
-  index PDFs/files/URLs into PinRAG. Always use PinRAG MCP tools via call_mcp_tool
-  (never Python scripts or one-off CLI unless they explicitly ask for code). Discover
-  which PinRAG server is available from the workspace mcps folder or ~/.cursor/mcp.json;
-  server id is user- plus the mcp.json key.
+  index PDFs/files/URLs into PinRAG via the local (stdio) PinRAG MCP server. Always
+  use PinRAG MCP tools via call_mcp_tool (never Python scripts or one-off CLI unless
+  they explicitly ask for code). Discover which PinRAG server is available from the
+  workspace mcps folder or ~/.cursor/mcp.json; server id is user- plus the mcp.json key.
 ---
 
-# Run PinRAG MCP tools (not Python)
+# Run PinRAG local MCP tools (not Python)
 
 ## Non-negotiable
 
