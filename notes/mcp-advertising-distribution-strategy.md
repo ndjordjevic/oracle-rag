@@ -276,6 +276,8 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 
 ## 3. Advertising
 
+**Promo video:** A **silent explainer** (~1:40, 720p) exists — produced with **RepoClip** (Remotion-based export): titled beats for value prop, citations in-editor, filters, MCP integration, open source, CTA; background music, no voiceover. **Still useful:** a **short README GIF or screen recording** of the *literal* flow (install → index PDF → query → citations), which the promo does not replace.
+
 ### 3.1 Repository Optimization
 
 | Action | Status | Details |
@@ -283,7 +285,8 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 | One-click install badges (Cursor + VS Code) | **Done** | Top of README Quick Start |
 | PyPI badge | **Done** | Already present |
 | GitHub Topics | **Done** | `mcp`, `mcp-server`, `rag`, `pdf`, `langchain`, `model-context-protocol`, `chromadb`, `cursor`, `discord`, `github-repos`, `pypi`, `python`, `vscode`, `youtube` |
-| Demo GIF / screenshot | Not started | Show: install → index PDF → query → answer with citations |
+| Promo video (explainer) | **Done** | RepoClip: silent + music + on-screen copy; stylized story, not a raw screen capture |
+| Demo GIF / README screen capture | Not started | Optional complement: install → index PDF → query → answer with citations (proof-of-flow) |
 | Stars / social proof | Ongoing | Encourage early users to star |
 
 ### 3.2 Content Marketing
@@ -291,7 +294,7 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 | Channel | Format | Topic Ideas | Status |
 |---------|--------|-------------|--------|
 | Dev.to / Hashnode | Blog post | "How I Built a RAG MCP Server in Python", "Give Your AI Assistant a Memory for Documents" | Not started |
-| YouTube | Demo video (2–3 min) | Install PinRAG → index a PDF → query from Cursor — full flow | Not started |
+| YouTube | Demo / explainer | Hands-on screen recording (2–3 min) optional; **promo MP4 ready** — upload or unlisted link TBD | **Partial** |
 | Medium | Tutorial | "Index Your PDFs, YouTube Videos, and GitHub Repos for AI Coding Assistants" | Not started |
 
 ### 3.3 Community Engagement
@@ -300,7 +303,7 @@ Emerging standard (SEP-1960) for automated server discovery. AI clients (Claude,
 |-----------|----------|--------|
 | **Reddit** — r/MCP, r/LocalLLaMA, r/langchain, r/cursor | Share PinRAG, explain the use case, answer questions | Not started |
 | **Hacker News** — Show HN | "Show HN: PinRAG — MCP server that lets AI assistants query your PDFs, YouTube, GitHub repos" | Not started |
-| **Twitter/X** | Post + demo GIF; tag @AnthropicAI, @cursor_ai, @LangChainAI | Not started |
+| **Twitter/X** | Post + promo clip or demo GIF; tag @AnthropicAI, @cursor_ai, @LangChainAI | Not started |
 | **LangChain Discord** | Community showcase / show-and-tell | Not started |
 | **MCP-focused Discord servers** | Share and discuss | Not started |
 
@@ -348,9 +351,10 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 - [x] One-click install URLs in README (Cursor + VS Code) — §3.1
 - [x] GitHub Topics set — §3.1
 - [x] SVG icon — [`docs/pinrag-icon.svg`](../docs/pinrag-icon.svg) — §3.1
-- [ ] Demo GIF or short video for README (install → index → query with citations) — §3.1
+- [x] Promo video (RepoClip explainer, ~1:40) — §3.1
+- [ ] Demo GIF or short README screen recording — literal install → index → query with citations — §3.1
 - [ ] First blog post (Dev.to / Hashnode) — §3.2
-- [ ] YouTube demo (optional) — §3.2
+- [ ] YouTube — upload promo and/or hands-on demo (optional) — §3.2
 - [ ] Reddit (r/MCP, r/langchain, …) — §3.3
 - [ ] Twitter/X post + demo GIF — §3.3
 - [ ] Hacker News Show HN — §3.3
@@ -365,7 +369,7 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 1. **MCP Registry is the highest-leverage listing.** It cascades into VS Code, GitHub MCP, and potentially Cursor. PinRAG already qualifies via PyPI.
 2. **One-click install URLs are the lowest-effort, highest-conversion asset.** Both Cursor and VS Code are live.
 3. **Content marketing outweighs directory count.** A single Hacker News Show HN or popular Reddit thread drives more installs than 10 marketplace listings combined.
-4. **A demo video/GIF is the highest-ROI content piece.** Reusable across README, blog posts, social media, and every marketplace listing.
+4. **Video assets are high-ROI.** A promo explainer exists (RepoClip); a **short README GIF or screen recording** of the real flow remains the best proof for developers skimming the repo.
 5. **Plugin bundle targets a subset of tools.** Cursor, Claude Code, VS Code Copilot, Amp, and Goose; everyone else uses PyPI MCP-only.
 6. **Smithery is blocked on HTTP transport.** PinRAG is stdio-only; Smithery listing requires PinRAG Cloud or an added HTTP layer.
 7. **awesome-mcp-servers has a massive PR backlog** — [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) for PinRAG is open (Mar 2026); expect a wait for merge.

@@ -15,8 +15,8 @@ dependencies = [
     "langchain-openai>=1.1.9",
     "langchain-text-splitters>=1.1.0",
     "mcp>=1.26.0",
-    "pypdf>=6.9.1",
-    "requests>=2.32.4",
+    "pypdf>=6.9.2",
+    "requests>=2.33.0",
     "yt-dlp>=2026.3.17",
     "youtube-transcript-api>=1.2.0",
 ]
