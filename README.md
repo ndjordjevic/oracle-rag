@@ -13,6 +13,14 @@ A powerful RAG (Retrieval-Augmented Generation) system built with LangChain, des
 
 PinRAG provides intelligent document querying and retrieval for PDFs, plain text files, Discord chat exports, YouTube transcripts, and GitHub repositories. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor.
 
+## Demo
+
+Screen recording: indexing a PDF and using PinRAG from VS Code.
+
+<video src="docs/pinrag-demo.mp4" width="100%" controls playsinline></video>
+
+[Direct link to the video file](docs/pinrag-demo.mp4) if the player does not load.
+
 ## Features
 
 - **Multi-format indexing** — PDF (.pdf), local files or directories, plain text (.txt), Discord export (.txt), YouTube (video or playlist URL, or video ID), GitHub repo (URL)
