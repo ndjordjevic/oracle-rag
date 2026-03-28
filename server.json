@@ -41,20 +41,6 @@
           "format": "string",
           "isSecret": false,
           "name": "PINRAG_PERSIST_DIR"
-        },
-        {
-          "description": "Anthropic API key — required when PINRAG_LLM_PROVIDER=anthropic, for vision enrichment when PINRAG_VISION_PROVIDER=anthropic, or for evaluators using Anthropic.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": true,
-          "name": "ANTHROPIC_API_KEY"
-        },
-        {
-          "description": "Set true to enable optional YouTube on-screen enrichment (requires pinrag[vision], ffmpeg, and vision API usage). See project README.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false,
-          "name": "PINRAG_YT_VISION_ENABLED"
         }
       ]
     }
