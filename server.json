@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.ndjordjevic/pinrag",
   "title": "PinRAG",
-  "description": "MCP RAG server: index PDFs, GitHub Repos, YouTube (transcript + optional on-screen vision), Discord, Plain Text; query with citations.",
+  "description": "MCP RAG: index PDFs, repos, YouTube, Discord, text; optional YouTube vision; query with citations.",
   "repository": {
     "url": "https://github.com/ndjordjevic/pinrag",
     "source": "github"
   },
-  "version": "0.9.23",
+  "version": "0.9.24",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "pinrag",
-      "version": "0.9.23",
+      "version": "0.9.24",
       "transport": {
         "type": "stdio"
       },
