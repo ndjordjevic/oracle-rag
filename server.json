@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.ndjordjevic/pinrag",
   "title": "PinRAG",
-  "description": "MCP RAG server: index PDFs, GitHub Repos, YouTube, Discord, Plain Text; query with citations.",
+  "description": "MCP RAG server: index PDFs, GitHub Repos, YouTube (transcript + optional on-screen vision), Discord, Plain Text; query with citations.",
   "repository": {
     "url": "https://github.com/ndjordjevic/pinrag",
     "source": "github"
@@ -41,6 +41,20 @@
           "format": "string",
           "isSecret": false,
           "name": "PINRAG_PERSIST_DIR"
+        },
+        {
+          "description": "Anthropic API key — required when PINRAG_LLM_PROVIDER=anthropic, for vision enrichment when PINRAG_VISION_PROVIDER=anthropic, or for evaluators using Anthropic.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "ANTHROPIC_API_KEY"
+        },
+        {
+          "description": "Set true to enable optional YouTube on-screen enrichment (requires pinrag[vision], ffmpeg, and vision API usage). See project README.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "PINRAG_YT_VISION_ENABLED"
         }
       ]
     }

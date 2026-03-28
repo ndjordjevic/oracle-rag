@@ -11,7 +11,7 @@ A powerful RAG (Retrieval-Augmented Generation) system built with LangChain, des
 
 ## Overview
 
-PinRAG provides intelligent document querying and retrieval for PDFs, plain text files, Discord chat exports, YouTube transcripts, and GitHub repositories. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor.
+PinRAG provides intelligent document querying and retrieval for PDFs, plain text files, Discord chat exports, YouTube transcripts, and GitHub repositories. Index documents, ask questions, and get answers with source citations—all via MCP tools in your editor. For YouTube, you can optionally enrich transcript-only indexing with **vision** (on-screen code, diagrams, and UI text) merged into the same chunks—see [YouTube vision enrichment](#youtube-vision-enrichment-optional).
 
 ## Demo
 
@@ -24,6 +24,7 @@ Screen recording: indexing a PDF and using PinRAG from VS Code.
 ## Features
 
 - **Multi-format indexing** — PDF (.pdf), local files or directories, plain text (.txt), Discord export (.txt), YouTube (video or playlist URL, or video ID), GitHub repo (URL)
+- **Optional YouTube vision** — Off by default. When enabled, samples scene-change keyframes, runs a vision model (OpenAI or Anthropic), and merges structured on-screen context with the transcript so RAG chunks carry searchable code names, labels, and diagrams—not speech alone. Requires `pinrag[vision]`, **ffmpeg**, and extra API cost/latency (see [YouTube vision enrichment](#youtube-vision-enrichment-optional))
 - **RAG with citations** — Answers cite source context: PDF page, YouTube timestamp, document name for plain text and Discord, file path for GitHub repos
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
 - **Metadata filtering** — `query_tool` supports `document_id`, `tag`, `document_type`, PDF `page_min`/`page_max`, GitHub `file_path`, and `response_style` (thorough or concise)
@@ -186,11 +187,34 @@ Rotating proxy services (e.g. [Webshare](https://www.webshare.io/)) work well; r
 
 When `add_document_tool` or `add_url_tool` returns any failed paths (e.g. some videos in a playlist), the response includes a `fail_summary` when failures are present. Counts are grouped by matching error text—mainly useful for transcript issues: `blocked` (IP blocking), `disabled` (transcripts disabled by creator), `missing_transcript`, and `other` (everything else, including non-YouTube failures).
 
+### YouTube vision enrichment (optional)
+
+By default, YouTube indexing uses **transcripts only**. Set `PINRAG_YT_VISION_ENABLED=true` to also **download the video**, detect scene changes, extract still frames, and call a **vision model** to describe what is on screen (code editors, terminals, diagrams). Descriptions are **aligned to transcript timestamps** and merged into the same LangChain documents before chunking, with metadata such as `has_visual`, `frame_count`, and `visual_source`.
+
+**What to install (in addition to base PinRAG):**
+
+| Requirement | Purpose |
+|-------------|---------|
+| **`pinrag[vision]`** | Python extra that pulls in PySceneDetect (and OpenCV) for scene detection. Example: `uv sync --extra vision` in a clone, or `pip install 'pinrag[vision]'` / `pipx install 'pinrag[vision]'` in the same environment as `pinrag`. |
+| **ffmpeg** (and **ffprobe**, usually bundled) | Frame extraction and duration probing. Must be on `PATH` for the MCP process. |
+
+`yt-dlp` is already a core dependency and is used to fetch the video file when vision is enabled. Vision models need a provider API key: **`OPENAI_API_KEY`** when `PINRAG_VISION_PROVIDER=openai`, or **`ANTHROPIC_API_KEY`** when `PINRAG_VISION_PROVIDER=anthropic`.
+
+**Operational notes:**
+
+- **Re-index** after enabling vision or changing vision settings; existing chunks are not upgraded in place.
+- **Cost and time:** Each analyzed frame is a multimodal API call; limiting frames (see `PINRAG_YT_VISION_MAX_FRAMES`) keeps MCP/tool timeouts reasonable. OpenAI `PINRAG_YT_VISION_IMAGE_DETAIL=high` improves small on-screen text at higher token usage per image.
+- **MCP stdio:** PinRAG sends yt-dlp progress to stderr so stdout stays valid JSON for the MCP transport.
+- **Compliance:** Downloading and processing YouTube video may be restricted by YouTube’s Terms of Service or local law; use at your own risk.
+
+Docker images can include vision support by building with **`BUILD_WITH_VISION=1`** (installs ffmpeg and `pinrag[vision]` in the image); see the `Dockerfile` in this repository.
+
 ### Tips
 
 - **`pinrag` not found:** The editor runs MCP with your login environment. After `pipx` / `uv tool install`, restart the editor and confirm `pinrag` is on `PATH` (e.g. `which pinrag` in a terminal).
 - **Stable vector store path:** Add `PINRAG_PERSIST_DIR` to the MCP `env` block (absolute path, e.g. `~/.pinrag/chroma_db`) so indexes are not tied to the server process working directory.
 - **Cohere embeddings or re-ranking:** Install the extra in the same environment as `pinrag`, e.g. `pipx install 'pinrag[cohere]'` or `uv tool install 'pinrag[cohere]'` (see **Configuration**).
+- **YouTube vision:** Install `pinrag[vision]` and **ffmpeg**, set `PINRAG_YT_VISION_ENABLED=true` and vision provider keys in MCP `env`, then re-index videos (see [YouTube vision enrichment](#youtube-vision-enrichment-optional)).
 - **Check the running server:** Open the `pinrag://server-config` resource in the MCP panel to see **`PINRAG_VERSION`**, effective LLM, embeddings, chunking, and API key status.
 
 ## Configuration
@@ -241,6 +265,13 @@ Environment variables:
 | **YouTube transcript proxy** | | |
 | `PINRAG_YT_PROXY_HTTP_URL` | *(none)* | HTTP proxy URL for transcript fetches (e.g. `http://user:pass@proxy:80`). Use when YouTube blocks your IP. |
 | `PINRAG_YT_PROXY_HTTPS_URL` | *(none)* | HTTPS proxy URL for transcript fetches. Same as HTTP when using a generic proxy. |
+| **YouTube vision (optional)** | | |
+| `PINRAG_YT_VISION_ENABLED` | `false` | Set `true` / `1` / `yes` / `on` to enable on-screen enrichment for YouTube indexing. Requires `pinrag[vision]`, ffmpeg on `PATH`, and a vision provider key. |
+| `PINRAG_VISION_PROVIDER` | `openai` | Vision API: `openai` or `anthropic`. Independent of `PINRAG_LLM_PROVIDER` (query LLM can stay OpenAI while vision uses Anthropic, and vice versa). |
+| `PINRAG_VISION_MODEL` | *(provider default)* | Model id for vision calls. If unset: OpenAI default `gpt-4o-mini`, Anthropic default `claude-sonnet-4-6`. Use a **vision-capable** model (e.g. `gpt-4o`, or a current Claude Sonnet id from your Anthropic console). |
+| `PINRAG_YT_VISION_MAX_FRAMES` | `8` | Maximum scene-based keyframes analyzed per video (after scene detection). Higher values improve coverage but increase time and API cost. |
+| `PINRAG_YT_VISION_MIN_SCENE_SCORE` | `27.0` | PySceneDetect `AdaptiveDetector` threshold; larger values yield fewer, stronger scene cuts (see PySceneDetect docs). |
+| `PINRAG_YT_VISION_IMAGE_DETAIL` | `low` | **OpenAI only:** `low`, `high`, or `auto` for `image_url.detail`. `high` reads small code better at higher image-token cost. Ignored when `PINRAG_VISION_PROVIDER=anthropic` (full image is sent). |
 | **Logging (MCP output)** | | |
 | `PINRAG_LOG_TO_STDERR` | `false` | Set to `true` to send PinRAG logs (tool calls, completion timing, indexing messages) to stderr so they appear in the MCP server output in VS Code or Cursor. Default is off to avoid noisy or misleading badges in the editor. |
 | `PINRAG_LOG_LEVEL` | `INFO` | Log level when `PINRAG_LOG_TO_STDERR=true`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. |
@@ -252,6 +283,8 @@ Environment variables:
 > **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
 >
 > **Re-indexing when enabling parent-child:** Setting `PINRAG_USE_PARENT_CHILD=true` requires re-indexing; the new structure (child chunks in Chroma, parent chunks in docstore) is created only during indexing for supported document types (not plain `.txt`).
+>
+> **Re-indexing when toggling YouTube vision:** Turning `PINRAG_YT_VISION_ENABLED` on or off, or changing vision model/detail/frame limits, requires re-indexing affected YouTube documents for chunks to reflect the new behavior.
 
 ### Monitoring & Observability
 

@@ -5,8 +5,10 @@
 FROM python:3.12-slim-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/ndjordjevic/pinrag"
-LABEL org.opencontainers.image.description="PinRAG MCP server (RAG for PDFs, YouTube, GitHub, Discord exports)"
+LABEL org.opencontainers.image.description="PinRAG MCP server (RAG for PDFs, YouTube, GitHub, Discord exports). Optional YouTube vision: build with BUILD_WITH_VISION=1."
 LABEL io.modelcontextprotocol.server.name="io.github.ndjordjevic/pinrag"
+
+ARG BUILD_WITH_VISION=0
 
 WORKDIR /app
 
@@ -21,7 +23,14 @@ COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir .
+    && if [ "$BUILD_WITH_VISION" = "1" ]; then \
+         apt-get update \
+         && apt-get install -y --no-install-recommends ffmpeg \
+         && rm -rf /var/lib/apt/lists/* \
+         && pip install --no-cache-dir '.[vision]'; \
+       else \
+         pip install --no-cache-dir .; \
+       fi
 
 USER pinrag
 WORKDIR /home/pinrag

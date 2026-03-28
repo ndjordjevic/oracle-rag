@@ -53,6 +53,15 @@ DEFAULT_CHILD_CHUNK_SIZE = 800
 DEFAULT_RESPONSE_STYLE = "thorough"
 DEFAULT_STRUCTURE_AWARE_CHUNKING = True
 
+# --- YouTube vision enrichment (optional, opt-in) ---
+DEFAULT_YT_VISION_ENABLED = False
+DEFAULT_VISION_PROVIDER = "openai"
+DEFAULT_VISION_MODEL_OPENAI = "gpt-4o-mini"
+DEFAULT_VISION_MODEL_ANTHROPIC = "claude-sonnet-4-6"
+DEFAULT_YT_VISION_MAX_FRAMES = 8
+DEFAULT_YT_VISION_MIN_SCENE_SCORE = 27.0
+DEFAULT_YT_VISION_IMAGE_DETAIL = "low"
+
 # --- Indexing limits (GitHub, plain text files) ---
 DEFAULT_MAX_INDEX_FILE_BYTES = 524288  # 512 KB
 DEFAULT_GITHUB_MAX_FILE_BYTES = DEFAULT_MAX_INDEX_FILE_BYTES
@@ -418,3 +427,79 @@ def get_yt_proxy_config() -> GenericProxyConfig | None:
         )
 
     return None
+
+
+def get_yt_vision_enabled() -> bool:
+    """Return whether YouTube vision enrichment is enabled (default: false)."""
+    val = os.environ.get("PINRAG_YT_VISION_ENABLED")
+    if val is None or not str(val).strip():
+        return DEFAULT_YT_VISION_ENABLED
+    v = str(val).strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return DEFAULT_YT_VISION_ENABLED
+
+
+def get_vision_provider() -> str:
+    """Return vision provider from PINRAG_VISION_PROVIDER env (openai | anthropic)."""
+    val = os.environ.get("PINRAG_VISION_PROVIDER", DEFAULT_VISION_PROVIDER)
+    p = (val or "").strip().lower()
+    if p in ("openai", "anthropic"):
+        return p
+    return DEFAULT_VISION_PROVIDER
+
+
+def get_vision_model() -> str:
+    """Return vision model name from PINRAG_VISION_MODEL env, or provider default."""
+    val = os.environ.get("PINRAG_VISION_MODEL")
+    if val and str(val).strip():
+        return str(val).strip()
+    provider = get_vision_provider()
+    if provider == "anthropic":
+        return DEFAULT_VISION_MODEL_ANTHROPIC
+    return DEFAULT_VISION_MODEL_OPENAI
+
+
+def get_yt_vision_max_frames() -> int:
+    """Return max extracted frames per video for vision enrichment."""
+    val = os.environ.get("PINRAG_YT_VISION_MAX_FRAMES")
+    if val is None:
+        return DEFAULT_YT_VISION_MAX_FRAMES
+    try:
+        n = int(val)
+        if n < 1:
+            return DEFAULT_YT_VISION_MAX_FRAMES
+        return n
+    except ValueError:
+        return DEFAULT_YT_VISION_MAX_FRAMES
+
+
+def get_yt_vision_min_scene_score() -> float:
+    """Return min scene score for PySceneDetect AdaptiveDetector (default 27.0)."""
+    val = os.environ.get("PINRAG_YT_VISION_MIN_SCENE_SCORE")
+    if val is None:
+        return DEFAULT_YT_VISION_MIN_SCENE_SCORE
+    try:
+        n = float(val)
+        if n <= 0:
+            return DEFAULT_YT_VISION_MIN_SCENE_SCORE
+        return n
+    except ValueError:
+        return DEFAULT_YT_VISION_MIN_SCENE_SCORE
+
+
+def get_yt_vision_image_detail() -> str:
+    """OpenAI vision image detail: low | high | auto (default low).
+
+    Use PINRAG_YT_VISION_IMAGE_DETAIL. ``high`` uses more image tokens and reads
+    small on-screen code better; ignored for Anthropic (full image is sent).
+    """
+    val = os.environ.get("PINRAG_YT_VISION_IMAGE_DETAIL")
+    if val is None or not str(val).strip():
+        return DEFAULT_YT_VISION_IMAGE_DETAIL
+    d = str(val).strip().lower()
+    if d in ("low", "high", "auto"):
+        return d
+    return DEFAULT_YT_VISION_IMAGE_DETAIL

@@ -234,6 +234,8 @@ Stdio: JSON-RPC on stdout; **logs go to stderr** so the pipe stays valid.
 - `list_documents_tool` — List indexed documents and chunk stats
 - `remove_document_tool` — Remove a document by `document_id`
 
+Optional **YouTube on-screen vision** (scene frames + VLM): install `pinrag[vision]`, ensure **ffmpeg** is on `PATH`, set `PINRAG_YT_VISION_ENABLED` and vision provider/model env vars — see the main project README.
+
 **Examples**
 
 ```bash

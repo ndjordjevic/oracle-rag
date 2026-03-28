@@ -20,6 +20,7 @@ from pinrag.config import (
     get_parent_chunk_size,
     get_structure_aware_chunking,
     get_use_parent_child,
+    get_yt_vision_enabled,
 )
 from pinrag.indexing.youtube_loader import (
     YouTubeLoadResult,
@@ -103,6 +104,17 @@ def index_youtube(
         collection_name = get_collection_name()
     respect_structure = get_structure_aware_chunking()
     load_result = load_youtube_transcript_as_documents(url_or_id)
+    if get_yt_vision_enabled():
+        try:
+            from pinrag.indexing.youtube_vision import enrich_with_vision
+
+            load_result = enrich_with_vision(load_result)
+        except Exception as e:
+            _log.warning(
+                "YouTube vision enrichment failed for %s; continuing transcript-only: %s",
+                load_result.video_id,
+                e,
+            )
     document_id = load_result.video_id
 
     if not load_result.documents:

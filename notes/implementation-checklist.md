@@ -266,6 +266,7 @@
 
 ### New Document Types (Indexing)
 - [x] **YouTube indexing** — Index video transcripts via `youtube-transcript-api`. Load transcript → chunk → Chroma; metadata: `document_id` (video ID), `document_type`, `video_id`, `start` (seconds), `duration`, `title` (via oEmbed), `source` (canonical URL). MCP `add_document_tool` detects YouTube URLs/IDs; citations show timestamp (e.g. `t. 1:23`). Handle `TranscriptsDisabled`, `NoTranscriptFound` with clear errors. `list_documents_tool` and `documents_resource` show title and segments.
+- [x] **YouTube vision enrichment (optional)** — When `PINRAG_YT_VISION_ENABLED=true`, download video (yt-dlp), scene-detect keyframes (`pinrag[vision]` + ffmpeg), run OpenAI or Anthropic vision on frames, merge on-screen descriptions with transcript segments before chunking; metadata includes `has_visual`, `frame_count`, `visual_source`. Default off; see README.
 - [x] **GitHub repo indexing** — Index repo contents (README, code, docs). Load via GitHub API; chunk markdown and code; metadata: `document_id` (repo/path), `source` (url), `file_path`. MCP `add_document_tool` detects GitHub URLs; optional: `branch`, include/exclude patterns (e.g. `*.md`, `docs/`). File-size cap via PINRAG_GITHUB_MAX_FILE_BYTES (default 512 KB).
 - [x] **YouTube playlist indexing** — Index all videos in a playlist. Uses yt-dlp (`flat_playlist`, no API key) to fetch video IDs; for each video, reuses `index_youtube` (youtube-transcript-api → chunk → Chroma). MCP `add_document_tool` detects playlist URLs (`youtube.com/playlist?list=...`); each video is a separate document (document_id = video_id); metadata: `playlist_id`, `playlist_title` for filtered search. Parent-child indexing applied per video when enabled.
 - [x] **Plain TXT file indexing** — Index plain text files (.txt) that are not Discord exports. Load file → chunk → Chroma; metadata: `document_id` (filename), `document_type` ("plaintext"), `source` (file path). MCP `add_document_tool` detects .txt; distinguish from Discord format (check for `Guild:`/`Channel:` header—Discord takes precedence). Citations show document_id (no page; optional line range if tracked). Reuse existing chunking; optional file-size cap via config.
@@ -299,7 +300,7 @@
 - [x] Investigate advertising & distribution for the PinRAG MCP server (IDE lists, directories, promotion) — see `notes/mcp-advertising-distribution-strategy.md`.
 - [x] Implement distribution strategies
 - [ ] Implement advertising strategies
-- [ ] Investigate how to smartly extract YouTube video content beside just the transcript.
+- [x] Investigate how to smartly extract YouTube video content beside just the transcript.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 - [ ] I like how fancy Claude Code Cli looks like so just an idea of UI interface for my pinrag-tutor
 

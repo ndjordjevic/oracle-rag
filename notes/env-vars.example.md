@@ -86,6 +86,17 @@ See also the configuration table in the project `README.md`.
 # PINRAG_YT_PROXY_HTTP_URL=http://user:pass@p.webshare.io:80
 # PINRAG_YT_PROXY_HTTPS_URL=http://user:pass@p.webshare.io:80
 
+# --- YouTube vision enrichment (optional; off by default) ---
+# Requires: pip install 'pinrag[vision]', ffmpeg on PATH, and vision API key(s).
+# PINRAG_YT_VISION_ENABLED=true
+# Vision API: openai (default) | anthropic — set matching API key (OPENAI_API_KEY / ANTHROPIC_API_KEY).
+# PINRAG_VISION_PROVIDER=openai
+# PINRAG_VISION_MODEL=gpt-4o
+# PINRAG_YT_VISION_MAX_FRAMES=8
+# PINRAG_YT_VISION_MIN_SCENE_SCORE=27.0
+# OpenAI-only image resolution for vision (low | high | auto):
+# PINRAG_YT_VISION_IMAGE_DETAIL=low
+
 # --- Logging (MCP output) ---
 # Disabled by default to avoid Cursor rendering stderr as [error] and appending "undefined".
 # Set to true only when debugging MCP internals.

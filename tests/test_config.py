@@ -16,6 +16,7 @@ from pinrag.config import (
     get_rerank_top_n,
     get_use_rerank,
     get_yt_proxy_config,
+    get_yt_vision_image_detail,
 )
 
 
@@ -246,3 +247,20 @@ def test_get_yt_proxy_config_generic_when_https_url(
     monkeypatch.setenv("PINRAG_YT_PROXY_HTTPS_URL", "https://proxy.example.com:8443")
     cfg = get_yt_proxy_config()
     assert isinstance(cfg, GenericProxyConfig)
+
+
+def test_get_yt_vision_image_detail_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_YT_VISION_IMAGE_DETAIL", raising=False)
+    assert get_yt_vision_image_detail() == "low"
+
+
+def test_get_yt_vision_image_detail_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_YT_VISION_IMAGE_DETAIL", "HIGH")
+    assert get_yt_vision_image_detail() == "high"
+
+
+def test_get_yt_vision_image_detail_invalid_falls_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PINRAG_YT_VISION_IMAGE_DETAIL", "ultra")
+    assert get_yt_vision_image_detail() == "low"

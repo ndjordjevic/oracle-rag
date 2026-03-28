@@ -26,6 +26,8 @@ Homepage = "https://github.com/ndjordjevic/pinrag"
 Repository = "https://github.com/ndjordjevic/pinrag"
 
 [project.optional-dependencies]
+# YouTube on-screen enrichment: scene detection (host also needs ffmpeg on PATH).
+vision = ["scenedetect[opencv]>=0.6.7"]
 cohere = ["langchain-cohere>=0.2.0"]
 eval = ["langsmith>=0.1.0"]
 dev = [
