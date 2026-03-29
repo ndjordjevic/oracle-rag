@@ -11,16 +11,23 @@ def llm_keys_error_message() -> str | None:
     """Return an error message if the configured LLM provider's API key is missing."""
     from pinrag.config import get_llm_provider
 
-    if get_llm_provider() == "anthropic":
+    provider = get_llm_provider()
+    if provider == "anthropic":
         if not os.environ.get("ANTHROPIC_API_KEY"):
             return (
                 "ANTHROPIC_API_KEY is not set (PINRAG_LLM_PROVIDER=anthropic). "
                 + _KEY_HINT
             )
-    elif not os.environ.get("OPENAI_API_KEY"):
-        return (
-            "OPENAI_API_KEY is not set (PINRAG_LLM_PROVIDER=openai). " + _KEY_HINT
-        )
+        return None
+    if provider == "openrouter":
+        if not os.environ.get("OPENROUTER_API_KEY"):
+            return (
+                "OPENROUTER_API_KEY is not set (PINRAG_LLM_PROVIDER=openrouter). "
+                + _KEY_HINT
+            )
+        return None
+    if not os.environ.get("OPENAI_API_KEY"):
+        return "OPENAI_API_KEY is not set (PINRAG_LLM_PROVIDER=openai). " + _KEY_HINT
     return None
 
 

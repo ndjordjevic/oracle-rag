@@ -9,9 +9,12 @@ import pytest
 from pinrag.cli import main
 
 
-def test_main_exits_without_openai_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    """main() exits with code 1 when OPENAI_API_KEY is not set."""
+def test_main_exits_without_llm_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """main() exits with code 1 when OPENROUTER_API_KEY is not set (default LLM provider)."""
+    monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     with pytest.raises(SystemExit) as exc_info:
         main()
     assert exc_info.value.code == 1
@@ -19,9 +22,11 @@ def test_main_exits_without_openai_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_main_runs_mcp_server(monkeypatch: pytest.MonkeyPatch) -> None:
     """main() runs MCP server when required API keys are set."""
-    # Default config: embedding=openai, LLM=anthropic — need both keys
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    # Default LLM is openrouter — set OPENROUTER_API_KEY (or use openai + OPENAI_API_KEY).
+    monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     mock_mcp = MagicMock()
     with patch("pinrag.cli.configure_logging"):
         with patch("pinrag.cli.mcp", mock_mcp):

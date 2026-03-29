@@ -12,12 +12,20 @@ from langchain_core.documents import Document
 from langchain_core.messages import AIMessage
 from langchain_core.retrievers import BaseRetriever
 
-from tests.conftest import require_working_llm_for_default_provider, require_working_openai_key
-
 from pinrag.llm import get_chat_model
 from pinrag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
 from pinrag.rag.prompts import get_rag_prompt
 from pinrag.vectorstore import create_retriever
+from tests.conftest import (
+    require_working_llm_for_default_provider,
+    require_working_openai_key,
+)
+
+
+@pytest.fixture(autouse=True)
+def _rag_tests_use_openai_llm_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default LLM is openrouter; RAG tests expect OpenAI unless integration overrides."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openai")
 
 
 def test_format_docs_empty() -> None:
@@ -181,8 +189,11 @@ def test_run_rag_with_retriever(tmp_path, sample_pdf_path) -> None:
 
 
 @pytest.mark.integration
-def test_run_rag_zero_retrieval_returns_clear_message() -> None:
+def test_run_rag_zero_retrieval_returns_clear_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """When retrieval returns 0 docs, run_rag returns a clear message without calling LLM."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
 
     class EmptyRetriever(BaseRetriever):
         def _get_relevant_documents(
@@ -279,6 +290,7 @@ def test_run_rag_use_rerank_true_no_cohere_falls_back(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """With use_rerank=True but COHERE_API_KEY missing, rerank is disabled and normal retrieval is used (no crash)."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     monkeypatch.setenv("PINRAG_USE_RERANK", "true")
     monkeypatch.delenv("COHERE_API_KEY", raising=False)
 

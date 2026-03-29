@@ -2,14 +2,25 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
 from youtube_transcript_api.proxies import GenericProxyConfig
 
 from pinrag.config import (
+    DEFAULT_LLM_MODEL_OPENROUTER,
+    DEFAULT_LLM_PROVIDER,
     DEFAULT_MAX_INDEX_FILE_BYTES,
+    DEFAULT_OPENROUTER_APP_TITLE,
+    DEFAULT_OPENROUTER_APP_URL,
     get_chunk_overlap,
     get_chunk_size,
     get_collection_name,
+    get_llm_model,
+    get_llm_provider,
+    get_openrouter_app_title,
+    get_openrouter_app_url,
+    sync_openrouter_sdk_attribution_env,
     get_persist_dir,
     get_plaintext_max_file_bytes,
     get_rerank_retrieve_k,
@@ -18,6 +29,41 @@ from pinrag.config import (
     get_yt_proxy_config,
     get_yt_vision_image_detail,
 )
+
+
+def test_get_llm_provider_default_openrouter(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unset PINRAG_LLM_PROVIDER defaults to openrouter."""
+    monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
+    assert get_llm_provider() == DEFAULT_LLM_PROVIDER == "openrouter"
+
+
+def test_get_llm_model_default_openrouter_free(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unset model env with default provider uses openrouter/free."""
+    monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("PINRAG_LLM_MODEL", raising=False)
+    assert get_llm_model() == DEFAULT_LLM_MODEL_OPENROUTER == "openrouter/free"
+
+
+def test_openrouter_app_attribution_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENROUTER_APP_URL", raising=False)
+    monkeypatch.delenv("OPENROUTER_APP_TITLE", raising=False)
+    assert get_openrouter_app_url() == DEFAULT_OPENROUTER_APP_URL
+    assert get_openrouter_app_title() == DEFAULT_OPENROUTER_APP_TITLE
+
+
+def test_openrouter_app_attribution_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENROUTER_APP_URL", "https://example.com/app")
+    monkeypatch.setenv("OPENROUTER_APP_TITLE", "Custom")
+    assert get_openrouter_app_url() == "https://example.com/app"
+    assert get_openrouter_app_title() == "Custom"
+
+
+def test_sync_openrouter_sdk_attribution_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENROUTER_APP_URL", "https://a.example")
+    monkeypatch.setenv("OPENROUTER_APP_TITLE", "T")
+    sync_openrouter_sdk_attribution_env()
+    assert os.environ.get("OPENROUTER_HTTP_REFERER") == "https://a.example"
+    assert os.environ.get("OPENROUTER_X_OPEN_ROUTER_TITLE") == "T"
 
 
 def test_get_chunk_size_default(monkeypatch: pytest.MonkeyPatch) -> None:

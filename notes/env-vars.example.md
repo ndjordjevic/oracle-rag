@@ -7,16 +7,28 @@ See also the configuration table in the project `README.md`.
 ---
 
 ## LLM (required for generation)
-# Provider: openai | anthropic (default: openai)
-# PINRAG_LLM_PROVIDER=openai
-# Model name (provider-specific). If unset: openai=gpt-4o-mini, anthropic=claude-haiku-4-5
-# PINRAG_LLM_MODEL=gpt-4o-mini
+# Provider: openai | anthropic | openrouter (default: openrouter)
+# PINRAG_LLM_PROVIDER=openrouter
+# Model name (OpenRouter slug or provider-specific id). If unset:
+#   openrouter=openrouter/free (free model router), openai=gpt-4o-mini, anthropic=claude-haiku-4-5
+# Premium OpenRouter example: PINRAG_LLM_MODEL=anthropic/claude-sonnet-4-6
+# PINRAG_LLM_MODEL=openrouter/free
+
+# OpenRouter (required when PINRAG_LLM_PROVIDER=openrouter; get a key at https://openrouter.ai/)
+#OPENROUTER_API_KEY=your_openrouter_api_key_here
+# Optional attribution (defaults: repo URL + "PinRAG"; see README):
+# OPENROUTER_APP_URL=https://your-app.example
+# OPENROUTER_APP_TITLE=YourAppName
 
 # OpenAI (required when PINRAG_LLM_PROVIDER=openai)
 #OPENAI_API_KEY=your_openai_api_key_here
 
 # Anthropic (required when PINRAG_LLM_PROVIDER=anthropic)
 # ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Vision (OpenAI SDK path): point at OpenRouter with the OpenAI-compatible API if you want OR vision models.
+# OPENAI_BASE_URL=https://openrouter.ai/api/v1
+# (Use OPENROUTER_API_KEY as OPENAI_API_KEY when using this base URL for vision.)
 
 # --- Embeddings (local Nomic; no API key) ---
 # Model id. If unset: nomic-embed-text-v1.5 (first run downloads ~270 MB, cached locally)
@@ -100,11 +112,11 @@ See also the configuration table in the project `README.md`.
 # PINRAG_LOG_LEVEL=INFO
 
 # --- Evaluators (LLM-as-judge; used only during evaluation runs) ---
-# Provider: openai (default) | anthropic
+# Provider: openai (default) | anthropic | openrouter — structured JSON output varies by model.
 # PINRAG_EVALUATOR_PROVIDER=openai
-# Model for correctness/relevance. If unset: openai=gpt-4o, anthropic=claude-sonnet-4-6
+# Model for correctness/relevance. If unset: openai=gpt-4o, anthropic=claude-sonnet-4-6, openrouter=openrouter/free
 # PINRAG_EVALUATOR_MODEL=gpt-4o
-# Model for groundedness/retrieval (context-heavy). If unset: openai=gpt-4o-mini, anthropic=claude-haiku-4-5
+# Model for groundedness/retrieval (context-heavy). If unset: openai=gpt-4o-mini, anthropic=claude-haiku-4-5, openrouter=openrouter/free
 # PINRAG_EVALUATOR_MODEL_CONTEXT=gpt-4o-mini
 
 # --- Optional: LangSmith tracing (see notes/langsmith-setup.md) ---

@@ -6,7 +6,7 @@ Usage:
     uv run python -m pinrag.evaluation --limit 30
     uv run python -m pinrag.evaluation --metadata '{"version":"3.0.1"}'
 
-Requires: LANGSMITH_API_KEY; OPENAI_API_KEY or ANTHROPIC_API_KEY (per PINRAG_EVALUATOR_PROVIDER).
+Requires: LANGSMITH_API_KEY; OPENAI_API_KEY, ANTHROPIC_API_KEY, or OPENROUTER_API_KEY (per PINRAG_EVALUATOR_PROVIDER).
 
 Embedding: Use the same PINRAG_EMBEDDING_MODEL (as in .env) that was used when
 indexing the Chroma collection. A dimension mismatch means the index was built

@@ -301,6 +301,8 @@
 - [x] Implement distribution strategies
 - [ ] Implement advertising strategies
 - [x] Investigate how to smartly extract YouTube video content beside just the transcript.
+- [x] Implement local Nomic embeddings.
+- [x] Add OpenRouter as a default provider for LLM.
 - [ ] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
 - [ ] I like how fancy Claude Code Cli looks like so just an idea of UI interface for my pinrag-tutor
 

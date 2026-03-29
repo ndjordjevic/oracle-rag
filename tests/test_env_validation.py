@@ -21,15 +21,16 @@ def test_require_llm_api_key_whitespace_only_key_exits(
 def test_require_api_keys_for_server_missing_llm_key_exits(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """require_api_keys_for_server exits when default OpenAI LLM and OPENAI_API_KEY missing."""
+    """require_api_keys_for_server exits when default OpenRouter LLM and OPENROUTER_API_KEY missing."""
     monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(SystemExit) as exc_info:
         require_api_keys_for_server()
     assert exc_info.value.code == 1
     err = capsys.readouterr().err
-    assert "OPENAI_API_KEY" in err
+    assert "OPENROUTER_API_KEY" in err
 
 
 def test_require_llm_api_key_anthropic_missing(
@@ -70,23 +71,46 @@ def test_require_llm_api_key_openai_set(monkeypatch: pytest.MonkeyPatch) -> None
     require_llm_api_key()
 
 
-def test_require_api_keys_for_server_defaults_exits_without_openai_key(
+def test_require_llm_api_key_openrouter_missing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """require_llm_api_key exits when provider=openrouter and OPENROUTER_API_KEY not set."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.raises(SystemExit) as exc_info:
+        require_llm_api_key()
+    assert exc_info.value.code == 1
+    err = capsys.readouterr().err
+    assert "OPENROUTER_API_KEY" in err
+
+
+def test_require_llm_api_key_openrouter_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    """require_llm_api_key does not exit when provider=openrouter and OPENROUTER_API_KEY set."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+    require_llm_api_key()
+
+
+def test_require_api_keys_for_server_defaults_exits_without_openrouter_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """require_api_keys_for_server exits when default OpenAI LLM and OPENAI_API_KEY missing."""
+    """require_api_keys_for_server exits when default OpenRouter LLM and OPENROUTER_API_KEY missing."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
     with pytest.raises(SystemExit) as exc_info:
         require_api_keys_for_server()
     assert exc_info.value.code == 1
 
 
-def test_require_api_keys_for_server_defaults_passes_with_openai_key_only(
+def test_require_api_keys_for_server_defaults_passes_with_openrouter_key_only(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """require_api_keys_for_server passes when only OPENAI_API_KEY is set (LLM)."""
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    """require_api_keys_for_server passes when only OPENROUTER_API_KEY is set (default LLM)."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
     require_api_keys_for_server()

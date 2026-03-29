@@ -15,9 +15,14 @@ DEFAULT_PERSIST_DIR = "chroma_db"
 DEFAULT_COLLECTION_NAME = "pinrag"
 
 # --- LLM (PINRAG_LLM_*) ---
-DEFAULT_LLM_PROVIDER = "openai"
+DEFAULT_LLM_PROVIDER = "openrouter"
+DEFAULT_LLM_MODEL_OPENROUTER = "openrouter/free"
 DEFAULT_LLM_MODEL_OPENAI = "gpt-4o-mini"
 DEFAULT_LLM_MODEL_ANTHROPIC = "claude-haiku-4-5"
+
+# OpenRouter HTTP-Referer / X-Title attribution (overridable via OPENROUTER_APP_* env).
+DEFAULT_OPENROUTER_APP_URL = "https://github.com/ndjordjevic/pinrag"
+DEFAULT_OPENROUTER_APP_TITLE = "PinRAG"
 
 # --- Evaluator / LLM-as-judge (PINRAG_EVALUATOR_*) ---
 DEFAULT_EVALUATOR_PROVIDER = "openai"
@@ -25,6 +30,8 @@ DEFAULT_EVALUATOR_MODEL_OPENAI = "gpt-4o"
 DEFAULT_EVALUATOR_MODEL_OPENAI_CONTEXT = "gpt-4o-mini"
 DEFAULT_EVALUATOR_MODEL_ANTHROPIC = "claude-sonnet-4-6"
 DEFAULT_EVALUATOR_MODEL_ANTHROPIC_CONTEXT = "claude-haiku-4-5"
+DEFAULT_EVALUATOR_MODEL_OPENROUTER = "openrouter/free"
+DEFAULT_EVALUATOR_MODEL_OPENROUTER_CONTEXT = "openrouter/free"
 
 # --- Embeddings (PINRAG_EMBEDDING_*) — local Nomic only ---
 DEFAULT_EMBEDDING_MODEL_LOCAL = "nomic-embed-text-v1.5"
@@ -69,10 +76,10 @@ DEFAULT_PLAINTEXT_MAX_FILE_BYTES = DEFAULT_MAX_INDEX_FILE_BYTES
 
 # --- LLM ---
 def get_llm_provider() -> str:
-    """Return LLM provider from PINRAG_LLM_PROVIDER env (openai | anthropic)."""
+    """Return LLM provider from PINRAG_LLM_PROVIDER env (openai | anthropic | openrouter)."""
     val = os.environ.get("PINRAG_LLM_PROVIDER", DEFAULT_LLM_PROVIDER)
     p = (val or "").strip().lower()
-    if p in ("openai", "anthropic"):
+    if p in ("openai", "anthropic", "openrouter"):
         return p
     return DEFAULT_LLM_PROVIDER
 
@@ -85,15 +92,52 @@ def get_llm_model() -> str:
     provider = get_llm_provider()
     if provider == "anthropic":
         return DEFAULT_LLM_MODEL_ANTHROPIC
+    if provider == "openrouter":
+        return DEFAULT_LLM_MODEL_OPENROUTER
     return DEFAULT_LLM_MODEL_OPENAI
+
+
+def get_openrouter_app_url() -> str | None:
+    """Return OpenRouter ``HTTP-Referer`` attribution URL (env or PinRAG default)."""
+    val = os.environ.get("OPENROUTER_APP_URL")
+    if val is not None and str(val).strip():
+        return str(val).strip()
+    return DEFAULT_OPENROUTER_APP_URL
+
+
+def get_openrouter_app_title() -> str | None:
+    """Return OpenRouter app title (``X-Title``) for attribution (env or PinRAG default)."""
+    val = os.environ.get("OPENROUTER_APP_TITLE")
+    if val is not None and str(val).strip():
+        return str(val).strip()
+    return DEFAULT_OPENROUTER_APP_TITLE
+
+
+def sync_openrouter_sdk_attribution_env() -> None:
+    """Push ``OPENROUTER_APP_*`` (and PinRAG defaults) into env for the OpenRouter Python SDK.
+
+    ``langchain-openrouter`` builds the SDK with a mismatched ``x_title`` kwarg; the
+    SDK instead reads ``OPENROUTER_HTTP_REFERER`` and ``OPENROUTER_X_OPEN_ROUTER_TITLE``.
+    Call this before ``ChatOpenRouter(..., app_url=None, app_title=None)``.
+    """
+    url = get_openrouter_app_url()
+    title = get_openrouter_app_title()
+    if url:
+        os.environ["OPENROUTER_HTTP_REFERER"] = url
+    else:
+        os.environ.pop("OPENROUTER_HTTP_REFERER", None)
+    if title:
+        os.environ["OPENROUTER_X_OPEN_ROUTER_TITLE"] = title
+    else:
+        os.environ.pop("OPENROUTER_X_OPEN_ROUTER_TITLE", None)
 
 
 # --- Evaluator ---
 def get_evaluator_provider() -> str:
-    """Return evaluator (LLM-as-judge) provider from PINRAG_EVALUATOR_PROVIDER env (openai | anthropic)."""
+    """Return evaluator (LLM-as-judge) provider from PINRAG_EVALUATOR_PROVIDER env (openai | anthropic | openrouter)."""
     val = os.environ.get("PINRAG_EVALUATOR_PROVIDER", DEFAULT_EVALUATOR_PROVIDER)
     p = (val or "").strip().lower()
-    if p in ("openai", "anthropic"):
+    if p in ("openai", "anthropic", "openrouter"):
         return p
     return DEFAULT_EVALUATOR_PROVIDER
 
@@ -111,6 +155,12 @@ def get_evaluator_model(*, context_heavy: bool = False) -> str:
             DEFAULT_EVALUATOR_MODEL_ANTHROPIC_CONTEXT
             if context_heavy
             else DEFAULT_EVALUATOR_MODEL_ANTHROPIC
+        )
+    if provider == "openrouter":
+        return (
+            DEFAULT_EVALUATOR_MODEL_OPENROUTER_CONTEXT
+            if context_heavy
+            else DEFAULT_EVALUATOR_MODEL_OPENROUTER
         )
     return (
         DEFAULT_EVALUATOR_MODEL_OPENAI_CONTEXT

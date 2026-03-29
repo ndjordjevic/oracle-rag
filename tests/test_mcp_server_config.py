@@ -21,6 +21,7 @@ def test_server_config_resource_includes_api_key_status() -> None:
         out = asyncio.run(mcp_server.server_config_resource())
     assert "OPENAI_API_KEY: set" in out
     assert "sk-secret" not in out
+    assert "OPENROUTER_API_KEY:" in out
     assert "ANTHROPIC_API_KEY:" in out
 
 
@@ -37,6 +38,9 @@ def test_server_config_resource_includes_effective_config() -> None:
     assert "--- Explicitly set (runtime env) ---" in out
     assert "--- Defaults (not set in env) ---" in out
     assert "--- API keys (status only) ---" in out
+    assert "--- Optional: OpenRouter attribution & OpenAI client ---" in out
+    assert "OPENROUTER_APP_URL (effective):" in out
+    assert "PINRAG_EVALUATOR_PROVIDER:" in out
 
 
 def test_server_config_resource_explicitly_set_in_runtime_section() -> None:

@@ -13,11 +13,6 @@ from pinrag.llm import get_chat_model  # noqa: E402
 
 
 def main() -> None:
-    err = _script_env.llm_keys_error_message()
-    if err:
-        print(err, file=sys.stderr)
-        sys.exit(1)
-
     parser = argparse.ArgumentParser(
         description="Call the configured chat model (PINRAG_LLM_PROVIDER) with a test prompt."
     )
@@ -28,6 +23,11 @@ def main() -> None:
         help="Prompt to send (default: simple greeting prompt)",
     )
     args = parser.parse_args()
+
+    err = _script_env.llm_keys_error_message()
+    if err:
+        print(err, file=sys.stderr)
+        sys.exit(1)
 
     llm = get_chat_model()
     response = llm.invoke([HumanMessage(content=args.prompt)])

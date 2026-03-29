@@ -73,6 +73,27 @@ def require_working_llm_for_default_provider(reason: str = "integration test") -
             pytest.skip(f"{reason}: invalid or expired ANTHROPIC_API_KEY ({e})")
         except APIConnectionError as e:
             pytest.skip(f"{reason}: Anthropic API unreachable ({e})")
+        return
+    if provider == "openrouter":
+        key = (os.environ.get("OPENROUTER_API_KEY") or "").strip()
+        if not key:
+            pytest.skip(f"{reason}: OPENROUTER_API_KEY not set")
+        try:
+            import requests
+        except ImportError:
+            pytest.skip(f"{reason}: requests not installed")
+        try:
+            r = requests.get(
+                "https://openrouter.ai/api/v1/key",
+                headers={"Authorization": f"Bearer {key}"},
+                timeout=15,
+            )
+        except requests.RequestException as e:
+            pytest.skip(f"{reason}: OpenRouter API unreachable ({e})")
+        if r.status_code == 401:
+            pytest.skip(f"{reason}: invalid or expired OPENROUTER_API_KEY")
+        if not r.ok:
+            pytest.skip(f"{reason}: OpenRouter key check failed (HTTP {r.status_code})")
 
 
 def pytest_collection_modifyitems(

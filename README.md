@@ -31,11 +31,11 @@ Screen recording: indexing a PDF and using PinRAG from VS Code.
 - **MCP tools** — `add_document_tool` (files, dirs, or URLs), `add_url_tool` (YouTube/GitHub URLs only), `query_tool`, `list_documents_tool`, `remove_document_tool`
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
-- **Configurable LLM** — OpenAI (default) or Anthropic; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
+- **Configurable LLM** — OpenRouter (default, free `openrouter/free` router), OpenAI, or Anthropic; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
 - **Local embeddings** — Nomic (`PINRAG_EMBEDDING_MODEL`, default `nomic-embed-text-v1.5`); no API key; first run downloads model weights (~270 MB, cached)
 - **Retrieval & chunking options** — Structure-aware chunking (on by default); optional FlashRank re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
 - **Observability** — Optional [LangSmith](https://smith.langchain.com) tracing; optional stderr logging via `PINRAG_LOG_TO_STDERR`
-- **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, FlashRank
+- **Built with** — LangChain, Chroma; optional OpenRouter, OpenAI, Anthropic, FlashRank
 
 ## Installation
 
@@ -101,8 +101,9 @@ Add PinRAG to your editor’s MCP config and set API keys in the same `env` bloc
 The server validates required API keys at startup and exits with a clear error
 if any are missing. Set keys in your MCP `env` block as in the examples below.
 
-- **Default setup** (local embeddings + OpenAI chat): set `OPENAI_API_KEY` for the LLM only.
-- **Anthropic for queries:** set `PINRAG_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (no OpenAI key needed unless you use OpenAI for something else, e.g. vision or evaluators).
+- **Default setup** (local embeddings + OpenRouter chat): set `OPENROUTER_API_KEY` for the LLM (get a key at [openrouter.ai](https://openrouter.ai/)).
+- **OpenAI instead:** set `PINRAG_LLM_PROVIDER=openai` and `OPENAI_API_KEY`.
+- **Anthropic for queries:** set `PINRAG_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (no OpenRouter/OpenAI key needed for chat unless you use them for vision or evaluators).
 - **Optional re-ranking:** set `PINRAG_USE_RERANK=true` and install `pinrag[rerank]` (no API key required).
 
 A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
@@ -226,9 +227,13 @@ Environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | **LLM** | | |
-| `PINRAG_LLM_PROVIDER` | `openai` | `openai` or `anthropic` |
-| `PINRAG_LLM_MODEL` | *(provider default)* | e.g. `claude-haiku-4-5`, `claude-sonnet-4-6`, `gpt-4o-mini` |
+| `PINRAG_LLM_PROVIDER` | `openrouter` | `openrouter`, `openai`, or `anthropic` |
+| `PINRAG_LLM_MODEL` | *(provider default)* | OpenRouter: default `openrouter/free`; or any slug (e.g. `anthropic/claude-sonnet-4-6`). OpenAI/Anthropic: e.g. `gpt-4o-mini`, `claude-haiku-4-5` |
+| `OPENROUTER_API_KEY` | *(required for OpenRouter LLM)* | OpenRouter API key when `PINRAG_LLM_PROVIDER=openrouter` or `PINRAG_EVALUATOR_PROVIDER=openrouter` |
+| `OPENROUTER_APP_URL` | `https://github.com/ndjordjevic/pinrag` | OpenRouter app attribution (`HTTP-Referer`). Override with your site URL (see [OpenRouter app attribution](https://openrouter.ai/docs/app-attribution)). PinRAG copies this into `OPENROUTER_HTTP_REFERER` for the OpenRouter Python SDK. |
+| `OPENROUTER_APP_TITLE` | `PinRAG` | OpenRouter app title (`X-Title`). Override to label usage in the OpenRouter dashboard. PinRAG copies this into `OPENROUTER_X_OPEN_ROUTER_TITLE` for the SDK. |
 | `OPENAI_API_KEY` | *(required for OpenAI LLM)* | OpenAI API key when using OpenAI for the LLM (`PINRAG_LLM_PROVIDER=openai`) |
+| `OPENAI_BASE_URL` | *(optional)* | Override OpenAI API base URL (e.g. `https://openrouter.ai/api/v1` with `OPENAI_API_KEY` set to your OpenRouter key for vision or other OpenAI-compatible calls). |
 | `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`) |
 | **Embeddings** | | |
 | `PINRAG_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Local Nomic model id (via `langchain-nomic`). First run downloads weights (~270 MB, cached). No API key. |
@@ -273,10 +278,15 @@ Environment variables:
 | **Logging (MCP output)** | | |
 | `PINRAG_LOG_TO_STDERR` | `false` | Set to `true` to send PinRAG logs (tool calls, completion timing, indexing messages) to stderr so they appear in the MCP server output in VS Code or Cursor. Default is off to avoid noisy or misleading badges in the editor. |
 | `PINRAG_LOG_LEVEL` | `INFO` | Log level when `PINRAG_LOG_TO_STDERR=true`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. |
+| **LangSmith (optional)** | | |
+| `LANGSMITH_TRACING` | *(off)* | Set `true` to send traces to [LangSmith](https://smith.langchain.com). Requires `LANGSMITH_API_KEY`. |
+| `LANGSMITH_API_KEY` | *(none)* | API key from LangSmith **Settings → API keys**. |
+| `LANGSMITH_PROJECT` | *(LangChain default)* | Project name for traces (e.g. `pinrag`). |
+| `LANGSMITH_ENDPOINT` | US API (implicit) | **EU workspaces:** set `https://eu.api.smith.langchain.com` so traces land in your EU project. If your account uses `eu.smith.langchain.com` in the browser, you need this. US-region workspaces can omit it (default API host). |
 | **Evaluators (LLM-as-judge)** | | |
-| `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai` or `anthropic` — which LLM runs LLM-as-judge graders. Used only during evaluation runs (LangSmith experiments). |
-| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`) |
-| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`) |
+| `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai`, `anthropic`, or `openrouter` — which LLM runs LLM-as-judge graders. Used only during evaluation runs (LangSmith experiments). |
+| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`, `openrouter/free` when evaluator provider is OpenRouter). |
+| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`, `openrouter/free` when evaluator provider is OpenRouter). |
 
 > **Re-indexing when changing embedding model:** Changing `PINRAG_EMBEDDING_MODEL` (or upgrading from indexes built with older OpenAI embeddings) requires re-indexing; vector dimensions must match the model used at index time.
 >
@@ -286,7 +296,7 @@ Environment variables:
 
 ### Monitoring & Observability
 
-For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in MCP `env` or your shell; traces are sent automatically. For EU region, add `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`. See `notes/langsmith-setup.md` for setup. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
+For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in MCP `env` or your shell; optionally set `LANGSMITH_PROJECT` (see table above). **If your LangSmith workspace is in the EU region** (you use `eu.smith.langchain.com` in the browser), you **must** also set `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`; without it, traces may not show up in the EU deployment. US-region accounts use the default API host and do not need `LANGSMITH_ENDPOINT`. See [`notes/langsmith-setup.md`](notes/langsmith-setup.md) for more detail. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
 
 ### Multiple providers and collections
 

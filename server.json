@@ -7,12 +7,12 @@
     "url": "https://github.com/ndjordjevic/pinrag",
     "source": "github"
   },
-  "version": "0.9.25",
+  "version": "0.9.26",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "pinrag",
-      "version": "0.9.25",
+      "version": "0.9.26",
       "transport": {
         "type": "stdio"
       },
@@ -29,11 +29,11 @@
       ],
       "environmentVariables": [
         {
-          "description": "OpenAI API key — required for default embeddings and default LLM (OpenAI).",
+          "description": "OpenRouter API key — required for the default chat LLM (PINRAG_LLM_PROVIDER defaults to openrouter). Get a key at openrouter.ai.",
           "isRequired": true,
           "format": "string",
           "isSecret": true,
-          "name": "OPENAI_API_KEY"
+          "name": "OPENROUTER_API_KEY"
         },
         {
           "description": "Absolute path to the Chroma vector store directory (recommended so indexes are not tied to the server process cwd).",

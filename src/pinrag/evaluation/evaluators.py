@@ -1,8 +1,9 @@
 """PinRAG evaluators for LangSmith experiments.
 
-LLM-as-judge (correctness, groundedness): PINRAG_EVALUATOR_PROVIDER (openai | anthropic).
+LLM-as-judge (correctness, groundedness): PINRAG_EVALUATOR_PROVIDER (openai | anthropic | openrouter).
 OpenAI: gpt-4o for correctness, gpt-4o-mini for groundedness.
-Anthropic: claude-3-5-sonnet for correctness, claude-3-5-haiku for groundedness.
+Anthropic: claude-sonnet-4-6 for correctness, claude-haiku-4-5 for groundedness.
+OpenRouter: openrouter/free for both (structured output support varies by model).
 Code evaluators have no LLM cost.
 """
 
@@ -13,10 +14,14 @@ from typing import Annotated, Any, TypedDict, cast
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 
-from pinrag.config import get_evaluator_model, get_evaluator_provider
+from pinrag.config import (
+    get_evaluator_model,
+    get_evaluator_provider,
+    sync_openrouter_sdk_attribution_env,
+)
 
 # ---------------------------------------------------------------------------
-# LLM-as-judge graders (OPENAI_API_KEY or ANTHROPIC_API_KEY)
+# LLM-as-judge graders (OPENAI_API_KEY, ANTHROPIC_API_KEY, or OPENROUTER_API_KEY)
 # ---------------------------------------------------------------------------
 
 _CORRECTNESS_PROMPT = """You are a teacher grading a quiz about technical hardware documentation.
@@ -52,7 +57,7 @@ class _GroundednessGrade(TypedDict):
 
 
 def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> Any:
-    """Return a grader runnable with structured output (OpenAI or Anthropic per config)."""
+    """Return a grader runnable with structured output (OpenAI, Anthropic, or OpenRouter per config)."""
     provider = get_evaluator_provider()
     model = get_evaluator_model(context_heavy=context_heavy)
 
@@ -63,6 +68,16 @@ def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> Any:
         llm = ChatAnthropic(  # type: ignore[call-arg]
             model_name=model,
             temperature=0,
+        )
+    elif provider == "openrouter":
+        from langchain_openrouter import ChatOpenRouter
+
+        sync_openrouter_sdk_attribution_env()
+        llm = ChatOpenRouter(  # type: ignore[call-arg]
+            model=model,
+            temperature=0,
+            app_url=None,
+            app_title=None,
         )
     else:
         from langchain_openai import ChatOpenAI

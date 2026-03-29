@@ -174,7 +174,7 @@ uv run python scripts/list_indexed_docs_cli.py --persist-dir my_chroma --collect
 
 ## test_llm_cli.py
 
-Call the configured chat model (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic) with a test prompt. Requires the matching API key in the environment (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`).
+Call the configured chat model (`PINRAG_LLM_PROVIDER`: OpenRouter, OpenAI, or Anthropic) with a test prompt. Requires the matching API key (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`).
 
 **Arguments**
 
@@ -193,7 +193,7 @@ uv run python scripts/test_llm_cli.py "What is 2+2? Reply with one number."
 
 ## rag_cli.py
 
-Run the full RAG chain: ask a question over indexed documents and get an answer with source citations. Embeddings run locally (Nomic; no key). Requires an API key for the **LLM** provider (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic).
+Run the full RAG chain: ask a question over indexed documents and get an answer with source citations. Embeddings run locally (Nomic; no key). Requires an API key for the **LLM** provider (`PINRAG_LLM_PROVIDER`: OpenRouter, OpenAI, or Anthropic).
 
 **Arguments**
 
@@ -305,7 +305,7 @@ uv run python scripts/create_eval_dataset.py
 
 ### min_k_per_question.py
 
-Find the minimum retrieval `k` per question such that the correctness evaluator passes. Tries k=5, 10, 15, … up to 50 for each question and reports the smallest k that yields a correct answer. Useful for tuning `PINRAG_RETRIEVE_K`. Disables rerank for the run. Requires `LANGSMITH_API_KEY` and `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`.
+Find the minimum retrieval `k` per question such that the correctness evaluator passes. Tries k=5, 10, 15, … up to 50 for each question and reports the smallest k that yields a correct answer. Useful for tuning `PINRAG_RETRIEVE_K`. Disables rerank for the run. Requires `LANGSMITH_API_KEY` and an LLM key per `PINRAG_EVALUATOR_PROVIDER` (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `OPENROUTER_API_KEY`).
 
 **Arguments**
 

@@ -1,6 +1,6 @@
 [project]
 name = "pinrag"
-version = "0.9.25"
+version = "0.9.26"
 description = "A powerful RAG (Retrieval-Augmented Generation) system built with LangChain, designed as an MCP server for Cursor, VS Code, and other AI assistants"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -21,6 +21,7 @@ dependencies = [
     "requests>=2.33.0",
     "yt-dlp>=2026.3.17",
     "youtube-transcript-api>=1.2.0",
+    "langchain-openrouter>=0.2.0",
 ]
 
 [project.urls]
@@ -28,6 +29,8 @@ Homepage = "https://github.com/ndjordjevic/pinrag"
 Repository = "https://github.com/ndjordjevic/pinrag"
 
 [project.optional-dependencies]
+# OpenRouter chat models (also listed in core deps; default LLM provider is openrouter).
+openrouter = ["langchain-openrouter>=0.2.0"]
 # YouTube on-screen enrichment: scene detection (host also needs ffmpeg on PATH).
 vision = ["scenedetect[opencv]>=0.6.7"]
 rerank = ["flashrank>=0.2.10"]
@@ -38,6 +41,8 @@ dev = [
     "mypy>=1.11.1",
     # Same as optional `rerank` extra — keeps rerank tests runnable with `uv sync --extra dev`.
     "flashrank>=0.2.10",
+    # Same as core dep — explicit for `uv sync --extra dev` toolchains that omit main deps.
+    "langchain-openrouter>=0.2.0",
 ]
 
 [project.scripts]

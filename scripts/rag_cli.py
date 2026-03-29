@@ -15,11 +15,6 @@ from pinrag.rag import run_rag  # noqa: E402
 
 
 def main() -> None:
-    err = _script_env.rag_keys_error_message()
-    if err:
-        print(err, file=sys.stderr)
-        sys.exit(1)
-
     parser = argparse.ArgumentParser(
         description="Run RAG: answer a question using indexed PDF chunks, with citations."
     )
@@ -63,6 +58,11 @@ def main() -> None:
         help="Filter retrieval to documents with this tag (e.g. PI_PICO)",
     )
     args = parser.parse_args()
+
+    err = _script_env.rag_keys_error_message()
+    if err:
+        print(err, file=sys.stderr)
+        sys.exit(1)
 
     if (args.page_min is not None) != (args.page_max is not None):
         parser.error("--page-min and --page-max must be provided together")
