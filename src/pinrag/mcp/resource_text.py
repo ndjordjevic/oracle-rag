@@ -144,7 +144,6 @@ def format_server_config() -> str:
         "--- API keys (status only) ---",
         f"  OPENAI_API_KEY: {'set' if _env_set('OPENAI_API_KEY') else 'not set'}",
         f"  ANTHROPIC_API_KEY: {'set' if _env_set('ANTHROPIC_API_KEY') else 'not set'}",
-        f"  COHERE_API_KEY: {'set' if _env_set('COHERE_API_KEY') else 'not set'}",
         f"  GITHUB_TOKEN: {'set' if _env_set('GITHUB_TOKEN') else 'not set'}",
         f"  PINRAG_YT_PROXY_HTTP_URL: {'set' if _env_set('PINRAG_YT_PROXY_HTTP_URL') else 'not set'}",
         f"  PINRAG_YT_PROXY_HTTPS_URL: {'set' if _env_set('PINRAG_YT_PROXY_HTTPS_URL') else 'not set'}",

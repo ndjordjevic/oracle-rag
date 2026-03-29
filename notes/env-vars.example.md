@@ -19,13 +19,10 @@ See also the configuration table in the project `README.md`.
 # ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 # --- Embeddings (required for indexing and retrieval) ---
-# Provider: openai (default) | cohere
+# Provider: openai (default)
 # PINRAG_EMBEDDING_PROVIDER=openai
-# Model name. If unset: openai=text-embedding-3-small, cohere=embed-english-v3.0
+# Model name. If unset: openai=text-embedding-3-small
 # PINRAG_EMBEDDING_MODEL=text-embedding-3-small
-
-# Cohere (required when PINRAG_EMBEDDING_PROVIDER=cohere; pip install pinrag[cohere])
-# COHERE_API_KEY=your_cohere_api_key_here
 
 # --- Storage & chunking ---
 # Persist directory (default: chroma_db, project-local)
@@ -51,8 +48,8 @@ See also the configuration table in the project `README.md`.
 # Child chunk size in characters (default: 800)
 # PINRAG_CHILD_CHUNK_SIZE=800
 
-# --- Re-ranking (Cohere; requires pinrag[cohere] and COHERE_API_KEY) ---
-# Enable Cohere re-ranking (default: false)
+# --- Re-ranking (FlashRank; requires pinrag[rerank]) ---
+# Enable FlashRank re-ranking (default: false)
 # PINRAG_USE_RERANK=false
 # Chunks to fetch before reranking (default: same as PINRAG_RETRIEVE_K)
 # PINRAG_RERANK_RETRIEVE_K=20

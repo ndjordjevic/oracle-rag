@@ -27,7 +27,7 @@ from pinrag.rag.formatting import format_docs, format_sources
 from pinrag.rag.multiquery import wrap_retriever_with_multiquery
 from pinrag.rag.prompts import get_rag_prompt
 from pinrag.rag.query_preprocess import preprocess_query
-from pinrag.rag.rerank import is_rerank_available, wrap_retriever_with_cohere_rerank
+from pinrag.rag.rerank import is_rerank_available, wrap_retriever_with_rerank
 from pinrag.vectorstore.chroma_client import DEFAULT_PERSIST_DIR
 from pinrag.vectorstore.retriever import create_retriever
 
@@ -239,9 +239,7 @@ def run_rag(
                         llm,
                         num_queries=get_multi_query_count(),
                     )
-                retriever = wrap_retriever_with_cohere_rerank(
-                    base_retriever, top_n=top_n
-                )
+                retriever = wrap_retriever_with_rerank(base_retriever, top_n=top_n)
             else:
                 logger.warning(
                     "Re-ranking disabled: %s. Using standard retrieval.", err

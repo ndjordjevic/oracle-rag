@@ -29,7 +29,6 @@ DEFAULT_EVALUATOR_MODEL_ANTHROPIC_CONTEXT = "claude-haiku-4-5"
 # --- Embeddings (PINRAG_EMBEDDING_*) ---
 DEFAULT_EMBEDDING_PROVIDER = "openai"
 DEFAULT_EMBEDDING_MODEL_OPENAI = "text-embedding-3-small"
-DEFAULT_EMBEDDING_MODEL_COHERE = "embed-english-v3.0"
 
 # --- Chunking (PINRAG_CHUNK_*): numeric defaults from pinrag.chunking.splitter ---
 
@@ -123,22 +122,19 @@ def get_evaluator_model(*, context_heavy: bool = False) -> str:
 
 # --- Embeddings ---
 def get_embedding_provider() -> str:
-    """Return embedding provider from PINRAG_EMBEDDING_PROVIDER env (openai | cohere)."""
+    """Return embedding provider from PINRAG_EMBEDDING_PROVIDER env (openai only)."""
     val = os.environ.get("PINRAG_EMBEDDING_PROVIDER", DEFAULT_EMBEDDING_PROVIDER)
     p = (val or "").strip().lower()
-    if p in ("openai", "cohere"):
+    if p in ("openai",):
         return p
     return DEFAULT_EMBEDDING_PROVIDER
 
 
 def get_embedding_model_name() -> str:
-    """Return embedding model name from PINRAG_EMBEDDING_MODEL env, or provider default."""
+    """Return embedding model name from PINRAG_EMBEDDING_MODEL env, or openai default."""
     val = os.environ.get("PINRAG_EMBEDDING_MODEL")
     if val and str(val).strip():
         return str(val).strip()
-    provider = get_embedding_provider()
-    if provider == "cohere":
-        return DEFAULT_EMBEDDING_MODEL_COHERE
     return DEFAULT_EMBEDDING_MODEL_OPENAI
 
 
@@ -218,7 +214,7 @@ def get_retrieve_k() -> int:
 
 
 def get_use_rerank() -> bool:
-    """Return whether to use Cohere re-ranking. Requires pinrag[cohere] and COHERE_API_KEY."""
+    """Return whether to use FlashRank re-ranking. Requires pinrag[rerank]."""
     val = os.environ.get("PINRAG_USE_RERANK")
     if val is None or not str(val).strip():
         return DEFAULT_USE_RERANK

@@ -22,7 +22,6 @@ def test_server_config_resource_includes_api_key_status() -> None:
     assert "OPENAI_API_KEY: set" in out
     assert "sk-secret" not in out
     assert "ANTHROPIC_API_KEY:" in out
-    assert "COHERE_API_KEY:" in out
 
 
 def test_server_config_resource_includes_effective_config() -> None:

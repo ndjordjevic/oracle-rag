@@ -32,10 +32,10 @@ Screen recording: indexing a PDF and using PinRAG from VS Code.
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
 - **Configurable LLM** — OpenAI (default) or Anthropic; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
-- **Configurable embeddings** — OpenAI (default) or Cohere; set via `PINRAG_EMBEDDING_PROVIDER`. Use the same provider for indexing and querying (e.g. re-index after switching).
-- **Retrieval & chunking options** — Structure-aware chunking (on by default); optional Cohere re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
+- **Configurable embeddings** — OpenAI embeddings via `PINRAG_EMBEDDING_MODEL`
+- **Retrieval & chunking options** — Structure-aware chunking (on by default); optional FlashRank re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
 - **Observability** — Optional [LangSmith](https://smith.langchain.com) tracing; optional stderr logging via `PINRAG_LOG_TO_STDERR`
-- **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, Cohere
+- **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, FlashRank
 
 ## Installation
 
@@ -103,7 +103,7 @@ if any are missing. Set keys in your MCP `env` block as in the examples below.
 
 - **Default setup** (OpenAI embeddings + OpenAI chat): set `OPENAI_API_KEY` only.
 - **Anthropic for queries:** set `PINRAG_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (keep `OPENAI_API_KEY` for default embeddings unless you also change embedding provider).
-- **Cohere embeddings:** set `PINRAG_EMBEDDING_PROVIDER=cohere` and `COHERE_API_KEY`; you still need an LLM key (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY` depending on `PINRAG_LLM_PROVIDER`).
+- **Optional re-ranking:** set `PINRAG_USE_RERANK=true` and install `pinrag[rerank]` (no API key required).
 
 A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
 
@@ -213,7 +213,7 @@ Docker images can include vision support by building with **`BUILD_WITH_VISION=1
 
 - **`pinrag` not found:** The editor runs MCP with your login environment. After `pipx` / `uv tool install`, restart the editor and confirm `pinrag` is on `PATH` (e.g. `which pinrag` in a terminal).
 - **Stable vector store path:** Add `PINRAG_PERSIST_DIR` to the MCP `env` block (absolute path, e.g. `~/.pinrag/chroma_db`) so indexes are not tied to the server process working directory.
-- **Cohere embeddings or re-ranking:** Install the extra in the same environment as `pinrag`, e.g. `pipx install 'pinrag[cohere]'` or `uv tool install 'pinrag[cohere]'` (see **Configuration**).
+- **FlashRank re-ranking:** Install the extra in the same environment as `pinrag`, e.g. `pipx install 'pinrag[rerank]'` or `uv tool install 'pinrag[rerank]'` (see **Configuration**).
 - **YouTube vision:** Install `pinrag[vision]` and **ffmpeg**, set `PINRAG_YT_VISION_ENABLED=true` and vision provider keys in MCP `env`, then re-index videos (see [YouTube vision enrichment](#youtube-vision-enrichment-optional)).
 - **Check the running server:** Open the `pinrag://server-config` resource in the MCP panel to see **`PINRAG_VERSION`**, effective LLM, embeddings, chunking, and API key status.
 
@@ -231,9 +231,8 @@ Environment variables:
 | `OPENAI_API_KEY` | *(required for OpenAI)* | OpenAI API key (LLM or embeddings) |
 | `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`) |
 | **Embeddings** | | |
-| `PINRAG_EMBEDDING_PROVIDER` | `openai` | `openai` or `cohere` |
-| `PINRAG_EMBEDDING_MODEL` | *(provider default)* | e.g. `text-embedding-3-small`, `embed-english-v3.0` |
-| `COHERE_API_KEY` | *(required for Cohere)* | Cohere API key; install with `pip install pinrag[cohere]` when using Cohere embeddings or re-ranking |
+| `PINRAG_EMBEDDING_PROVIDER` | `openai` | `openai` |
+| `PINRAG_EMBEDDING_MODEL` | `text-embedding-3-small` | e.g. `text-embedding-3-small`, `text-embedding-3-large` |
 | **Storage & chunking** | | |
 | `PINRAG_PERSIST_DIR` | `chroma_db` | Chroma vector store directory (default is relative to the server process cwd unless you set an absolute path; e.g. `~/.pinrag/chroma_db` for a fixed location) |
 | `PINRAG_CHUNK_SIZE` | `1000` | Text chunk size (chars) |
@@ -248,7 +247,7 @@ Environment variables:
 | `PINRAG_PARENT_CHUNK_SIZE` | `2000` | Parent chunk size (chars) when `PINRAG_USE_PARENT_CHILD=true`. |
 | `PINRAG_CHILD_CHUNK_SIZE` | `800` | Child chunk size (chars) when `PINRAG_USE_PARENT_CHILD=true`. |
 | **Re-ranking** | | |
-| `PINRAG_USE_RERANK` | `false` | Set to `true` to enable Cohere Re-Rank: fetch more chunks, re-score with Cohere, pass top N to the LLM. Requires `pip install pinrag[cohere]` and `COHERE_API_KEY`. |
+| `PINRAG_USE_RERANK` | `false` | Set to `true` to enable FlashRank re-ranking: fetch more chunks, re-score locally, pass top N to the LLM. Requires `pip install pinrag[rerank]` and no API key. |
 | `PINRAG_RERANK_RETRIEVE_K` | `20` | Chunks to fetch before reranking when `PINRAG_USE_RERANK=true`. If unset, uses `PINRAG_RETRIEVE_K`. |
 | `PINRAG_RERANK_TOP_N` | `10` | Chunks passed to the LLM after re-ranking when `PINRAG_USE_RERANK=true` (capped by the pre-rerank fetch size). |
 | **Multi-query** | | |
@@ -292,10 +291,10 @@ For query performance metrics (latency, timing, token usage) and debugging, use 
 
 ### Multiple providers and collections
 
-Embedding dimension depends on the provider (OpenAI 1536, Cohere 1024). To avoid dimension mismatches:
+Embedding dimension depends on the embedding model (for example, OpenAI `text-embedding-3-small` is 1536). To avoid dimension mismatches:
 
 - **Default:** Collection name is `pinrag`. Use one embedding provider; if you switch provider, re-index or you will get dimension errors.
-- **Per-provider collections:** Set `PINRAG_COLLECTION_NAME` to a provider-specific name (e.g. `pinrag_openai`, `pinrag_cohere`) when indexing, and use the same name when querying with that provider. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_PROVIDER` and `PINRAG_COLLECTION_NAME` in MCP `env` or your shell.
+- **Per-model collections:** Set `PINRAG_COLLECTION_NAME` to a model-specific name (e.g. `pinrag_te3_small`, `pinrag_te3_large`) when indexing, and use the same name when querying with that model. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_MODEL` and `PINRAG_COLLECTION_NAME` in MCP `env` or your shell.
 - **MCP tools:** The server uses `PINRAG_COLLECTION_NAME` (default `pinrag`) for all tools. Collection is not configurable per call; change it via MCP `env` or your shell to target a different collection.
 
 ## MCP reference

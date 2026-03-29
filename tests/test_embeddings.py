@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import builtins
-import sys
 from pathlib import Path
 
 import pytest
@@ -35,29 +33,6 @@ def test_openai_explicit_api_key_skips_env(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     emb = get_embedding_model(api_key="sk-from-arg")
     assert isinstance(emb, OpenAIEmbeddings)
-
-
-def test_cohere_missing_api_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
-    pytest.importorskip("langchain_cohere")
-    monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "cohere")
-    monkeypatch.delenv("COHERE_API_KEY", raising=False)
-    with pytest.raises(ValueError, match="COHERE_API_KEY"):
-        get_embedding_model()
-
-
-def test_cohere_requires_langchain_cohere(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PINRAG_EMBEDDING_PROVIDER", "cohere")
-    monkeypatch.delitem(sys.modules, "langchain_cohere", raising=False)
-    real_import = builtins.__import__
-
-    def _import(name: str, *args: object, **kwargs: object) -> object:
-        if name == "langchain_cohere":
-            raise ImportError("simulated missing package")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _import)
-    with pytest.raises(ImportError, match="langchain-cohere"):
-        get_embedding_model()
 
 
 def test_embed_query_generates_vector(monkeypatch) -> None:

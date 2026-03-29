@@ -18,7 +18,6 @@ _ENV_HINT = (
 
 _EMBEDDING_KEYS = {
     "openai": ("OPENAI_API_KEY", "PINRAG_EMBEDDING_PROVIDER"),
-    "cohere": ("COHERE_API_KEY", "PINRAG_EMBEDDING_PROVIDER"),
 }
 
 _LLM_KEYS = {
@@ -57,7 +56,7 @@ def _require_key(
 def require_embedding_api_key() -> None:
     """Verify the embedding provider's API key is set. Exit with error if missing."""
     provider = get_embedding_provider()
-    _require_key(provider, _EMBEDDING_KEYS, "openai or cohere")
+    _require_key(provider, _EMBEDDING_KEYS, "openai")
 
 
 def require_llm_api_key() -> None:
