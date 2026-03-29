@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 
-from pinrag.config import get_embedding_provider, get_llm_provider
+from pinrag.config import get_llm_provider
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +15,6 @@ _ENV_HINT = (
     "server's `env` object in `mcp.json` (e.g. `~/.cursor/mcp.json` or `.vscode/mcp.json`). "
     "For CLI use, export the variable in your shell."
 )
-
-_EMBEDDING_KEYS = {
-    "openai": ("OPENAI_API_KEY", "PINRAG_EMBEDDING_PROVIDER"),
-}
 
 _LLM_KEYS = {
     "anthropic": ("ANTHROPIC_API_KEY", "PINRAG_LLM_PROVIDER"),
@@ -53,12 +49,6 @@ def _require_key(
         _fail(key_env, provider_env, provider)
 
 
-def require_embedding_api_key() -> None:
-    """Verify the embedding provider's API key is set. Exit with error if missing."""
-    provider = get_embedding_provider()
-    _require_key(provider, _EMBEDDING_KEYS, "openai")
-
-
 def require_llm_api_key() -> None:
     """Verify the LLM provider's API key is set. Exit with error if missing."""
     provider = get_llm_provider()
@@ -66,6 +56,8 @@ def require_llm_api_key() -> None:
 
 
 def require_api_keys_for_server() -> None:
-    """Verify both embedding and LLM API keys are set. Exit with error if any are missing."""
-    require_embedding_api_key()
+    """Verify LLM API key is set. Exit with error if missing.
+
+    Embeddings run locally (Nomic) and do not require an API key.
+    """
     require_llm_api_key()

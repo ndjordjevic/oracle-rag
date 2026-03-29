@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import os
 import shutil
+from unittest.mock import MagicMock
 
 import pytest
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
+from langchain_core.messages import AIMessage
 from langchain_core.retrievers import BaseRetriever
+
+from tests.conftest import require_working_llm_for_default_provider, require_working_openai_key
 
 from pinrag.llm import get_chat_model
 from pinrag.rag import RAG_PROMPT, format_docs, format_sources, run_rag
@@ -206,6 +210,7 @@ def test_run_rag_with_multi_query(
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY") and not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("No LLM API key; skipping multi-query integration test")
+    require_working_llm_for_default_provider("multi-query RAG integration")
 
     from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf
@@ -236,7 +241,6 @@ def test_run_rag_with_multi_query(
     assert isinstance(result.sources, list)
 
 
-@pytest.mark.integration
 def test_run_rag_use_rerank_false_uses_normal_retrieval(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -258,7 +262,8 @@ def test_run_rag_use_rerank_false_uses_normal_retrieval(
                 )
             ]
 
-    llm = __import__("pinrag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    llm = MagicMock()
+    llm.invoke.return_value = AIMessage(content="Answer from mock LLM.")
     result = run_rag(
         "test question",
         llm,
@@ -291,7 +296,6 @@ def test_run_rag_use_rerank_true_no_cohere_falls_back(
     assert result.sources == []
 
 
-@pytest.mark.integration
 def test_run_rag_use_rerank_override_false(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -313,7 +317,8 @@ def test_run_rag_use_rerank_override_false(
                 )
             ]
 
-    llm = __import__("pinrag.llm", fromlist=["get_chat_model"]).get_chat_model()
+    llm = MagicMock()
+    llm.invoke.return_value = AIMessage(content="Override answer.")
     result = run_rag(
         "override test",
         llm,
@@ -416,6 +421,7 @@ def test_run_rag_multiple_pdfs_document_id_and_tag_filters(
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set; skipping multi-PDF integration test")
+    require_working_openai_key("multi-PDF RAG integration (OpenAI LLM)")
 
     from pinrag.embeddings import get_embedding_model
     from pinrag.indexing import index_pdf

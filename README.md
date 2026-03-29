@@ -32,7 +32,7 @@ Screen recording: indexing a PDF and using PinRAG from VS Code.
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
 - **Configurable LLM** — OpenAI (default) or Anthropic; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
-- **Configurable embeddings** — OpenAI embeddings via `PINRAG_EMBEDDING_MODEL`
+- **Local embeddings** — Nomic (`PINRAG_EMBEDDING_MODEL`, default `nomic-embed-text-v1.5`); no API key; first run downloads model weights (~270 MB, cached)
 - **Retrieval & chunking options** — Structure-aware chunking (on by default); optional FlashRank re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
 - **Observability** — Optional [LangSmith](https://smith.langchain.com) tracing; optional stderr logging via `PINRAG_LOG_TO_STDERR`
 - **Built with** — LangChain, Chroma; optional OpenAI, Anthropic, FlashRank
@@ -101,8 +101,8 @@ Add PinRAG to your editor’s MCP config and set API keys in the same `env` bloc
 The server validates required API keys at startup and exits with a clear error
 if any are missing. Set keys in your MCP `env` block as in the examples below.
 
-- **Default setup** (OpenAI embeddings + OpenAI chat): set `OPENAI_API_KEY` only.
-- **Anthropic for queries:** set `PINRAG_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (keep `OPENAI_API_KEY` for default embeddings unless you also change embedding provider).
+- **Default setup** (local embeddings + OpenAI chat): set `OPENAI_API_KEY` for the LLM only.
+- **Anthropic for queries:** set `PINRAG_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (no OpenAI key needed unless you use OpenAI for something else, e.g. vision or evaluators).
 - **Optional re-ranking:** set `PINRAG_USE_RERANK=true` and install `pinrag[rerank]` (no API key required).
 
 A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
@@ -228,11 +228,10 @@ Environment variables:
 | **LLM** | | |
 | `PINRAG_LLM_PROVIDER` | `openai` | `openai` or `anthropic` |
 | `PINRAG_LLM_MODEL` | *(provider default)* | e.g. `claude-haiku-4-5`, `claude-sonnet-4-6`, `gpt-4o-mini` |
-| `OPENAI_API_KEY` | *(required for OpenAI)* | OpenAI API key (LLM or embeddings) |
+| `OPENAI_API_KEY` | *(required for OpenAI LLM)* | OpenAI API key when using OpenAI for the LLM (`PINRAG_LLM_PROVIDER=openai`) |
 | `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`) |
 | **Embeddings** | | |
-| `PINRAG_EMBEDDING_PROVIDER` | `openai` | `openai` |
-| `PINRAG_EMBEDDING_MODEL` | `text-embedding-3-small` | e.g. `text-embedding-3-small`, `text-embedding-3-large` |
+| `PINRAG_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Local Nomic model id (via `langchain-nomic`). First run downloads weights (~270 MB, cached). No API key. |
 | **Storage & chunking** | | |
 | `PINRAG_PERSIST_DIR` | `chroma_db` | Chroma vector store directory (default is relative to the server process cwd unless you set an absolute path; e.g. `~/.pinrag/chroma_db` for a fixed location) |
 | `PINRAG_CHUNK_SIZE` | `1000` | Text chunk size (chars) |
@@ -279,7 +278,7 @@ Environment variables:
 | `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`) |
 | `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`) |
 
-> **Re-indexing when changing embedding provider:** Changing `PINRAG_EMBEDDING_PROVIDER` requires re-indexing existing documents (indexes use provider-specific embedding dimensions). Alternatively use separate collections per provider (default behavior) and index into each when needed.
+> **Re-indexing when changing embedding model:** Changing `PINRAG_EMBEDDING_MODEL` (or upgrading from indexes built with older OpenAI embeddings) requires re-indexing; vector dimensions must match the model used at index time.
 >
 > **Re-indexing when enabling parent-child:** Setting `PINRAG_USE_PARENT_CHILD=true` requires re-indexing; the new structure (child chunks in Chroma, parent chunks in docstore) is created only during indexing for supported document types (not plain `.txt`).
 >
@@ -291,10 +290,10 @@ For query performance metrics (latency, timing, token usage) and debugging, use 
 
 ### Multiple providers and collections
 
-Embedding dimension depends on the embedding model (for example, OpenAI `text-embedding-3-small` is 1536). To avoid dimension mismatches:
+Embedding dimension depends on the embedding model (default Nomic `nomic-embed-text-v1.5` is 768). To avoid dimension mismatches:
 
-- **Default:** Collection name is `pinrag`. Use one embedding provider; if you switch provider, re-index or you will get dimension errors.
-- **Per-model collections:** Set `PINRAG_COLLECTION_NAME` to a model-specific name (e.g. `pinrag_te3_small`, `pinrag_te3_large`) when indexing, and use the same name when querying with that model. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_MODEL` and `PINRAG_COLLECTION_NAME` in MCP `env` or your shell.
+- **Default:** Collection name is `pinrag`. If you change `PINRAG_EMBEDDING_MODEL`, re-index or you will get dimension errors.
+- **Per-model collections:** Set `PINRAG_COLLECTION_NAME` to a model-specific name when indexing, and use the same name when querying with that model. You can index the same PDFs into multiple collections (switch env and index again) and switch by changing `PINRAG_EMBEDDING_MODEL` and `PINRAG_COLLECTION_NAME` in MCP `env` or your shell.
 - **MCP tools:** The server uses `PINRAG_COLLECTION_NAME` (default `pinrag`) for all tools. Collection is not configurable per call; change it via MCP `env` or your shell to target a different collection.
 
 ## MCP reference

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,6 +33,46 @@ def sample_pdf_path(repo_root: Path) -> Path:
     if not path.exists():
         pytest.skip("sample PDF not present")
     return path
+
+
+def require_working_openai_key(reason: str = "integration test") -> None:
+    """Skip if ``OPENAI_API_KEY`` is missing or rejected by the API (401).
+
+    Uses a lightweight ``models.list()`` call so invalid keys do not fail long runs.
+    """
+    key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+    if not key:
+        pytest.skip(f"{reason}: OPENAI_API_KEY not set")
+    try:
+        from openai import APIConnectionError, AuthenticationError, OpenAI
+
+        OpenAI().models.list()
+    except AuthenticationError as e:
+        pytest.skip(f"{reason}: invalid or expired OPENAI_API_KEY ({e})")
+    except APIConnectionError as e:
+        pytest.skip(f"{reason}: OpenAI API unreachable ({e})")
+
+
+def require_working_llm_for_default_provider(reason: str = "integration test") -> None:
+    """Skip if the configured LLM provider credentials are missing or invalid."""
+    from pinrag.config import get_llm_provider
+
+    provider = get_llm_provider()
+    if provider == "openai":
+        require_working_openai_key(reason=reason)
+        return
+    if provider == "anthropic":
+        key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+        if not key:
+            pytest.skip(f"{reason}: ANTHROPIC_API_KEY not set")
+        try:
+            from anthropic import Anthropic, APIConnectionError, AuthenticationError
+
+            Anthropic().models.list(limit=1)
+        except AuthenticationError as e:
+            pytest.skip(f"{reason}: invalid or expired ANTHROPIC_API_KEY ({e})")
+        except APIConnectionError as e:
+            pytest.skip(f"{reason}: Anthropic API unreachable ({e})")
 
 
 def pytest_collection_modifyitems(

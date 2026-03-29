@@ -193,7 +193,7 @@ uv run python scripts/test_llm_cli.py "What is 2+2? Reply with one number."
 
 ## rag_cli.py
 
-Run the full RAG chain: ask a question over indexed documents and get an answer with source citations. Requires API keys for the configured **embedding** provider (`PINRAG_EMBEDDING_PROVIDER`: OpenAI or Cohere) and **LLM** provider (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic).
+Run the full RAG chain: ask a question over indexed documents and get an answer with source citations. Embeddings run locally (Nomic; no key). Requires an API key for the **LLM** provider (`PINRAG_LLM_PROVIDER`: OpenAI or Anthropic).
 
 **Arguments**
 

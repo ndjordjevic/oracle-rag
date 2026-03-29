@@ -86,7 +86,6 @@ def format_server_config() -> str:
         ("PINRAG_COLLECTION_NAME", config.get_collection_name),
         ("PINRAG_LLM_PROVIDER", config.get_llm_provider),
         ("PINRAG_LLM_MODEL", config.get_llm_model),
-        ("PINRAG_EMBEDDING_PROVIDER", config.get_embedding_provider),
         ("PINRAG_EMBEDDING_MODEL", config.get_embedding_model_name),
         ("PINRAG_CHUNK_SIZE", lambda: str(config.get_chunk_size())),
         ("PINRAG_CHUNK_OVERLAP", lambda: str(config.get_chunk_overlap())),

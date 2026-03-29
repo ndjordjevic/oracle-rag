@@ -31,6 +31,7 @@ import pytest
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
+from tests.conftest import require_working_openai_key
 from tests.helpers.mcp_stdio_env import (
     build_server_env_for_mcp_itest,
     mcp_stdio_itest_query,
@@ -91,8 +92,9 @@ def test_pdf_roundtrip_pypi_package(tmp_path: Path) -> None:
 
     if not env.get("OPENAI_API_KEY", "").strip():
         pytest.skip(f"OPENAI_API_KEY not set. {_SKIP_KEYS_HINT}")
-    if not env.get("ANTHROPIC_API_KEY", "").strip():
-        pytest.skip(f"ANTHROPIC_API_KEY not set. {_SKIP_KEYS_HINT}")
+    require_working_openai_key(
+        "PyPI MCP stdio (published package may use OpenAI for embeddings and/or LLM)"
+    )
     uv_bin = _uv_bin()
     if not uv_bin:
         pytest.skip("uv not found (install uv or set PINRAG_TEST_UV)")

@@ -173,7 +173,7 @@ PINRAG_RESPONSE_STYLE=concise uv run python -m pinrag.evaluation --dataset pinra
 
 ## 8. Experiment results
 
-**Setup:** Embedding text-embedding-3-small, collection `pinrag`. Judge: gpt-4o (correctness/relevance), gpt-4o-mini (groundedness/retrieval_relevance).
+**Setup:** Embedding local Nomic `nomic-embed-text-v1.5` (768-dim; re-index if migrating from older OpenAI-indexed stores), collection `pinrag`. Judge: gpt-4o (correctness/relevance), gpt-4o-mini (groundedness/retrieval_relevance).
 
 Early runs showed correctness improves with k and with prompt/ref-answer fixes; the judge was set to gpt-4o for correctness/relevance to grade technical answers consistently. Min-k sweep on `pinrag-golden` (30 Qs): all questions pass with **k=10** (two need k=10, rest k=5).
 

@@ -8,7 +8,7 @@ PinRAG is a retrieval-augmented generation (RAG) MCP server built with LangChain
 
 ## Setup Requirements
 
-- `OPENAI_API_KEY` (required): Default OpenAI embeddings and default OpenAI chat. https://platform.openai.com/api-keys
+- `OPENAI_API_KEY` (required when using OpenAI for the LLM): Default chat model is OpenAI; embeddings are local (Nomic) and need no key. https://platform.openai.com/api-keys
 - `PINRAG_PERSIST_DIR` (optional): Absolute path to the Chroma data directory; defaults to `chroma_db` relative to the server process if unset.
 
 Use `env` keys in this order in `mcp.json` (example):

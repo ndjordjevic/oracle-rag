@@ -9,10 +9,12 @@
 | **Hugging Face API** | Many models, no local compute | Cost, data sent to HF |
 | **Other APIs** (Cohere, Voyage, etc.) | Alternative to OpenAI | Extra integration, vendor lock-in |
 
-## Decision
+## Decision (historical)
 
-**We use the OpenAI embedding API** (e.g. `text-embedding-3-small`) for Phase 1.
+Phase 1 originally used the **OpenAI embedding API** (e.g. `text-embedding-3-small`).
 
-- Fast to integrate with LangChain (`langchain-openai`).
-- Good retrieval quality with no local GPU.
-- Can be swapped later via a thin embedding abstraction if we move to local/HF.
+## Current (supersedes above)
+
+**Embeddings are local-only:** `nomic-embed-text-v1.5` via `langchain-nomic` (`NomicEmbeddings`, `inference_mode="local"`). No embedding API key; weights download once (~270 MB). **Existing Chroma indexes built with OpenAI 1536-dim vectors are incompatible** — use a new persist dir / collection and re-index.
+
+The LLM path may still use OpenAI (`OPENAI_API_KEY`) or Anthropic; that is separate from embeddings.

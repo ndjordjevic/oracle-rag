@@ -68,7 +68,7 @@ def index_pdf(
         path: PDF path to index.
         persist_directory: Chroma persistence directory.
         collection_name: Chroma collection name. If None, uses provider-based name (e.g. pinrag_openai).
-        embedding: Optional embedding model; if None, uses default OpenAI embeddings.
+        embedding: Optional embedding model; if None, uses default local Nomic embeddings.
         chunk_size: Chunk size in chars; if None, uses PINRAG_CHUNK_SIZE env or 1000.
         chunk_overlap: Chunk overlap in chars; if None, uses PINRAG_CHUNK_OVERLAP env or 200.
         tag: Optional single tag for this document (e.g. "amiga"); stored on all chunks for filtering.
@@ -258,7 +258,7 @@ def query_index(
         k: Number of top matching chunks to return.
         persist_directory: Chroma persistence directory (must match indexing).
         collection_name: Chroma collection name (must match indexing). If None, uses provider-based name.
-        embedding: Optional embedding model; if None, uses default OpenAI embeddings.
+        embedding: Optional embedding model; if None, uses default local Nomic embeddings.
         document_id: Optional document ID to filter by (e.g. PDF file name). Only chunks
             from this document are considered for retrieval.
         page_min: Optional start of page range (inclusive). Use with page_max.

@@ -1,4 +1,4 @@
-"""Embedding client for RAG (OpenAI / Cohere)."""
+"""Embedding client for RAG (local Nomic)."""
 
 from pinrag.embeddings.openai_client import get_embedding_model
 

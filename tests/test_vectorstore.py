@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -62,13 +61,7 @@ def test_chroma_add_documents_and_similarity_search(tmp_path: Path) -> None:
 
 @pytest.mark.integration
 def test_chroma_add_and_search_with_real_embedding(tmp_path: Path) -> None:
-    """Add documents and similarity_search using real OpenAI embeddings (skip if no API key)."""
-    from dotenv import load_dotenv
-
-    load_dotenv()
-    if not os.environ.get("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set; skipping real-embedding Chroma test")
-
+    """Add documents and similarity_search using real local Nomic embeddings."""
     from pinrag.embeddings import get_embedding_model
 
     store = get_chroma_store(

@@ -6,7 +6,7 @@
 |------|-----------|----------------|
 | **Core** | `langchain_core.documents.Document` | PDF loader returns per-page `Document`s; chunking consumes/produces `Document`s with `page_content` + `metadata`. |
 | **Text splitters** | `langchain_text_splitters.RecursiveCharacterTextSplitter` | Chunking with configurable `chunk_size`, `chunk_overlap`; `split_documents()`. |
-| **Embeddings** | `langchain_openai.OpenAIEmbeddings` | Embedding client (text-embedding-3-small); `embed_query()`, `embed_documents()`. |
+| **Embeddings** | `langchain_nomic.NomicEmbeddings` | Local embedding client (`nomic-embed-text-v1.5`, `inference_mode="local"`); `embed_query()`, `embed_documents()`. |
 | **Vector store** | `langchain_chroma.Chroma` | Persisted Chroma store; `add_documents()`, `similarity_search()`, `as_retriever()`. |
 | **Retrieval** | `langchain_core.retrievers.BaseRetriever` / `store.as_retriever()` | RAG pipeline uses a retriever: `create_retriever()` builds one with `search_kwargs` (k, filter); `run_rag(retriever=...)` accepts a retriever or builds one from legacy params. |
 | **Retrieval** | `langchain_classic.retrievers.contextual_compression.ContextualCompressionRetriever` | Wraps retriever with a document compressor; used with `CohereRerank` for "retrieve k=10, rerank to top 5" strategy when `PINRAG_USE_RERANK=true`. |

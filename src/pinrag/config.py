@@ -26,9 +26,8 @@ DEFAULT_EVALUATOR_MODEL_OPENAI_CONTEXT = "gpt-4o-mini"
 DEFAULT_EVALUATOR_MODEL_ANTHROPIC = "claude-sonnet-4-6"
 DEFAULT_EVALUATOR_MODEL_ANTHROPIC_CONTEXT = "claude-haiku-4-5"
 
-# --- Embeddings (PINRAG_EMBEDDING_*) ---
-DEFAULT_EMBEDDING_PROVIDER = "openai"
-DEFAULT_EMBEDDING_MODEL_OPENAI = "text-embedding-3-small"
+# --- Embeddings (PINRAG_EMBEDDING_*) — local Nomic only ---
+DEFAULT_EMBEDDING_MODEL_LOCAL = "nomic-embed-text-v1.5"
 
 # --- Chunking (PINRAG_CHUNK_*): numeric defaults from pinrag.chunking.splitter ---
 
@@ -121,21 +120,12 @@ def get_evaluator_model(*, context_heavy: bool = False) -> str:
 
 
 # --- Embeddings ---
-def get_embedding_provider() -> str:
-    """Return embedding provider from PINRAG_EMBEDDING_PROVIDER env (openai only)."""
-    val = os.environ.get("PINRAG_EMBEDDING_PROVIDER", DEFAULT_EMBEDDING_PROVIDER)
-    p = (val or "").strip().lower()
-    if p in ("openai",):
-        return p
-    return DEFAULT_EMBEDDING_PROVIDER
-
-
 def get_embedding_model_name() -> str:
-    """Return embedding model name from PINRAG_EMBEDDING_MODEL env, or openai default."""
+    """Return Nomic embedding model id from PINRAG_EMBEDDING_MODEL env, or default local model."""
     val = os.environ.get("PINRAG_EMBEDDING_MODEL")
     if val and str(val).strip():
         return str(val).strip()
-    return DEFAULT_EMBEDDING_MODEL_OPENAI
+    return DEFAULT_EMBEDDING_MODEL_LOCAL
 
 
 # --- Chroma storage ---
@@ -152,7 +142,7 @@ def get_collection_name() -> str:
     """Return Chroma collection name.
 
     If PINRAG_COLLECTION_NAME is set, use it. Otherwise return DEFAULT_COLLECTION_NAME.
-    Use a single collection per persist dir; if you switch embedding providers,
+    Use a single collection per persist dir; if you switch embedding models,
     re-index or use a separate PINRAG_PERSIST_DIR / PINRAG_COLLECTION_NAME
     to avoid dimension mismatches.
     """

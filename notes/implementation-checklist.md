@@ -41,8 +41,8 @@
   - [x] Add document identifier to chunks
 
 - [x] **Embedding Setup**
-  - [x] Choose embedding model (**OpenAI API** — see [embedding-provider-decision.md](embedding-provider-decision.md))
-  - [x] Set up embedding model client
+  - [x] Choose embedding model (**local Nomic** `nomic-embed-text-v1.5` via `langchain-nomic`; historical context in [embedding-provider-decision.md](embedding-provider-decision.md))
+  - [x] Set up embedding model client (`get_embedding_model()` → `NomicEmbeddings`, `inference_mode="local"`)
   - [x] Test embedding generation (incl. pipeline test: PDF load → chunk → embed a few chunks in `tests/test_embeddings.py::test_embed_pdf_chunks`)
 
 ### Vector Store

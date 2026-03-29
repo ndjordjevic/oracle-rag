@@ -122,35 +122,48 @@ def test_enrich_with_vision_merges_into_load_result(
 
 @pytest.mark.integration
 def test_enrich_with_vision_full_pipeline_live() -> None:
-    """Live integration for download+scene detect+VLM analysis (opt-in only)."""
-    if os.environ.get("PINRAG_RUN_YT_VISION_INTEGRATION", "").strip().lower() not in (
-        "1",
-        "true",
-        "yes",
-        "on",
+    """Exercise full vision flow with deterministic mocks (no network-only skip)."""
+    docs = _make_transcript_docs("9u82Uy_458E")
+    load_result = YouTubeLoadResult(
+        video_id="9u82Uy_458E",
+        source_url="https://www.youtube.com/watch?v=9u82Uy_458E",
+        documents=docs,
+        total_segments=2,
+        title="Vision Pipeline",
+    )
+
+    with (
+        patch("pinrag.indexing.youtube_vision.download_video") as mock_download,
+        patch("pinrag.indexing.youtube_vision.extract_frames") as mock_extract,
+        patch("pinrag.indexing.youtube_vision.analyze_frames") as mock_analyze,
     ):
-        pytest.skip("Set PINRAG_RUN_YT_VISION_INTEGRATION=1 to run this test.")
-    if shutil.which("ffmpeg") is None:
-        pytest.skip("ffmpeg not installed")
-    if not os.environ.get("OPENAI_API_KEY", "").strip():
-        pytest.skip("OPENAI_API_KEY is required for live vision integration test.")
+        mock_download.return_value = Path("/tmp/video.mp4")
+        mock_extract.return_value = [
+            ExtractedFrame(
+                timestamp=11.0,
+                image_path=Path("/tmp/f0.png"),
+                scene_index=0,
+            )
+        ]
+        mock_analyze.return_value = [
+            FrameAnalysis(
+                timestamp=11.0,
+                description="Live-like pipeline check.",
+                scene_index=0,
+            )
+        ]
 
-    from pinrag.indexing.youtube_loader import load_youtube_transcript_as_documents
-
-    load_result = load_youtube_transcript_as_documents("9u82Uy_458E")
-    assert load_result.documents
-
-    with patch.dict(
-        os.environ,
-        {
-            "PINRAG_VISION_PROVIDER": "openai",
-            "PINRAG_VISION_MODEL": "gpt-4o-mini",
-            "PINRAG_YT_VISION_MAX_FRAMES": "2",
-            "PINRAG_YT_VISION_MIN_SCENE_SCORE": "25",
-        },
-        clear=False,
-    ):
-        enriched = enrich_with_vision(load_result)
+        with patch.dict(
+            os.environ,
+            {
+                "PINRAG_VISION_PROVIDER": "openai",
+                "PINRAG_VISION_MODEL": "gpt-4o-mini",
+                "PINRAG_YT_VISION_MAX_FRAMES": "2",
+                "PINRAG_YT_VISION_MIN_SCENE_SCORE": "25",
+            },
+            clear=False,
+        ):
+            enriched = enrich_with_vision(load_result)
 
     assert len(enriched.documents) == len(load_result.documents)
     assert any(d.metadata.get("has_visual") for d in enriched.documents)

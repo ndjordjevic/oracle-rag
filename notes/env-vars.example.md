@@ -12,17 +12,15 @@ See also the configuration table in the project `README.md`.
 # Model name (provider-specific). If unset: openai=gpt-4o-mini, anthropic=claude-haiku-4-5
 # PINRAG_LLM_MODEL=gpt-4o-mini
 
-# OpenAI (required for OpenAI LLM or OpenAI embeddings; default embedding provider)
+# OpenAI (required when PINRAG_LLM_PROVIDER=openai)
 #OPENAI_API_KEY=your_openai_api_key_here
 
 # Anthropic (required when PINRAG_LLM_PROVIDER=anthropic)
 # ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-# --- Embeddings (required for indexing and retrieval) ---
-# Provider: openai (default)
-# PINRAG_EMBEDDING_PROVIDER=openai
-# Model name. If unset: openai=text-embedding-3-small
-# PINRAG_EMBEDDING_MODEL=text-embedding-3-small
+# --- Embeddings (local Nomic; no API key) ---
+# Model id. If unset: nomic-embed-text-v1.5 (first run downloads ~270 MB, cached locally)
+# PINRAG_EMBEDDING_MODEL=nomic-embed-text-v1.5
 
 # --- Storage & chunking ---
 # Persist directory (default: chroma_db, project-local)

@@ -8,12 +8,12 @@ Usage:
 
 Requires: LANGSMITH_API_KEY; OPENAI_API_KEY or ANTHROPIC_API_KEY (per PINRAG_EVALUATOR_PROVIDER).
 
-Embedding: Use the same PINRAG_EMBEDDING_PROVIDER / PINRAG_EMBEDDING_MODEL
-(as in .env) that was used when indexing the Chroma collection. A dimension mismatch
-(e.g. "expecting 1536, got 1024") means the index was built with a different model.
+Embedding: Use the same PINRAG_EMBEDDING_MODEL (as in .env) that was used when
+indexing the Chroma collection. A dimension mismatch means the index was built
+with a different model.
 
-Collection: By default the retriever uses pinrag_<provider> (e.g. pinrag_openai).
-Set PINRAG_COLLECTION_NAME to override (e.g. pinrag for a single shared collection).
+Collection: Set PINRAG_COLLECTION_NAME to match the collection you indexed into
+(default `pinrag`).
 """
 
 from __future__ import annotations
