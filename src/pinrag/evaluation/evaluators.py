@@ -3,7 +3,12 @@
 LLM-as-judge (correctness, groundedness): PINRAG_EVALUATOR_PROVIDER (openai | anthropic | openrouter).
 OpenAI: gpt-4o for correctness, gpt-4o-mini for groundedness.
 Anthropic: claude-sonnet-4-6 for correctness, claude-haiku-4-5 for groundedness.
-OpenRouter: openrouter/free for both (structured output support varies by model).
+OpenRouter: default ``openrouter/free`` for both (zero-cost; the gateway may route across
+capable free models). Graders use ``json_schema`` strict structured output—if a routed model
+does not support that well, set ``PINRAG_EVALUATOR_MODEL`` / ``PINRAG_EVALUATOR_MODEL_CONTEXT`` to a
+specific free slug from https://openrouter.ai/models (filter ``structured_outputs``).
+``PINRAG_LLM_MODEL_FALLBACKS`` and ``PINRAG_OPENROUTER_SORT`` apply to the OpenRouter
+chat client here the same as for RAG generation when the evaluator provider is openrouter.
 Code evaluators have no LLM cost.
 """
 
@@ -17,6 +22,8 @@ from langchain_core.messages import HumanMessage
 from pinrag.config import (
     get_evaluator_model,
     get_evaluator_provider,
+    get_llm_model_fallbacks,
+    get_openrouter_sort,
     sync_openrouter_sdk_attribution_env,
 )
 
@@ -73,11 +80,17 @@ def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> Any:
         from langchain_openrouter import ChatOpenRouter
 
         sync_openrouter_sdk_attribution_env()
+        fallbacks = get_llm_model_fallbacks()
+        sort = get_openrouter_sort()
+        model_kwargs = {"models": fallbacks} if fallbacks else {}
+        openrouter_provider = {"sort": sort} if sort else None
         llm = ChatOpenRouter(  # type: ignore[call-arg]
             model=model,
             temperature=0,
             app_url=None,
             app_title=None,
+            model_kwargs=model_kwargs,
+            openrouter_provider=openrouter_provider,
         )
     else:
         from langchain_openai import ChatOpenAI

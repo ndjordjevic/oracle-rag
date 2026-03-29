@@ -13,6 +13,10 @@ See also the configuration table in the project `README.md`.
 #   openrouter=openrouter/free (free model router), openai=gpt-4o-mini, anthropic=claude-haiku-4-5
 # Premium OpenRouter example: PINRAG_LLM_MODEL=anthropic/claude-sonnet-4-6
 # PINRAG_LLM_MODEL=openrouter/free
+# Optional: comma-separated fallback slugs (OpenRouter `models`); tried if the primary model fails (stay free with other :free slugs).
+# PINRAG_LLM_MODEL_FALLBACKS=google/gemini-2.0-flash-001:free,meta-llama/llama-3.3-70b-instruct:free
+# Optional provider preference: price | throughput | latency
+# PINRAG_OPENROUTER_SORT=price
 
 # OpenRouter (required when PINRAG_LLM_PROVIDER=openrouter; get a key at https://openrouter.ai/)
 #OPENROUTER_API_KEY=your_openrouter_api_key_here
@@ -118,6 +122,9 @@ See also the configuration table in the project `README.md`.
 # PINRAG_EVALUATOR_MODEL=gpt-4o
 # Model for groundedness/retrieval (context-heavy). If unset: openai=gpt-4o-mini, anthropic=claude-haiku-4-5, openrouter=openrouter/free
 # PINRAG_EVALUATOR_MODEL_CONTEXT=gpt-4o-mini
+# OpenRouter defaults stay free (openrouter/free) but may rotate underlying models; graders use strict json_schema.
+# For stable free grading, set EVALUATOR_MODEL* to a specific slug from https://openrouter.ai/models (structured_outputs).
+# When PINRAG_EVALUATOR_PROVIDER=openrouter, PINRAG_LLM_MODEL_FALLBACKS and PINRAG_OPENROUTER_SORT apply to the grader client too.
 
 # --- Optional: LangSmith tracing (see notes/langsmith-setup.md) ---
 # LANGSMITH_API_KEY=your_langsmith_api_key_here

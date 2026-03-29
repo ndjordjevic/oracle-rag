@@ -43,7 +43,7 @@ def _load_env() -> None:
 
 
 def _check_env() -> None:
-    """Require LANGSMITH_API_KEY and API key for evaluator provider (OPENAI or ANTHROPIC)."""
+    """Require LANGSMITH_API_KEY and API key for evaluator provider (OpenAI, Anthropic, or OpenRouter)."""
     from pinrag.config import get_evaluator_provider
 
     missing: list[str] = []
@@ -54,6 +54,8 @@ def _check_env() -> None:
         missing.append("ANTHROPIC_API_KEY")
     elif provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
         missing.append("OPENAI_API_KEY")
+    elif provider == "openrouter" and not os.environ.get("OPENROUTER_API_KEY"):
+        missing.append("OPENROUTER_API_KEY")
     if missing:
         print(
             f"Error: Missing required env vars: {', '.join(missing)}. "

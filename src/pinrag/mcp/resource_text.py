@@ -86,6 +86,11 @@ def format_server_config() -> str:
         ("PINRAG_COLLECTION_NAME", config.get_collection_name),
         ("PINRAG_LLM_PROVIDER", config.get_llm_provider),
         ("PINRAG_LLM_MODEL", config.get_llm_model),
+        (
+            "PINRAG_LLM_MODEL_FALLBACKS",
+            lambda: ",".join(config.get_llm_model_fallbacks() or []),
+        ),
+        ("PINRAG_OPENROUTER_SORT", lambda: config.get_openrouter_sort() or ""),
         ("PINRAG_EVALUATOR_PROVIDER", config.get_evaluator_provider),
         (
             "PINRAG_EVALUATOR_MODEL",

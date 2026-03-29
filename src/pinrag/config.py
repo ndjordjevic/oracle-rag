@@ -132,6 +132,30 @@ def sync_openrouter_sdk_attribution_env() -> None:
         os.environ.pop("OPENROUTER_X_OPEN_ROUTER_TITLE", None)
 
 
+def get_llm_model_fallbacks() -> list[str] | None:
+    """Return OpenRouter fallback model IDs from ``PINRAG_LLM_MODEL_FALLBACKS`` (comma-separated).
+
+    Passed to OpenRouter as the ``models`` request field so the gateway tries the next
+    model when the primary (``PINRAG_LLM_MODEL``) fails (rate limits, downtime, etc.).
+    Only used when ``PINRAG_LLM_PROVIDER=openrouter``.
+    """
+    val = os.environ.get("PINRAG_LLM_MODEL_FALLBACKS")
+    if val is None or not str(val).strip():
+        return None
+    out = [p.strip() for p in str(val).split(",") if p.strip()]
+    return out or None
+
+
+def get_openrouter_sort() -> str | None:
+    """Return OpenRouter ``provider.sort`` from ``PINRAG_OPENROUTER_SORT`` if set.
+
+    Valid values: ``price``, ``throughput``, ``latency``. Invalid or empty env returns
+    ``None`` (OpenRouter default routing). Only used when ``PINRAG_LLM_PROVIDER=openrouter``.
+    """
+    val = (os.environ.get("PINRAG_OPENROUTER_SORT") or "").strip().lower()
+    return val if val in ("price", "throughput", "latency") else None
+
+
 # --- Evaluator ---
 def get_evaluator_provider() -> str:
     """Return evaluator (LLM-as-judge) provider from PINRAG_EVALUATOR_PROVIDER env (openai | anthropic | openrouter)."""

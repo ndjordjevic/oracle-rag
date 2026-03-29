@@ -75,11 +75,28 @@ def test_get_chat_model_returns_openrouter_when_configured(
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
     monkeypatch.setenv("PINRAG_LLM_MODEL", DEFAULT_LLM_MODEL_OPENROUTER)
+    monkeypatch.delenv("PINRAG_LLM_MODEL_FALLBACKS", raising=False)
+    monkeypatch.delenv("PINRAG_OPENROUTER_SORT", raising=False)
     llm = get_chat_model()
     assert isinstance(llm, ChatOpenRouter)
     assert llm.model_name == DEFAULT_LLM_MODEL_OPENROUTER
     assert os.environ.get("OPENROUTER_HTTP_REFERER") == DEFAULT_OPENROUTER_APP_URL
     assert os.environ.get("OPENROUTER_X_OPEN_ROUTER_TITLE") == DEFAULT_OPENROUTER_APP_TITLE
+
+
+def test_openrouter_model_fallbacks_and_sort_in_chat_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """OpenRouter extras: PINRAG_LLM_MODEL_FALLBACKS and PINRAG_OPENROUTER_SORT."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
+    monkeypatch.setenv("PINRAG_LLM_MODEL", "openrouter/free")
+    monkeypatch.setenv("PINRAG_LLM_MODEL_FALLBACKS", "meta/llama:free, google/gemini:free")
+    monkeypatch.setenv("PINRAG_OPENROUTER_SORT", "throughput")
+    llm = get_chat_model()
+    assert isinstance(llm, ChatOpenRouter)
+    assert llm.model_kwargs == {"models": ["meta/llama:free", "google/gemini:free"]}
+    assert llm.openrouter_provider == {"sort": "throughput"}
 
 
 def test_openrouter_app_attribution_env_override_in_chat_model(

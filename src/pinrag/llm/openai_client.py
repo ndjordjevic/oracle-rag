@@ -12,7 +12,9 @@ from pydantic import SecretStr
 from pinrag.config import (
     DEFAULT_LLM_MODEL_OPENAI,
     get_llm_model,
+    get_llm_model_fallbacks,
     get_llm_provider,
+    get_openrouter_sort,
     sync_openrouter_sdk_attribution_env,
 )
 
@@ -49,12 +51,18 @@ def get_chat_model(
         sync_openrouter_sdk_attribution_env()
         # app_url/app_title=None: SDK reads OPENROUTER_HTTP_REFERER / OPENROUTER_X_OPEN_ROUTER_TITLE
         # (set above); passing non-None would use langchain's x_title kwarg, which mismatches the SDK.
+        fallbacks = get_llm_model_fallbacks()
+        sort = get_openrouter_sort()
+        model_kwargs = {"models": fallbacks} if fallbacks else {}
+        openrouter_provider = {"sort": sort} if sort else None
         return ChatOpenRouter(  # type: ignore[call-arg]
             model=model_name,
             api_key=SecretStr(key),
             temperature=temperature,
             app_url=None,
             app_title=None,
+            model_kwargs=model_kwargs,
+            openrouter_provider=openrouter_provider,
         )
 
     if provider == "anthropic":

@@ -229,6 +229,8 @@ Environment variables:
 | **LLM** | | |
 | `PINRAG_LLM_PROVIDER` | `openrouter` | `openrouter`, `openai`, or `anthropic` |
 | `PINRAG_LLM_MODEL` | *(provider default)* | OpenRouter: default `openrouter/free`; or any slug (e.g. `anthropic/claude-sonnet-4-6`). OpenAI/Anthropic: e.g. `gpt-4o-mini`, `claude-haiku-4-5` |
+| `PINRAG_LLM_MODEL_FALLBACKS` | *(unset)* | OpenRouter only: comma-separated fallback model slugs sent as OpenRouter’s `models` list. The gateway tries the next slug when the primary (`PINRAG_LLM_MODEL`) fails (rate limits, downtime, etc.). Use extra free models here to stay zero-cost. |
+| `PINRAG_OPENROUTER_SORT` | *(unset)* | OpenRouter only: optional `provider.sort` — `price`, `throughput`, or `latency`. When unset, OpenRouter uses its default provider selection. |
 | `OPENROUTER_API_KEY` | *(required for OpenRouter LLM)* | OpenRouter API key when `PINRAG_LLM_PROVIDER=openrouter` or `PINRAG_EVALUATOR_PROVIDER=openrouter` |
 | `OPENROUTER_APP_URL` | `https://github.com/ndjordjevic/pinrag` | OpenRouter app attribution (`HTTP-Referer`). Override with your site URL (see [OpenRouter app attribution](https://openrouter.ai/docs/app-attribution)). PinRAG copies this into `OPENROUTER_HTTP_REFERER` for the OpenRouter Python SDK. |
 | `OPENROUTER_APP_TITLE` | `PinRAG` | OpenRouter app title (`X-Title`). Override to label usage in the OpenRouter dashboard. PinRAG copies this into `OPENROUTER_X_OPEN_ROUTER_TITLE` for the SDK. |
@@ -285,8 +287,8 @@ Environment variables:
 | `LANGSMITH_ENDPOINT` | US API (implicit) | **EU workspaces:** set `https://eu.api.smith.langchain.com` so traces land in your EU project. If your account uses `eu.smith.langchain.com` in the browser, you need this. US-region workspaces can omit it (default API host). |
 | **Evaluators (LLM-as-judge)** | | |
 | `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai`, `anthropic`, or `openrouter` — which LLM runs LLM-as-judge graders. Used only during evaluation runs (LangSmith experiments). |
-| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`, `openrouter/free` when evaluator provider is OpenRouter). |
-| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`, `openrouter/free` when evaluator provider is OpenRouter). |
+| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`, `openrouter/free` when evaluator provider is OpenRouter). With OpenRouter, the default free router may rotate models; graders use strict JSON schema—set this to a **specific** free slug from [openrouter.ai/models](https://openrouter.ai/models) if you need stable structured output. |
+| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`, `openrouter/free` when evaluator provider is OpenRouter). Same OpenRouter note as `PINRAG_EVALUATOR_MODEL`. `PINRAG_LLM_MODEL_FALLBACKS` / `PINRAG_OPENROUTER_SORT` apply when the evaluator provider is OpenRouter. |
 
 > **Re-indexing when changing embedding model:** Changing `PINRAG_EMBEDDING_MODEL` (or upgrading from indexes built with older OpenAI embeddings) requires re-indexing; vector dimensions must match the model used at index time.
 >

@@ -17,9 +17,11 @@ from pinrag.config import (
     get_chunk_size,
     get_collection_name,
     get_llm_model,
+    get_llm_model_fallbacks,
     get_llm_provider,
     get_openrouter_app_title,
     get_openrouter_app_url,
+    get_openrouter_sort,
     sync_openrouter_sdk_attribution_env,
     get_persist_dir,
     get_plaintext_max_file_bytes,
@@ -64,6 +66,34 @@ def test_sync_openrouter_sdk_attribution_env(monkeypatch: pytest.MonkeyPatch) ->
     sync_openrouter_sdk_attribution_env()
     assert os.environ.get("OPENROUTER_HTTP_REFERER") == "https://a.example"
     assert os.environ.get("OPENROUTER_X_OPEN_ROUTER_TITLE") == "T"
+
+
+def test_get_llm_model_fallbacks_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_LLM_MODEL_FALLBACKS", raising=False)
+    assert get_llm_model_fallbacks() is None
+
+
+def test_get_llm_model_fallbacks_parsed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "PINRAG_LLM_MODEL_FALLBACKS",
+        "a/b:free, c/d ,",
+    )
+    assert get_llm_model_fallbacks() == ["a/b:free", "c/d"]
+
+
+def test_get_openrouter_sort_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_OPENROUTER_SORT", raising=False)
+    assert get_openrouter_sort() is None
+
+
+def test_get_openrouter_sort_valid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_OPENROUTER_SORT", "Latency")
+    assert get_openrouter_sort() == "latency"
+
+
+def test_get_openrouter_sort_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_OPENROUTER_SORT", "cheapest")
+    assert get_openrouter_sort() is None
 
 
 def test_get_chunk_size_default(monkeypatch: pytest.MonkeyPatch) -> None:
