@@ -6,6 +6,7 @@ import functools
 import inspect
 import logging
 import os
+import sys
 import threading
 import time
 import warnings
@@ -154,23 +155,6 @@ def _verbose_logging_enabled() -> bool:
     return config.get_verbose_logging()
 
 
-def _flush_verbose_block(lines: list[str]) -> None:
-    """Write collected verbose lines as a single atomic stderr block.
-
-    Cursor's Electron host renders each stderr read twice (unavoidable).
-    By writing all events in one ``os.write`` we get one clean block plus
-    one duplicate, instead of N×2 interleaved duplicates.
-    """
-    if not lines:
-        return
-    body = "".join(f"  {line}\n" for line in lines)
-    payload = f"── pinrag verbose ──\n{body}── end verbose ──\n"
-    try:
-        os.write(2, payload.encode())
-    except Exception:
-        pass
-
-
 class VerboseCollector:
     """Thread-safe collector that buffers verbose events and flushes once."""
 
@@ -187,22 +171,23 @@ class VerboseCollector:
         with self._lock:
             self._lines.append(entry)
 
-    def flush(self) -> None:
+    def drain(self) -> list[str]:
+        """Return buffered lines and clear the collector."""
         with self._lock:
             snapshot = list(self._lines)
             self._lines.clear()
-        _flush_verbose_block(snapshot)
+        return snapshot
 
 
 async def emit_verbose(ctx: Context | None, message: str, level: str = "info") -> None:
-    """Emit a verbose event when PINRAG_VERBOSE_LOGGING is enabled.
+    """Best-effort verbose emission hook.
 
-    For standalone calls (e.g. resources), flushes immediately as a single-line block.
+    Verbose events are surfaced through tool responses (``_verbose_log``).
+    Resources return plain text, so this hook is intentionally a no-op.
     """
     if not _verbose_logging_enabled():
         return
-    _ = (ctx, level)
-    _flush_verbose_block([message])
+    _ = (ctx, message, level)
 
 
 def make_verbose_emitter(
@@ -210,8 +195,8 @@ def make_verbose_emitter(
 ) -> VerboseSyncEmitter:
     """Create a worker-thread-safe emitter backed by a VerboseCollector.
 
-    Call ``emitter._collector.flush()`` after the tool finishes to write
-    everything to stderr in one block.
+    Call ``emitter._collector.drain()`` after the tool finishes to retrieve
+    all buffered lines for inclusion in the tool response.
     """
     collector = VerboseCollector(scope, name)
 
@@ -220,6 +205,22 @@ def make_verbose_emitter(
 
     _emit_sync._collector = collector  # type: ignore[attr-defined]
     return _emit_sync
+
+
+def mirror_verbose_to_output_panel(lines: list[str]) -> None:
+    """Mirror verbose lines to MCP Output panel via stderr.
+
+    Cursor's stdio MCP Output panel only surfaces server-side stderr, so we emit
+    one batched payload per tool call to keep logs visible where users look.
+    """
+    if not lines or not _verbose_logging_enabled():
+        return
+    payload = "[pinrag verbose]\n" + "\n".join(lines) + "\n"
+    try:
+        sys.stderr.write(payload)
+        sys.stderr.flush()
+    except Exception:
+        logger.debug("stderr_verbose_mirror_failed", exc_info=True)
 
 
 def _resolve_context_from_kwargs(fn: Any, kwargs: dict[str, Any]) -> Context | None:

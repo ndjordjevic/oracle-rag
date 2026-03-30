@@ -9,7 +9,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -121,21 +120,19 @@ class FrameAnalysis:
 
 
 class _YtdlpStderrLogger:
-    """Redirect all yt-dlp output to stderr so stdout stays clean for MCP JSON transport."""
+    """Silence yt-dlp output to keep MCP stdio logs clean."""
 
     def debug(self, msg: str) -> None:
-        if msg.startswith("[debug]"):
-            return
-        sys.stderr.write(msg + "\n")
+        _ = msg
 
     def info(self, msg: str) -> None:
-        sys.stderr.write(msg + "\n")
+        _ = msg
 
     def warning(self, msg: str) -> None:
-        sys.stderr.write("WARNING: " + msg + "\n")
+        _ = msg
 
     def error(self, msg: str) -> None:
-        sys.stderr.write("ERROR: " + msg + "\n")
+        _ = msg
 
 
 def _emit_verbose(

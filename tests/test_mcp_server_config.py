@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from pinrag.mcp import resource_text
 from pinrag.mcp.tools import remove_document
 from tests.helpers.mcp_patched_server import mcp_logging, mcp_server
 
@@ -312,3 +313,40 @@ def test_context_logging_emits_for_async_tool() -> None:
     mock_ctx.log.assert_called_once_with(
         "info", "test message", logger_name="pinrag"
     )
+
+
+def test_mcp_list_resources_includes_pinrag_uris() -> None:
+    """PinRAG resources must be static entries in resources/list for clients like Cursor."""
+
+    async def _uris() -> list[str]:
+        resources = await mcp_server.mcp.list_resources()
+        return [str(r.uri) for r in resources]
+
+    uris = asyncio.run(_uris())
+    assert "pinrag://documents" in uris
+    assert "pinrag://server-config" in uris
+
+
+def test_format_documents_list_sorts_case_insensitively() -> None:
+    """documents resource lists entries sorted by YouTube title or file id."""
+    fake = {
+        "documents": ["zzz.pdf", "vid_b", "vid_a"],
+        "total_chunks": 3,
+        "document_details": {
+            "zzz.pdf": {"pages": 10},
+            "vid_b": {
+                "document_type": "youtube",
+                "title": "Zebra Episode",
+                "segments": 1,
+            },
+            "vid_a": {
+                "document_type": "youtube",
+                "title": "alpha Episode",
+                "segments": 1,
+            },
+        },
+    }
+    with patch.object(resource_text, "list_documents", return_value=fake):
+        out = resource_text.format_documents_list()
+    assert out.index("alpha Episode") < out.index("Zebra Episode")
+    assert out.index("Zebra Episode") < out.index("zzz.pdf")

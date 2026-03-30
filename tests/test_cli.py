@@ -30,5 +30,9 @@ def test_main_runs_mcp_server(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_mcp = MagicMock()
     with patch("pinrag.cli.configure_logging"):
         with patch("pinrag.cli.mcp", mock_mcp):
-            main()
+            with patch("pinrag.cli.__version__", "9.9.9-test"):
+                with patch("pinrag.cli.sys.stderr") as mock_stderr:
+                    main()
     mock_mcp.run.assert_called_once_with(transport="stdio")
+    mock_stderr.write.assert_called_once_with("PinRAG MCP v9.9.9-test\n")
+    mock_stderr.flush.assert_called_once()

@@ -1,4 +1,4 @@
-"""Tests for verbose MCP notification helpers and phase emissions."""
+"""Tests for verbose MCP logging collection and phase emissions."""
 
 from __future__ import annotations
 
@@ -7,66 +7,46 @@ from unittest.mock import MagicMock, patch
 
 from pinrag.indexing.youtube_indexer import YouTubeIndexResult
 from pinrag.mcp import tools as mcp_tools
-from tests.helpers.mcp_patched_server import mcp_logging
+from tests.helpers.mcp_patched_server import mcp_logging, mcp_server
 
 
 def test_emit_verbose_noop_when_disabled() -> None:
     """emit_verbose should no-op when PINRAG_VERBOSE_LOGGING is off."""
     ctx = MagicMock()
-    with patch("pinrag.mcp.logging_utils.os.write") as mock_write:
-        with patch(
-            "pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=False
-        ):
-            asyncio.run(mcp_logging.emit_verbose(ctx, "phase=disabled-test"))
-    mock_write.assert_not_called()
+    with patch("pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=False):
+        asyncio.run(mcp_logging.emit_verbose(ctx, "phase=disabled-test"))
+    ctx.log.assert_not_called()
 
 
-def test_emit_verbose_writes_stderr_block_when_enabled() -> None:
-    """emit_verbose should write a bordered block to fd 2."""
+def test_emit_verbose_noop_when_enabled() -> None:
+    """emit_verbose remains a no-op even when verbose logging is enabled."""
     ctx = MagicMock()
-    msg = "phase=emit-test"
-    with patch("pinrag.mcp.logging_utils.os.write") as mock_write:
-        with patch(
-            "pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True
-        ):
-            asyncio.run(mcp_logging.emit_verbose(ctx, msg))
-    mock_write.assert_called_once()
-    written = mock_write.call_args[0][1].decode()
-    assert "pinrag verbose" in written
-    assert msg in written
-    assert "end verbose" in written
+    with patch("pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True):
+        asyncio.run(mcp_logging.emit_verbose(ctx, "phase=emit-test"))
+    ctx.log.assert_not_called()
 
 
-def test_collector_buffers_and_flushes_single_block() -> None:
-    """VerboseCollector should buffer events and write one block on flush."""
-    with patch("pinrag.mcp.logging_utils.os.write") as mock_write:
-        with patch(
-            "pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True
-        ):
-            collector = mcp_logging.VerboseCollector(scope="tool", name="test_tool")
-            collector.emit("phase=a")
-            collector.emit("phase=b")
-            collector.emit("phase=c")
-            mock_write.assert_not_called()
-            collector.flush()
-    mock_write.assert_called_once()
-    written = mock_write.call_args[0][1].decode()
-    assert "pinrag verbose" in written
-    assert "tool=test_tool phase=a" in written
-    assert "tool=test_tool phase=b" in written
-    assert "tool=test_tool phase=c" in written
-    assert "end verbose" in written
+def test_collector_buffers_and_drains() -> None:
+    """VerboseCollector should buffer events and return them on drain."""
+    with patch("pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True):
+        collector = mcp_logging.VerboseCollector(scope="tool", name="test_tool")
+        collector.emit("phase=a")
+        collector.emit("phase=b")
+        collector.emit("phase=c")
+        drained = collector.drain()
+    assert drained == [
+        "tool=test_tool phase=a",
+        "tool=test_tool phase=b",
+        "tool=test_tool phase=c",
+    ]
 
 
-def test_collector_flush_noop_when_empty() -> None:
-    """Flushing an empty collector should not write to stderr."""
-    with patch("pinrag.mcp.logging_utils.os.write") as mock_write:
-        with patch(
-            "pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True
-        ):
-            collector = mcp_logging.VerboseCollector(scope="tool", name="test")
-            collector.flush()
-    mock_write.assert_not_called()
+def test_collector_drain_returns_empty_when_empty() -> None:
+    """Draining an empty collector should return an empty list."""
+    with patch("pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True):
+        collector = mcp_logging.VerboseCollector(scope="tool", name="test")
+        drained = collector.drain()
+    assert drained == []
 
 
 def test_make_verbose_emitter_returns_collector_backed_emitter() -> None:
@@ -79,19 +59,15 @@ def test_make_verbose_emitter_returns_collector_backed_emitter() -> None:
         )
         assert hasattr(emitter, "_collector")
         collector = emitter._collector  # type: ignore[attr-defined]
-        with patch("pinrag.mcp.logging_utils.os.write") as mock_write:
-            emitter("phase=step1")
-            emitter("phase=step2")
-            mock_write.assert_not_called()
-            collector.flush()
-        mock_write.assert_called_once()
-        text = mock_write.call_args[0][1].decode()
-        assert "phase=step1" in text
-        assert "phase=step2" in text
+        emitter("phase=step1")
+        emitter("phase=step2")
+        drained = collector.drain()
+        assert any("phase=step1" in line for line in drained)
+        assert any("phase=step2" in line for line in drained)
 
 
 def test_make_verbose_emitter_from_worker_thread() -> None:
-    """Worker-thread emitter should collect events and flush as one block."""
+    """Worker-thread emitter should collect events and drain correctly."""
 
     async def _run() -> None:
         ctx = MagicMock()
@@ -104,14 +80,94 @@ def test_make_verbose_emitter_from_worker_thread() -> None:
             await asyncio.to_thread(emitter, "phase=a", "info")
             await asyncio.to_thread(emitter, "phase=b", "info")
             collector = emitter._collector  # type: ignore[attr-defined]
-            with patch("pinrag.mcp.logging_utils.os.write") as mock_write:
-                collector.flush()
-            mock_write.assert_called_once()
-            text = mock_write.call_args[0][1].decode()
-            assert "phase=a" in text
-            assert "phase=b" in text
+            drained = collector.drain()
+            assert any("phase=a" in line for line in drained)
+            assert any("phase=b" in line for line in drained)
 
     asyncio.run(_run())
+
+
+def test_add_url_tool_includes_verbose_log_when_enabled() -> None:
+    """Tool responses include _verbose_log when verbose logging is enabled."""
+
+    def _fake_add_files(*args, **kwargs) -> dict:
+        verbose_emitter = kwargs.get("verbose_emitter")
+        if verbose_emitter is not None:
+            verbose_emitter("phase=one", "info")
+            verbose_emitter("phase=two", "info")
+        return {"indexed": [], "failed": [], "total_indexed": 0, "total_failed": 0}
+
+    with patch("pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True):
+        with patch("pinrag.mcp.server.add_files", side_effect=_fake_add_files):
+            with patch("pinrag.mcp.server.config.get_persist_dir", return_value="/tmp"):
+                with patch(
+                    "pinrag.mcp.server.config.get_collection_name", return_value="pinrag"
+                ):
+                    out = asyncio.run(
+                        mcp_server.add_url_tool(paths=["https://youtu.be/demo"])
+                    )
+
+    assert "_verbose_log" in out
+    assert "_server_version" in out
+    assert out["_verbose_log"] == [
+        "tool=add_url_tool phase=one",
+        "tool=add_url_tool phase=two",
+    ]
+
+
+def test_add_url_tool_omits_verbose_log_when_disabled() -> None:
+    """Tool responses do not include _verbose_log when verbose logging is disabled."""
+
+    def _fake_add_files(*args, **kwargs) -> dict:
+        verbose_emitter = kwargs.get("verbose_emitter")
+        if verbose_emitter is not None:
+            verbose_emitter("phase=one", "info")
+        return {"indexed": [], "failed": [], "total_indexed": 0, "total_failed": 0}
+
+    with patch("pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=False):
+        with patch("pinrag.mcp.server.add_files", side_effect=_fake_add_files):
+            with patch("pinrag.mcp.server.config.get_persist_dir", return_value="/tmp"):
+                with patch(
+                    "pinrag.mcp.server.config.get_collection_name", return_value="pinrag"
+                ):
+                    out = asyncio.run(
+                        mcp_server.add_url_tool(paths=["https://youtu.be/demo"])
+                    )
+
+    assert "_server_version" in out
+    assert "_verbose_log" not in out
+
+
+def test_add_url_tool_mirrors_verbose_to_output_on_error() -> None:
+    """Verbose lines are mirrored to stderr even when the tool raises."""
+
+    def _fake_add_files(*args, **kwargs) -> dict:
+        verbose_emitter = kwargs.get("verbose_emitter")
+        if verbose_emitter is not None:
+            verbose_emitter("phase=before_error", "info")
+        raise RuntimeError("boom")
+
+    with patch("pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True):
+        with patch("pinrag.mcp.server.add_files", side_effect=_fake_add_files):
+            with patch(
+                "pinrag.mcp.server.mirror_verbose_to_output_panel"
+            ) as mirror_mock:
+                with patch(
+                    "pinrag.mcp.server.config.get_persist_dir", return_value="/tmp"
+                ):
+                    with patch(
+                        "pinrag.mcp.server.config.get_collection_name",
+                        return_value="pinrag",
+                    ):
+                        try:
+                            asyncio.run(
+                                mcp_server.add_url_tool(paths=["https://youtu.be/demo"])
+                            )
+                            assert False, "expected RuntimeError"
+                        except RuntimeError as exc:
+                            assert str(exc) == "boom"
+
+    mirror_mock.assert_called_once_with(["tool=add_url_tool phase=before_error"])
 
 
 def test_add_files_emits_verbose_phase_events() -> None:

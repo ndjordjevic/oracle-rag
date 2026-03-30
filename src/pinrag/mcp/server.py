@@ -10,14 +10,14 @@ from mcp import types
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field
 
+from pinrag import __version__
 from pinrag import config
 from pinrag.mcp.logging_utils import (
-    VerboseCollector,
     _emit_client_log,
     _log_tool_errors,
     configure_logging,
-    emit_verbose,
     make_verbose_emitter,
+    mirror_verbose_to_output_panel,
 )
 from pinrag.mcp.resource_text import format_documents_list, format_server_config
 from pinrag.mcp.tools import (
@@ -32,6 +32,24 @@ from pinrag.mcp.tools import (
 logger = logging.getLogger(__name__)
 
 mcp = FastMCP("PinRAG", json_response=True)
+
+
+def _attach_server_metadata(
+    result: dict, *, verbose_lines: list[str] | None = None
+) -> dict:
+    """Attach stable server metadata (and optional verbose lines) to tool results."""
+    result["_server_version"] = __version__
+    if verbose_lines:
+        result["_verbose_log"] = verbose_lines
+    return result
+
+
+def _drain_verbose_lines(verbose_emitter: object) -> list[str]:
+    """Drain buffered verbose lines from emitter collector (if present)."""
+    collector = getattr(verbose_emitter, "_collector", None)
+    if collector is None:
+        return []
+    return collector.drain()
 
 
 @mcp._mcp_server.set_logging_level()
@@ -135,10 +153,16 @@ async def query_tool(
             verbose_emitter=verbose_emitter,
         )
 
-    result = await anyio.to_thread.run_sync(_run)
-    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
-    if collector is not None:
-        collector.flush()
+    try:
+        result = await anyio.to_thread.run_sync(_run)
+    except Exception:
+        mirror_verbose_to_output_panel(_drain_verbose_lines(verbose_emitter))
+        raise
+
+    verbose_lines = _drain_verbose_lines(verbose_emitter)
+    mirror_verbose_to_output_panel(verbose_lines)
+    if isinstance(result, dict):
+        return _attach_server_metadata(result, verbose_lines=verbose_lines)
     return result
 
 
@@ -214,10 +238,16 @@ async def add_document_tool(
             verbose_emitter=verbose_emitter,
         )
 
-    result = await anyio.to_thread.run_sync(_run)
-    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
-    if collector is not None:
-        collector.flush()
+    try:
+        result = await anyio.to_thread.run_sync(_run)
+    except Exception:
+        mirror_verbose_to_output_panel(_drain_verbose_lines(verbose_emitter))
+        raise
+
+    verbose_lines = _drain_verbose_lines(verbose_emitter)
+    mirror_verbose_to_output_panel(verbose_lines)
+    if isinstance(result, dict):
+        return _attach_server_metadata(result, verbose_lines=verbose_lines)
     return result
 
 
@@ -272,10 +302,16 @@ async def add_url_tool(
             verbose_emitter=verbose_emitter,
         )
 
-    result = await anyio.to_thread.run_sync(_run)
-    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
-    if collector is not None:
-        collector.flush()
+    try:
+        result = await anyio.to_thread.run_sync(_run)
+    except Exception:
+        mirror_verbose_to_output_panel(_drain_verbose_lines(verbose_emitter))
+        raise
+
+    verbose_lines = _drain_verbose_lines(verbose_emitter)
+    mirror_verbose_to_output_panel(verbose_lines)
+    if isinstance(result, dict):
+        return _attach_server_metadata(result, verbose_lines=verbose_lines)
     return result
 
 
@@ -316,10 +352,16 @@ async def list_documents_tool(
             verbose_emitter=verbose_emitter,
         )
 
-    result = await anyio.to_thread.run_sync(_run)
-    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
-    if collector is not None:
-        collector.flush()
+    try:
+        result = await anyio.to_thread.run_sync(_run)
+    except Exception:
+        mirror_verbose_to_output_panel(_drain_verbose_lines(verbose_emitter))
+        raise
+
+    verbose_lines = _drain_verbose_lines(verbose_emitter)
+    mirror_verbose_to_output_panel(verbose_lines)
+    if isinstance(result, dict):
+        return _attach_server_metadata(result, verbose_lines=verbose_lines)
     return result
 
 
@@ -357,10 +399,16 @@ async def remove_document_tool(
             verbose_emitter=verbose_emitter,
         )
 
-    result = await anyio.to_thread.run_sync(_run)
-    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
-    if collector is not None:
-        collector.flush()
+    try:
+        result = await anyio.to_thread.run_sync(_run)
+    except Exception:
+        mirror_verbose_to_output_panel(_drain_verbose_lines(verbose_emitter))
+        raise
+
+    verbose_lines = _drain_verbose_lines(verbose_emitter)
+    mirror_verbose_to_output_panel(verbose_lines)
+    if isinstance(result, dict):
+        return _attach_server_metadata(result, verbose_lines=verbose_lines)
     return result
 
 
@@ -369,21 +417,21 @@ async def remove_document_tool(
     title="Indexed documents list",
     description="Read-only list of documents currently indexed in PinRAG (default collection).",
 )
-async def documents_resource(ctx: Context | None = None) -> str:
+async def documents_resource() -> str:
     """Return a plain-text list of indexed documents for the default collection.
 
     For PDFs: shows page count. For Discord: shows size (messages or bytes).
     For YouTube: shows video title when available, with video ID in parentheses.
     Shows tag when attached to a document.
+
+    Must remain parameterless so FastMCP registers a static resource (``resources/list``).
+    A ``ctx: Context`` parameter would register only a template, which Cursor does not list.
     """
+    ctx = mcp.get_context()
     await _emit_client_log(ctx, "resource=pinrag://documents status=start")
     logger.debug("Resource pinrag://documents read")
     try:
         body = await anyio.to_thread.run_sync(format_documents_list)
-        await emit_verbose(
-            ctx,
-            f"resource=pinrag://documents phase=render_done chars={len(body)}",
-        )
         await _emit_client_log(ctx, "resource=pinrag://documents status=ok")
         return body
     except Exception as e:
@@ -397,15 +445,12 @@ async def documents_resource(ctx: Context | None = None) -> str:
     title="Server configuration",
     description="Environment variables and config params used by the PinRAG MCP server.",
 )
-async def server_config_resource(ctx: Context | None = None) -> str:
+async def server_config_resource() -> str:
     """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
+    ctx = mcp.get_context()
     await _emit_client_log(ctx, "resource=pinrag://server-config status=start")
     logger.debug("Resource pinrag://server-config read")
     body = await anyio.to_thread.run_sync(format_server_config)
-    await emit_verbose(
-        ctx,
-        f"resource=pinrag://server-config phase=render_done chars={len(body)}",
-    )
     await _emit_client_log(ctx, "resource=pinrag://server-config status=ok")
     return body
 

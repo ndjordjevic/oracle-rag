@@ -14,4 +14,5 @@ def main() -> None:
     configure_logging()
     require_api_keys_for_server()
     sys.stderr.write(f"PinRAG MCP v{__version__}\n")
+    sys.stderr.flush()
     mcp.run(transport="stdio")

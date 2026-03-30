@@ -26,8 +26,17 @@ def format_documents_list() -> str:
     details = result.get("document_details") or {}
     if not docs:
         return "No documents indexed."
+
+    def _sort_key(doc_id: str) -> tuple[str, str]:
+        info = details.get(doc_id, {}) or {}
+        if info.get("document_type") == "youtube" and info.get("title"):
+            primary = str(info["title"]).casefold()
+        else:
+            primary = str(doc_id).casefold()
+        return (primary, str(doc_id).casefold())
+
     lines = [f"Indexed documents ({total} chunks total):", ""]
-    for d in docs:
+    for d in sorted(docs, key=_sort_key):
         info = details.get(d, {})
         extra: list[str] = []
         if info.get("pages") is not None:
