@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -15,11 +17,14 @@ from tempfile import TemporaryDirectory
 from langchain_core.documents import Document
 
 from pinrag.config import (
+    get_openrouter_app_title,
+    get_openrouter_app_url,
     get_vision_model,
     get_vision_provider,
     get_yt_vision_image_detail,
     get_yt_vision_max_frames,
     get_yt_vision_min_scene_score,
+    sync_openrouter_sdk_attribution_env,
 )
 from pinrag.indexing.youtube_loader import YouTubeLoadResult
 
@@ -36,7 +41,9 @@ _VISION_PROMPT = (
     "- List a symbol, callee, or type only if you can read it in this frame. "
     "Do not guess from video topic, filename, or prior knowledge.\n"
     "- If call expressions on a line are too small or blurred, omit the Callees subsection "
-    "or write exactly: (callees not legible)\n\n"
+    "or write exactly: (callees not legible)\n"
+    "- Hex addresses and literals: use only digits 0-9 and letters A-F; never use the letter O "
+    "for zero (e.g. $FFE0 is correct; never write $FFEO with a letter O).\n\n"
     "CODE (editor or terminal showing code):\n"
     "- Filename / tab name if shown.\n"
     "- Every visible top-level function: full signature (return type, name, parameters with types).\n"
@@ -54,6 +61,42 @@ _VISION_PROMPT = (
     "UI (non-code application screen):\n"
     "- Application name, visible panels, status messages.\n\n"
     "Be precise — correct spelling of identifiers matters for search."
+)
+
+_VISION_PROMPT_VIDEO = (
+    "You are extracting on-screen context from a technical tutorial video (full timeline) "
+    "for a search index.\n\n"
+    "CRITICAL RULES — segment density:\n"
+    "- Create a NEW segment every time the on-screen content changes (new slide, new code "
+    "file, scrolling to new functions, switching tabs, opening a terminal, etc.).\n"
+    "- If the same content stays on screen for a long stretch, still create at least one "
+    "segment per 30 seconds of screen time so nothing is missed.\n"
+    "- A typical 10-minute technical video should produce 20-40+ segments. Err on the side "
+    "of MORE segments rather than fewer.\n\n"
+    "Reply with ONLY a JSON array (no markdown, no preamble). Each element must be an object:\n"
+    '{"start_s": <number>, "end_s": <number>, "description": "<text>"}\n'
+    "- start_s and end_s are seconds from the start of the video (use approximate times).\n"
+    "- Segments must be non-overlapping and in chronological order.\n"
+    "- If a stretch has nothing meaningful on screen (e.g. talking-head with no text/code), "
+    "use description exactly: NO_CONTENT\n\n"
+    "For non-NO_CONTENT segments, descriptions must be concise, factual, and keyword-rich.\n\n"
+    "CODE (editor or terminal showing code) — THIS IS THE HIGHEST PRIORITY:\n"
+    "- Filename / tab name if shown.\n"
+    "- Every visible top-level function or method: full signature (return type, name, "
+    "parameters with types). This is critical for search.\n"
+    "- Callees: every API or function name invoked on visible lines (read names letter-by-letter; "
+    "include driver/HAL prefixes such as tuh_ if present).\n"
+    "- Other identifiers: variables, macros, constants, and types only when clearly legible "
+    "(e.g. busy[pdrv], RES_OK, uint16_t).\n"
+    "- If the same code stays on screen across multiple segments, REPEAT the function names "
+    "in each segment — do not say 'same as before'.\n\n"
+    "TERMINAL / SHELL: exact commands, flags, paths; key output lines verbatim.\n\n"
+    "DIAGRAMS / SLIDES: every label and heading (exact spelling); arrow/connection relationships.\n\n"
+    "UI: application name, visible panels, status messages.\n\n"
+    "Hex addresses in descriptions: only digits 0-9 and letters A-F; never O for zero "
+    "($FFE0-$FFFF not $FFEO).\n\n"
+    "Be precise — correct spelling of identifiers matters for search. "
+    "Do not guess names from context; only transcribe what is legible on screen."
 )
 
 
@@ -181,8 +224,15 @@ def analyze_frames(
     provider: str,
     model: str,
     image_detail: str = "low",
+    source_url: str = "",
 ) -> list[FrameAnalysis]:
-    """Run a vision model on extracted frames and return descriptions."""
+    """Run a vision model on extracted frames (or full video URL for OpenRouter) and return descriptions."""
+    if provider == "openrouter":
+        url = (source_url or "").strip()
+        if not url:
+            _log.warning("OpenRouter YouTube vision skipped: empty source_url")
+            return []
+        return _analyze_video_openrouter(source_url=url, model=model)
     if provider == "anthropic":
         return _analyze_frames_anthropic(frames=frames, model=model)
     return _analyze_frames_openai(frames=frames, model=model, image_detail=image_detail)
@@ -230,12 +280,35 @@ def merge_transcript_and_frames(
 
 
 def enrich_with_vision(load_result: YouTubeLoadResult) -> YouTubeLoadResult:
-    """Download, extract, analyze, and merge visual context into transcript docs."""
+    """Download, extract, analyze, and merge visual context into transcript docs.
+
+    When ``PINRAG_YT_VISION_PROVIDER=openrouter``, skips local download and frame extraction
+    and sends the YouTube watch URL to OpenRouter's video API in one request.
+    """
     max_frames = get_yt_vision_max_frames()
     min_scene_score = get_yt_vision_min_scene_score()
     provider = get_vision_provider()
     model = get_vision_model()
     image_detail = get_yt_vision_image_detail()
+
+    if provider == "openrouter":
+        analyses = analyze_frames(
+            [],
+            provider=provider,
+            model=model,
+            image_detail=image_detail,
+            source_url=load_result.source_url,
+        )
+        if not analyses:
+            return load_result
+        docs = merge_transcript_and_frames(load_result.documents, analyses)
+        return YouTubeLoadResult(
+            video_id=load_result.video_id,
+            source_url=load_result.source_url,
+            documents=docs,
+            total_segments=load_result.total_segments,
+            title=load_result.title,
+        )
 
     with TemporaryDirectory(prefix=f"pinrag-yt-{load_result.video_id}-") as tmp:
         tmp_dir = Path(tmp)
@@ -249,7 +322,11 @@ def enrich_with_vision(load_result: YouTubeLoadResult) -> YouTubeLoadResult:
         if not frames:
             return load_result
         analyses = analyze_frames(
-            frames, provider=provider, model=model, image_detail=image_detail
+            frames,
+            provider=provider,
+            model=model,
+            image_detail=image_detail,
+            source_url=load_result.source_url,
         )
         if not analyses:
             return load_result
@@ -354,6 +431,164 @@ def _normalize_whitespace(text: str) -> str:
 def _read_image_as_base64(path: Path) -> str:
     """Read image file as base64 string."""
     return base64.b64encode(path.read_bytes()).decode("utf-8")
+
+
+def _fix_llm_json(text: str) -> str:
+    """Best-effort fix for common LLM JSON issues (unescaped quotes in strings).
+
+    Gemini sometimes emits ``"description": "text with "quotes" inside"`` which
+    breaks ``json.loads``.  We locate each ``"description": "`` prefix, then
+    scan forward to the closing ``"}`` (end of JSON object) and escape any
+    interior double-quotes within that span.
+    """
+    _DESC_KEY = '"description":'
+    out_parts: list[str] = []
+    pos = 0
+    while True:
+        idx = text.find(_DESC_KEY, pos)
+        if idx == -1:
+            out_parts.append(text[pos:])
+            break
+        colon_end = idx + len(_DESC_KEY)
+        rest = text[colon_end:]
+        ws_match = re.match(r"\s*", rest)
+        ws = ws_match.group() if ws_match else ""
+        quote_start = colon_end + len(ws)
+        if quote_start >= len(text) or text[quote_start] != '"':
+            out_parts.append(text[pos : quote_start + 1])
+            pos = quote_start + 1
+            continue
+        obj_end = text.find("}", quote_start)
+        if obj_end == -1:
+            out_parts.append(text[pos:])
+            break
+        while obj_end > quote_start and text[obj_end - 1] != '"':
+            obj_end = text.find("}", obj_end + 1)
+            if obj_end == -1:
+                break
+        if obj_end == -1:
+            out_parts.append(text[pos:])
+            break
+        closing_quote = obj_end - 1
+        inner = text[quote_start + 1 : closing_quote]
+        escaped = inner.replace("\\", "\\\\").replace('"', '\\"')
+        out_parts.append(text[pos : quote_start + 1])
+        out_parts.append(escaped)
+        out_parts.append('"')
+        pos = closing_quote + 1
+    return "".join(out_parts)
+
+
+def _parse_openrouter_video_segments(raw: str) -> list[FrameAnalysis]:
+    """Parse JSON segment array from model output into FrameAnalysis (midpoint timestamps)."""
+    text = (raw or "").strip()
+    fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+    if fence:
+        text = fence.group(1).strip()
+    data: list | None = None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        try:
+            data = json.loads(_fix_llm_json(text))
+        except json.JSONDecodeError:
+            _log.debug("_parse_openrouter_video_segments: JSON unfixable")
+            return []
+    if not isinstance(data, list):
+        return []
+    analyses: list[FrameAnalysis] = []
+    for i, item in enumerate(data):
+        if not isinstance(item, dict):
+            continue
+        try:
+            start = float(item.get("start_s", 0))
+            end = float(item.get("end_s", start))
+        except (TypeError, ValueError):
+            continue
+        desc_raw = item.get("description", "")
+        if not isinstance(desc_raw, str):
+            continue
+        desc = _normalize_whitespace(
+            "\n".join(
+                line
+                for line in desc_raw.splitlines()
+                if line.strip().upper() != "NO_CONTENT"
+            )
+        )
+        if not desc or desc.upper() == "NO_CONTENT":
+            continue
+        mid = (start + end) / 2.0
+        analyses.append(
+            FrameAnalysis(
+                timestamp=round(mid, 2), description=desc, scene_index=i
+            )
+        )
+    return analyses
+
+
+def _analyze_video_openrouter(*, source_url: str, model: str) -> list[FrameAnalysis]:
+    """Analyze full video via OpenRouter chat completions (``video_url`` + YouTube URL)."""
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise ImportError(
+            "OpenRouter video vision requires the openai package. Install with: pip install openai"
+        ) from exc
+
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        raise ValueError(
+            "OPENROUTER_API_KEY is required for OpenRouter YouTube vision enrichment."
+        )
+
+    sync_openrouter_sdk_attribution_env()
+    headers: dict[str, str] = {}
+    ref = get_openrouter_app_url()
+    title_hdr = get_openrouter_app_title()
+    if ref:
+        headers["HTTP-Referer"] = ref
+    if title_hdr:
+        headers["X-Title"] = title_hdr
+
+    client_kwargs: dict[str, object] = {
+        "api_key": key,
+        "base_url": "https://openrouter.ai/api/v1",
+    }
+    if headers:
+        client_kwargs["default_headers"] = headers
+    client = OpenAI(**client_kwargs)
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            max_tokens=16384,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": _VISION_PROMPT_VIDEO},
+                        {
+                            "type": "video_url",
+                            "video_url": {"url": source_url},
+                        },
+                    ],
+                }
+            ],
+        )
+    except Exception as exc:  # pragma: no cover - external API errors
+        _log.warning("OpenRouter video vision failed for %s: %s", source_url, exc)
+        return []
+
+    raw_text = ""
+    if response.choices:
+        raw_text = (response.choices[0].message.content or "").strip()
+    analyses = _parse_openrouter_video_segments(raw_text)
+    if not analyses:
+        _log.warning(
+            "OpenRouter video vision returned no parseable segments for %s",
+            source_url,
+        )
+    return analyses
 
 
 def _analyze_frames_openai(

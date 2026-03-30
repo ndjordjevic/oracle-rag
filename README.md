@@ -24,7 +24,7 @@ Screen recording: indexing a PDF and using PinRAG from VS Code.
 ## Features
 
 - **Multi-format indexing** — PDF (.pdf), local files or directories, plain text (.txt), Discord export (.txt), YouTube (video or playlist URL, or video ID), GitHub repo (URL)
-- **Optional YouTube vision** — Off by default. When enabled, samples scene-change keyframes, runs a vision model (OpenAI or Anthropic), and merges structured on-screen context with the transcript so RAG chunks carry searchable code names, labels, and diagrams—not speech alone. Requires `pinrag[vision]`, **ffmpeg**, and extra API cost/latency (see [YouTube vision enrichment](#youtube-vision-enrichment-optional))
+- **Optional YouTube vision** — Off by default. When enabled, runs a vision model (OpenAI, Anthropic, or OpenRouter native video) and merges structured on-screen context with the transcript so RAG chunks carry searchable code names, labels, and diagrams—not speech alone. OpenRouter mode avoids local ffmpeg/video download; openai/anthropic use scene keyframes and require `pinrag[vision]` + **ffmpeg** (see [YouTube vision enrichment](#youtube-vision-enrichment-optional))
 - **RAG with citations** — Answers cite source context: PDF page, YouTube timestamp, document name for plain text and Discord, file path for GitHub repos
 - **Document tags** — Tag documents at index time (e.g. `AMIGA`, `PI_PICO`) for filtered search
 - **Metadata filtering** — `query_tool` supports `document_id`, `tag`, `document_type`, PDF `page_min`/`page_max`, GitHub `file_path`, and `response_style` (thorough or concise)
@@ -190,21 +190,26 @@ When `add_document_tool` or `add_url_tool` returns any failed paths (e.g. some v
 
 ### YouTube vision enrichment (optional)
 
-By default, YouTube indexing uses **transcripts only**. Set `PINRAG_YT_VISION_ENABLED=true` to also **download the video**, detect scene changes, extract still frames, and call a **vision model** to describe what is on screen (code editors, terminals, diagrams). Descriptions are **aligned to transcript timestamps** and merged into the same LangChain documents before chunking, with metadata such as `has_visual`, `frame_count`, and `visual_source`.
+By default, YouTube indexing uses **transcripts only**. Set `PINRAG_YT_VISION_ENABLED=true` to also call a **vision model** that describes what is on screen (code editors, terminals, diagrams). Descriptions are **aligned to transcript timestamps** and merged into the same LangChain documents before chunking, with metadata such as `has_visual`, `frame_count`, and `visual_source`.
 
-**What to install (in addition to base PinRAG):**
+**Two vision modes (`PINRAG_YT_VISION_PROVIDER`):**
+
+- **`openai`** (default) or **`anthropic`**: **download the video** with `yt-dlp`, detect scene changes, extract still frames, and run **one multimodal call per frame** (needs `pinrag[vision]`, **ffmpeg** on `PATH`, and `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`).
+- **`openrouter`**: **single request** per video using OpenRouter’s native **`video_url`** payload and the public YouTube watch URL (default model `google/gemini-2.5-flash`); requires **`OPENROUTER_API_KEY`** only—no local download, ffmpeg, or `pinrag[vision]`.
+
+**What to install for openai/anthropic vision (not needed for openrouter):**
 
 | Requirement | Purpose |
 |-------------|---------|
 | **`pinrag[vision]`** | Python extra that pulls in PySceneDetect (and OpenCV) for scene detection. Example: `uv sync --extra vision` in a clone, or `pip install 'pinrag[vision]'` / `pipx install 'pinrag[vision]'` in the same environment as `pinrag`. |
 | **ffmpeg** (and **ffprobe**, usually bundled) | Frame extraction and duration probing. Must be on `PATH` for the MCP process. |
 
-`yt-dlp` is already a core dependency and is used to fetch the video file when vision is enabled. Vision models need a provider API key: **`OPENAI_API_KEY`** when `PINRAG_YT_VISION_PROVIDER=openai`, or **`ANTHROPIC_API_KEY`** when `PINRAG_YT_VISION_PROVIDER=anthropic`.
+`yt-dlp` is a core dependency and is used to **download** the video only for **openai** / **anthropic** vision.
 
 **Operational notes:**
 
 - **Re-index** after enabling vision or changing vision settings; existing chunks are not upgraded in place.
-- **Cost and time:** Each analyzed frame is a multimodal API call; limiting frames (see `PINRAG_YT_VISION_MAX_FRAMES`) keeps MCP/tool timeouts reasonable. OpenAI `PINRAG_YT_VISION_IMAGE_DETAIL=high` improves small on-screen text at higher token usage per image.
+- **Cost and time:** For openai/anthropic, each analyzed frame is a multimodal API call; limiting frames (see `PINRAG_YT_VISION_MAX_FRAMES`) keeps MCP/tool timeouts reasonable. OpenAI `PINRAG_YT_VISION_IMAGE_DETAIL=high` improves small on-screen text at higher token usage per image. OpenRouter mode uses one larger call per video; pick a video-capable model on OpenRouter.
 - **MCP stdio:** PinRAG sends yt-dlp progress to stderr so stdout stays valid JSON for the MCP transport.
 - **Compliance:** Downloading and processing YouTube video may be restricted by YouTube’s Terms of Service or local law; use at your own risk.
 
@@ -215,7 +220,7 @@ Docker images can include vision support by building with **`BUILD_WITH_VISION=1
 - **`pinrag` not found:** The editor runs MCP with your login environment. After `pipx` / `uv tool install`, restart the editor and confirm `pinrag` is on `PATH` (e.g. `which pinrag` in a terminal).
 - **Stable vector store path:** Add `PINRAG_PERSIST_DIR` to the MCP `env` block (absolute path, e.g. `~/.pinrag/chroma_db`) so indexes are not tied to the server process working directory.
 - **FlashRank re-ranking:** Install the extra in the same environment as `pinrag`, e.g. `pipx install 'pinrag[rerank]'` or `uv tool install 'pinrag[rerank]'` (see **Configuration**).
-- **YouTube vision:** Install `pinrag[vision]` and **ffmpeg**, set `PINRAG_YT_VISION_ENABLED=true` and vision provider keys in MCP `env`, then re-index videos (see [YouTube vision enrichment](#youtube-vision-enrichment-optional)).
+- **YouTube vision:** Set `PINRAG_YT_VISION_ENABLED=true` and choose `PINRAG_YT_VISION_PROVIDER` (`openrouter` needs `OPENROUTER_API_KEY`; `openai`/`anthropic` need `pinrag[vision]`, **ffmpeg**, and the matching API key). Re-index videos (see [YouTube vision enrichment](#youtube-vision-enrichment-optional)).
 - **Check the running server:** Open the `pinrag://server-config` resource in the MCP panel to see **`PINRAG_VERSION`**, effective LLM, embeddings, chunking, and API key status.
 
 ## Configuration

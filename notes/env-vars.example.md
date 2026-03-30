@@ -34,10 +34,6 @@ See also the configuration table in the project `README.md`.
 # Anthropic (required when PINRAG_LLM_PROVIDER=anthropic)
 # ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-# Vision (OpenAI SDK path): point at OpenRouter with the OpenAI-compatible API if you want OR vision models.
-# OPENAI_BASE_URL=https://openrouter.ai/api/v1
-# (Use OPENROUTER_API_KEY as OPENAI_API_KEY when using this base URL for vision.)
-
 # --- Embeddings (local Nomic; no API key) ---
 # Model id. If unset: nomic-embed-text-v1.5 (first run downloads ~270 MB, cached locally)
 # PINRAG_EMBEDDING_MODEL=nomic-embed-text-v1.5
@@ -102,11 +98,14 @@ See also the configuration table in the project `README.md`.
 # PINRAG_YT_PROXY_HTTPS_URL=http://user:pass@p.webshare.io:80
 
 # --- YouTube vision enrichment (optional; off by default) ---
-# Requires: pip install 'pinrag[vision]', ffmpeg on PATH, and vision API key(s).
 # PINRAG_YT_VISION_ENABLED=true
-# Vision API: openai (default) | anthropic — set matching API key (OPENAI_API_KEY / ANTHROPIC_API_KEY).
+# Vision API: openai (default) | anthropic | openrouter
+#   openai / anthropic: pip install 'pinrag[vision]', ffmpeg on PATH, yt-dlp; per-frame images + OPENAI_API_KEY or ANTHROPIC_API_KEY
+#   openrouter: one native video_url call per video (default model google/gemini-2.5-flash); OPENROUTER_API_KEY only; no ffmpeg/scenedetect
 # PINRAG_YT_VISION_PROVIDER=openai
 # PINRAG_YT_VISION_MODEL=gpt-4o
+# OpenRouter example: PINRAG_YT_VISION_PROVIDER=openrouter
+# PINRAG_YT_VISION_MODEL=google/gemini-2.5-flash
 # PINRAG_YT_VISION_MAX_FRAMES=8
 # PINRAG_YT_VISION_MIN_SCENE_SCORE=27.0
 # OpenAI-only image resolution for vision (low | high | auto):

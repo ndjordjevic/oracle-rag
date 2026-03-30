@@ -13,6 +13,9 @@ from pinrag.indexing.youtube_loader import YouTubeLoadResult
 from pinrag.indexing.youtube_vision import (
     ExtractedFrame,
     FrameAnalysis,
+    _fix_llm_json,
+    _parse_openrouter_video_segments,
+    analyze_frames,
     enrich_with_vision,
     merge_transcript_and_frames,
 )
@@ -166,3 +169,162 @@ def test_enrich_with_vision_full_pipeline_live() -> None:
 
     assert len(enriched.documents) == len(load_result.documents)
     assert any(d.metadata.get("has_visual") for d in enriched.documents)
+
+
+def test_parse_openrouter_video_segments_plain_json() -> None:
+    raw = (
+        '[{"start_s": 0, "end_s": 10, "description": "Terminal: npm install"}, '
+        '{"start_s": 10, "end_s": 20, "description": "NO_CONTENT"}]'
+    )
+    out = _parse_openrouter_video_segments(raw)
+    assert len(out) == 1
+    assert out[0].timestamp == 5.0
+    assert "npm install" in out[0].description
+
+
+def test_parse_openrouter_video_segments_markdown_fence() -> None:
+    raw = (
+        '```json\n[{"start_s": 1, "end_s": 3, "description": "Slide title: Setup"}]\n```'
+    )
+    out = _parse_openrouter_video_segments(raw)
+    assert len(out) == 1
+    assert out[0].timestamp == 2.0
+
+
+def test_analyze_frames_openrouter_empty_source_url() -> None:
+    assert (
+        analyze_frames(
+            [],
+            provider="openrouter",
+            model="google/gemini-2.5-flash",
+            source_url="",
+        )
+        == []
+    )
+
+
+@patch("openai.OpenAI")
+@patch("pinrag.indexing.youtube_vision.extract_frames")
+@patch("pinrag.indexing.youtube_vision.download_video")
+def test_enrich_with_vision_openrouter_skips_download_and_sends_video_url(
+    mock_download: MagicMock,
+    mock_extract: MagicMock,
+    mock_openai_cls: MagicMock,
+) -> None:
+    """OpenRouter path does not download or extract; one API call with video_url."""
+    docs = _make_transcript_docs("vidopenrouter")
+    load_result = YouTubeLoadResult(
+        video_id="vidopenrouter",
+        source_url="https://www.youtube.com/watch?v=vidopenrouter",
+        documents=docs,
+        total_segments=2,
+        title="OR Vision",
+    )
+    mock_client = MagicMock()
+    mock_openai_cls.return_value = mock_client
+    mock_client.chat.completions.create.return_value = MagicMock(
+        choices=[
+            MagicMock(
+                message=MagicMock(
+                    content=(
+                        '[{"start_s": 8, "end_s": 14, "description": "IDE shows main.c buffer"}]'
+                    )
+                )
+            )
+        ]
+    )
+
+    with patch.dict(
+        os.environ,
+        {
+            "PINRAG_YT_VISION_PROVIDER": "openrouter",
+            "PINRAG_YT_VISION_MODEL": "google/gemini-2.5-flash",
+            "OPENROUTER_API_KEY": "test-key",
+        },
+        clear=False,
+    ):
+        enriched = enrich_with_vision(load_result)
+
+    mock_download.assert_not_called()
+    mock_extract.assert_not_called()
+    mock_openai_cls.assert_called_once()
+    call_kw = mock_client.chat.completions.create.call_args.kwargs
+    content = call_kw["messages"][0]["content"]
+    assert any(
+        part.get("type") == "video_url"
+        and part.get("video_url", {}).get("url") == load_result.source_url
+        for part in content
+    )
+    assert call_kw["model"] == "google/gemini-2.5-flash"
+
+    assert "main.c buffer" in enriched.documents[1].page_content
+    assert enriched.documents[1].metadata.get("has_visual") is True
+
+
+@patch("openai.OpenAI")
+@patch("pinrag.indexing.youtube_vision.extract_frames")
+@patch("pinrag.indexing.youtube_vision.download_video")
+def test_enrich_with_vision_openrouter_bad_json_returns_unenriched(
+    mock_download: MagicMock,
+    mock_extract: MagicMock,
+    mock_openai_cls: MagicMock,
+) -> None:
+    """Unparseable model output yields original documents (no merge)."""
+    docs = _make_transcript_docs("badjsonvid")
+    load_result = YouTubeLoadResult(
+        video_id="badjsonvid",
+        source_url="https://www.youtube.com/watch?v=badjsonvid",
+        documents=docs,
+        total_segments=2,
+        title="Bad JSON",
+    )
+    mock_client = MagicMock()
+    mock_openai_cls.return_value = mock_client
+    mock_client.chat.completions.create.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="utter nonsense"))]
+    )
+
+    with patch.dict(
+        os.environ,
+        {
+            "PINRAG_YT_VISION_PROVIDER": "openrouter",
+            "OPENROUTER_API_KEY": "test-key",
+        },
+        clear=False,
+    ):
+        enriched = enrich_with_vision(load_result)
+
+    mock_download.assert_not_called()
+    mock_extract.assert_not_called()
+    assert enriched.documents[0].page_content == load_result.documents[0].page_content
+    assert not any(d.metadata.get("has_visual") for d in enriched.documents)
+
+
+def test_fix_llm_json_repairs_unescaped_quotes() -> None:
+    """_fix_llm_json escapes inner double quotes that break JSON parsing."""
+    bad = (
+        '[{"start_s": 0, "end_s": 10, '
+        '"description": "Outputs "Hello, World!" on screen."}]'
+    )
+    import json
+
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(bad)
+    fixed = _fix_llm_json(bad)
+    data = json.loads(fixed)
+    assert len(data) == 1
+    assert "Hello" in data[0]["description"]
+
+
+def test_parse_openrouter_segments_handles_unescaped_quotes() -> None:
+    """Parser recovers from unescaped quotes via _fix_llm_json fallback."""
+    raw = (
+        '```json\n'
+        '[{"start_s": 5, "end_s": 15, '
+        '"description": "Terminal shows "Hello, World!" output."}]\n'
+        '```'
+    )
+    out = _parse_openrouter_video_segments(raw)
+    assert len(out) == 1
+    assert out[0].timestamp == 10.0
+    assert "Hello" in out[0].description

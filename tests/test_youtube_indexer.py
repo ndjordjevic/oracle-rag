@@ -48,10 +48,11 @@ def _make_load_result(
     )
 
 
+@patch("pinrag.indexing.youtube_indexer.get_yt_vision_enabled", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
 def test_index_youtube_smoke(
-    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+    mock_load: MagicMock, mock_pc: MagicMock, mock_vision: MagicMock, tmp_path: Path
 ) -> None:
     """Index mocked transcript; verify result and Chroma contents."""
     mock_load.return_value = _make_load_result()
@@ -82,10 +83,11 @@ def test_index_youtube_smoke(
     assert docs[0].metadata.get("document_type") == "youtube"
 
 
+@patch("pinrag.indexing.youtube_indexer.get_yt_vision_enabled", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
 def test_index_youtube_replaces_on_reindex(
-    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+    mock_load: MagicMock, mock_pc: MagicMock, mock_vision: MagicMock, tmp_path: Path
 ) -> None:
     """Indexing same video twice replaces chunks (no duplicates)."""
     mock_load.return_value = _make_load_result()
@@ -108,10 +110,11 @@ def test_index_youtube_replaces_on_reindex(
     assert r2.total_chunks == r1.total_chunks
 
 
+@patch("pinrag.indexing.youtube_indexer.get_yt_vision_enabled", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
 def test_index_youtube_empty_transcript(
-    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+    mock_load: MagicMock, mock_pc: MagicMock, mock_vision: MagicMock, tmp_path: Path
 ) -> None:
     """Empty transcript results in 0 chunks and deletes old data."""
     empty_result = YouTubeLoadResult(
@@ -135,10 +138,11 @@ def test_index_youtube_empty_transcript(
     assert result.total_chunks == 0
 
 
+@patch("pinrag.indexing.youtube_indexer.get_yt_vision_enabled", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
 def test_index_youtube_with_tag(
-    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+    mock_load: MagicMock, mock_pc: MagicMock, mock_vision: MagicMock, tmp_path: Path
 ) -> None:
     """Tag is propagated to chunk metadata."""
     mock_load.return_value = _make_load_result()
@@ -163,10 +167,11 @@ def test_index_youtube_with_tag(
     assert all(d.metadata.get("tag") == "LECTURES" for d in docs)
 
 
+@patch("pinrag.indexing.youtube_indexer.get_yt_vision_enabled", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.get_use_parent_child", return_value=False)
 @patch("pinrag.indexing.youtube_indexer.load_youtube_transcript_as_documents")
 def test_index_youtube_metadata_fields(
-    mock_load: MagicMock, mock_pc: MagicMock, tmp_path: Path
+    mock_load: MagicMock, mock_pc: MagicMock, mock_vision: MagicMock, tmp_path: Path
 ) -> None:
     """Indexed chunks have expected metadata fields."""
     mock_load.return_value = _make_load_result()

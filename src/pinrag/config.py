@@ -63,6 +63,7 @@ DEFAULT_YT_VISION_ENABLED = False
 DEFAULT_VISION_PROVIDER = "openai"
 DEFAULT_VISION_MODEL_OPENAI = "gpt-4o-mini"
 DEFAULT_VISION_MODEL_ANTHROPIC = "claude-sonnet-4-6"
+DEFAULT_VISION_MODEL_OPENROUTER = "google/gemini-2.5-flash"
 DEFAULT_YT_VISION_MAX_FRAMES = 8
 DEFAULT_YT_VISION_MIN_SCENE_SCORE = 27.0
 DEFAULT_YT_VISION_IMAGE_DETAIL = "low"
@@ -525,7 +526,7 @@ def get_yt_vision_enabled() -> bool:
 
 
 def get_vision_provider() -> str:
-    """Return YouTube vision provider from PINRAG_YT_VISION_PROVIDER (openai | anthropic).
+    """Return YouTube vision provider from PINRAG_YT_VISION_PROVIDER (openai | anthropic | openrouter).
 
     Legacy ``PINRAG_VISION_PROVIDER`` is still read if the YT-prefixed variable is unset.
     """
@@ -533,7 +534,7 @@ def get_vision_provider() -> str:
         "PINRAG_VISION_PROVIDER", DEFAULT_VISION_PROVIDER
     )
     p = (val or "").strip().lower()
-    if p in ("openai", "anthropic"):
+    if p in ("openai", "anthropic", "openrouter"):
         return p
     return DEFAULT_VISION_PROVIDER
 
@@ -549,6 +550,8 @@ def get_vision_model() -> str:
     provider = get_vision_provider()
     if provider == "anthropic":
         return DEFAULT_VISION_MODEL_ANTHROPIC
+    if provider == "openrouter":
+        return DEFAULT_VISION_MODEL_OPENROUTER
     return DEFAULT_VISION_MODEL_OPENAI
 
 
