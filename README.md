@@ -34,7 +34,7 @@ Screen recording: indexing a PDF and using PinRAG from VS Code.
 - **Configurable LLM** — OpenRouter (default, free `openrouter/free` router), OpenAI, or Anthropic; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
 - **Local embeddings** — Nomic (`PINRAG_EMBEDDING_MODEL`, default `nomic-embed-text-v1.5`); no API key; first run downloads model weights (~270 MB, cached)
 - **Retrieval & chunking options** — Structure-aware chunking (on by default); optional FlashRank re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
-- **Observability** — Optional [LangSmith](https://smith.langchain.com) tracing; optional stderr logging via `PINRAG_LOG_TO_STDERR`
+- **Observability** — MCP tool notifications (`ctx.log`) plus optional [LangSmith](https://smith.langchain.com) tracing
 - **Built with** — LangChain, Chroma; optional OpenRouter, OpenAI, Anthropic, FlashRank
 
 ## Installation
@@ -270,6 +270,8 @@ Environment variables:
 | `PINRAG_MULTI_QUERY_COUNT` | `4` | Number of **alternative** queries to generate (default 4, max 10). The original query is still included in retrieval when merging. |
 | **Response style** | | |
 | `PINRAG_RESPONSE_STYLE` | `thorough` | RAG answer style: `thorough` (detailed) or `concise`. Used by evaluation target and as default when MCP `query` omits `response_style`. |
+| **MCP notifications** | | |
+| `PINRAG_VERBOSE_LOGGING` | `false` | Set `true` to emit detailed per-phase MCP notifications for tool/resource execution (format detection, transcript load, vision path/steps, chunk upserts). Default keeps concise start/ok/error lifecycle logs. |
 | **GitHub indexing** | | |
 | `GITHUB_TOKEN` | *(optional)* | Personal access token for GitHub API. Required for private repos; increases rate limits for public repos. |
 | `PINRAG_GITHUB_MAX_FILE_BYTES` | `524288` (512 KB) | Skip files larger than this when indexing GitHub repos. |
@@ -286,9 +288,6 @@ Environment variables:
 | `PINRAG_YT_VISION_MAX_FRAMES` | `8` | Maximum scene-based keyframes analyzed per video (after scene detection). Higher values improve coverage but increase time and API cost. |
 | `PINRAG_YT_VISION_MIN_SCENE_SCORE` | `27.0` | PySceneDetect `AdaptiveDetector` threshold; larger values yield fewer, stronger scene cuts (see PySceneDetect docs). |
 | `PINRAG_YT_VISION_IMAGE_DETAIL` | `low` | **OpenAI only:** `low`, `high`, or `auto` for `image_url.detail`. `high` reads small code better at higher image-token cost. Ignored when `PINRAG_YT_VISION_PROVIDER=anthropic` (full image is sent). |
-| **Logging (MCP output)** | | |
-| `PINRAG_LOG_TO_STDERR` | `false` | Set to `true` to send PinRAG logs (tool calls, completion timing, indexing messages) to stderr so they appear in the MCP server output in VS Code or Cursor. Default is off to avoid noisy or misleading badges in the editor. |
-| `PINRAG_LOG_LEVEL` | `INFO` | Log level when `PINRAG_LOG_TO_STDERR=true`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. |
 | **LangSmith (optional)** | | |
 | `LANGSMITH_TRACING` | *(off)* | Set `true` to send traces to [LangSmith](https://smith.langchain.com). Requires `LANGSMITH_API_KEY`. |
 | `LANGSMITH_API_KEY` | *(none)* | API key from LangSmith **Settings → API keys**. |
@@ -307,7 +306,7 @@ Environment variables:
 
 ### Monitoring & Observability
 
-For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in MCP `env` or your shell; optionally set `LANGSMITH_PROJECT` (see table above). **If your LangSmith workspace is in the EU region** (you use `eu.smith.langchain.com` in the browser), you **must** also set `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`; without it, traces may not show up in the EU deployment. US-region accounts use the default API host and do not need `LANGSMITH_ENDPOINT`. See [`notes/langsmith-setup.md`](notes/langsmith-setup.md) for more detail. With `PINRAG_LOG_TO_STDERR=true`, tool completion timing is also logged to stderr.
+For query performance metrics (latency, timing, token usage) and debugging, use [LangSmith](https://smith.langchain.com). Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in MCP `env` or your shell; optionally set `LANGSMITH_PROJECT` (see table above). **If your LangSmith workspace is in the EU region** (you use `eu.smith.langchain.com` in the browser), you **must** also set `LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com`; without it, traces may not show up in the EU deployment. US-region accounts use the default API host and do not need `LANGSMITH_ENDPOINT`. See [`notes/langsmith-setup.md`](notes/langsmith-setup.md) for more detail.\n\nFor MCP-side introspection, set `PINRAG_VERBOSE_LOGGING=true` to surface detailed phase events in `notifications/message` (e.g., YouTube transcript load, whether vision runs, and chunk upsert milestones).
 
 ### Multiple providers and collections
 

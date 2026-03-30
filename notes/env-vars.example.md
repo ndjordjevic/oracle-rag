@@ -111,12 +111,10 @@ See also the configuration table in the project `README.md`.
 # OpenAI-only image resolution for vision (low | high | auto):
 # PINRAG_YT_VISION_IMAGE_DETAIL=low
 
-# --- Logging (MCP output) ---
-# Disabled by default to avoid Cursor rendering stderr as [error] and appending "undefined".
-# Set to true only when debugging MCP internals.
-# PINRAG_LOG_TO_STDERR=false
-# If enabled, level can be DEBUG | INFO | WARNING | ERROR (default: INFO).
-# PINRAG_LOG_LEVEL=INFO
+# --- MCP verbose notifications (optional; default off) ---
+# When true, tool/resource calls emit detailed phase events to MCP notifications/message.
+# Useful for debugging indexing internals (format routing, transcript load, vision steps, chunk upserts).
+# PINRAG_VERBOSE_LOGGING=false
 
 # --- Evaluators (LLM-as-judge; used only during evaluation runs) ---
 # Provider: openai (default) | anthropic | openrouter — structured JSON output varies by model.

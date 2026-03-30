@@ -6,15 +6,20 @@ import functools
 import inspect
 import logging
 import os
-import sys
+import threading
 import time
 import warnings
-from typing import Any
+from collections.abc import Callable
+from typing import Any, Literal, cast
 
 from mcp.server.fastmcp import Context
 from mcp.server.fastmcp.utilities.context_injection import find_context_parameter
 
+from pinrag import config
+
 logger = logging.getLogger(__name__)
+
+_PINRAG_TQDM_PATCHED = False
 
 
 def _suppress_chroma_telemetry() -> None:
@@ -22,31 +27,42 @@ def _suppress_chroma_telemetry() -> None:
     os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
 
-def _configure_pinrag_logger() -> None:
-    """Configure PinRAG root logger. By default, do not write to stderr because Cursor renders it with [error] badge."""
-    log_to_stderr = (os.environ.get("PINRAG_LOG_TO_STDERR") or "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
-    level_name = (os.environ.get("PINRAG_LOG_LEVEL") or "INFO").strip().upper()
-    level = getattr(logging, level_name, logging.INFO)
-    if level_name not in ("DEBUG", "INFO", "WARNING", "ERROR"):
-        level = logging.INFO
+def _suppress_progress_bars() -> None:
+    """Silence tqdm on stderr for embeddings without forcing ``TQDM_DISABLE`` into the environment.
 
+    If ``TQDM_DISABLE`` is unset, patch ``tqdm`` so default ``disable=None`` becomes disabled.
+    Explicit ``TQDM_DISABLE=1`` / ``0`` / etc. is left to tqdm's own env handling (no patch).
+    """
+    global _PINRAG_TQDM_PATCHED
+    raw = (os.environ.get("TQDM_DISABLE") or "").strip().lower()
+    if raw in ("0", "false", "no", "off"):
+        return
+    if raw in ("1", "true", "yes", "on"):
+        return
+    if _PINRAG_TQDM_PATCHED:
+        return
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        return
+
+    _orig = tqdm.__init__
+
+    def _pinrag_tqdm_init(self, *args, disable=None, **kwargs):  # type: ignore[no-untyped-def]
+        if disable is None:
+            disable = True
+        return _orig(self, *args, disable=disable, **kwargs)
+
+    tqdm.__init__ = _pinrag_tqdm_init  # type: ignore[method-assign]
+    _PINRAG_TQDM_PATCHED = True
+
+
+def _configure_pinrag_logger() -> None:
+    """Suppress PinRAG Python logging; MCP notifications are the primary channel."""
     root = logging.getLogger("pinrag")
+    root.handlers.clear()
     root.propagate = False
-    root.setLevel(level)
-    if log_to_stderr:
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-        )
-        if not root.handlers:
-            root.addHandler(handler)
-    else:
-        root.setLevel(logging.CRITICAL + 1)
+    root.setLevel(logging.CRITICAL + 1)
 
 
 def _suppress_dependency_loggers() -> None:
@@ -58,8 +74,9 @@ def _suppress_dependency_loggers() -> None:
 
 
 def configure_logging() -> None:
-    """Configure PinRAG logging based on env vars. Call after .env is loaded."""
+    """Configure PinRAG logging and dependency suppression after .env is loaded."""
     _suppress_chroma_telemetry()
+    _suppress_progress_bars()
     _configure_pinrag_logger()
     _suppress_dependency_loggers()
 
@@ -104,6 +121,13 @@ def _build_tool_summary(name: str, kwargs: dict[str, Any]) -> str:
     return ""
 
 
+_ClientLogLevel = Literal["debug", "info", "warning", "error"]
+_VALID_CLIENT_LOG_LEVELS: frozenset[str] = frozenset(
+    {"debug", "info", "warning", "error"}
+)
+VerboseSyncEmitter = Callable[[str, str], None]
+
+
 async def _emit_client_log(
     ctx: Context | None, message: str, level: str = "info"
 ) -> None:
@@ -111,15 +135,91 @@ async def _emit_client_log(
     if ctx is None:
         return
     try:
-        sender = getattr(ctx, level, None)
-        if sender is None:
-            await ctx.info(message)
-            return
-        await sender(message)
+        effective_level = cast(
+            _ClientLogLevel,
+            level if level in _VALID_CLIENT_LOG_LEVELS else "info",
+        )
+        # FastMCP Context.log sends an MCP 'notifications/message'
+        maybe_awaitable = ctx.log(effective_level, message, logger_name="pinrag")
+        if inspect.isawaitable(maybe_awaitable):
+            await maybe_awaitable
     except Exception:
         logger.debug(
             "client_log_emit_failed level=%s message=%s", level, message, exc_info=True
         )
+
+
+def _verbose_logging_enabled() -> bool:
+    """Return whether verbose MCP notifications are enabled."""
+    return config.get_verbose_logging()
+
+
+def _flush_verbose_block(lines: list[str]) -> None:
+    """Write collected verbose lines as a single atomic stderr block.
+
+    Cursor's Electron host renders each stderr read twice (unavoidable).
+    By writing all events in one ``os.write`` we get one clean block plus
+    one duplicate, instead of N×2 interleaved duplicates.
+    """
+    if not lines:
+        return
+    body = "".join(f"  {line}\n" for line in lines)
+    payload = f"── pinrag verbose ──\n{body}── end verbose ──\n"
+    try:
+        os.write(2, payload.encode())
+    except Exception:
+        pass
+
+
+class VerboseCollector:
+    """Thread-safe collector that buffers verbose events and flushes once."""
+
+    def __init__(self, scope: str, name: str) -> None:
+        self._prefix = f"{scope}={name}"
+        self._lines: list[str] = []
+        self._lock = threading.Lock()
+
+    def emit(self, message: str, level: str = "info") -> None:
+        if not _verbose_logging_enabled():
+            return
+        _ = level
+        entry = f"{self._prefix} {message}".strip()
+        with self._lock:
+            self._lines.append(entry)
+
+    def flush(self) -> None:
+        with self._lock:
+            snapshot = list(self._lines)
+            self._lines.clear()
+        _flush_verbose_block(snapshot)
+
+
+async def emit_verbose(ctx: Context | None, message: str, level: str = "info") -> None:
+    """Emit a verbose event when PINRAG_VERBOSE_LOGGING is enabled.
+
+    For standalone calls (e.g. resources), flushes immediately as a single-line block.
+    """
+    if not _verbose_logging_enabled():
+        return
+    _ = (ctx, level)
+    _flush_verbose_block([message])
+
+
+def make_verbose_emitter(
+    ctx: Context | None, *, scope: str, name: str
+) -> VerboseSyncEmitter:
+    """Create a worker-thread-safe emitter backed by a VerboseCollector.
+
+    Call ``emitter._collector.flush()`` after the tool finishes to write
+    everything to stderr in one block.
+    """
+    collector = VerboseCollector(scope, name)
+
+    def _emit_sync(message: str, level: str = "info") -> None:
+        collector.emit(message, level)
+
+    _emit_sync._collector = collector  # type: ignore[attr-defined]
+    return _emit_sync
 
 
 def _resolve_context_from_kwargs(fn: Any, kwargs: dict[str, Any]) -> Context | None:

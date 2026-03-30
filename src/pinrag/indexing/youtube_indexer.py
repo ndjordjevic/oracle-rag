@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -40,6 +41,19 @@ from pinrag.vectorstore.docstore import (
 PathLike = str | Path
 
 _log = logging.getLogger("pinrag.indexing")
+VerboseSyncEmitter = Callable[[str, str], None]
+
+
+def _emit_verbose(
+    verbose_emitter: VerboseSyncEmitter | None, message: str, level: str = "info"
+) -> None:
+    """Best-effort sync verbose emitter for MCP notifications."""
+    if verbose_emitter is None:
+        return
+    try:
+        verbose_emitter(message, level)
+    except Exception:
+        _log.debug("verbose_emit_failed message=%s", message, exc_info=True)
 
 
 @dataclass(frozen=True)
@@ -79,6 +93,7 @@ def index_youtube(
     chunk_overlap: int | None = None,
     tag: str | None = None,
     extra_metadata: dict | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> YouTubeIndexResult:
     """Load, chunk, and index a YouTube video transcript into Chroma.
 
@@ -103,17 +118,38 @@ def index_youtube(
     if collection_name is None:
         collection_name = get_collection_name()
     respect_structure = get_structure_aware_chunking()
+    _emit_verbose(verbose_emitter, f"phase=youtube_transcript_load_start input={url_or_id!r}")
     load_result = load_youtube_transcript_as_documents(url_or_id)
-    if get_yt_vision_enabled():
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=youtube_transcript_load_done video_id={load_result.video_id!r} segments={load_result.total_segments}",
+    )
+    vision_enabled = get_yt_vision_enabled()
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=vision_decision video_id={load_result.video_id!r} vision_enabled={str(vision_enabled).lower()}",
+    )
+    if vision_enabled:
         try:
             from pinrag.indexing.youtube_vision import enrich_with_vision
 
-            load_result = enrich_with_vision(load_result)
+            load_result = enrich_with_vision(
+                load_result, verbose_emitter=verbose_emitter
+            )
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=vision_done video_id={load_result.video_id!r}",
+            )
         except Exception as e:
             _log.warning(
                 "YouTube vision enrichment failed for %s; continuing transcript-only: %s",
                 load_result.video_id,
                 e,
+            )
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=vision_error video_id={load_result.video_id!r} error={str(e)!r}",
+                level="warning",
             )
     document_id = load_result.video_id
 
@@ -129,6 +165,10 @@ def index_youtube(
                 store=store, docstore=docstore, document_id=document_id
             )
         store._collection.delete(where={"document_id": document_id})
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=youtube_no_documents video_id={document_id!r}",
+        )
         return YouTubeIndexResult(
             video_id=load_result.video_id,
             source_url=load_result.source_url,
@@ -140,6 +180,10 @@ def index_youtube(
         )
 
     if get_use_parent_child():
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=chunk_mode video_id={document_id!r} mode='parent_child'",
+        )
         total_chunks = _index_youtube_parent_child(
             load_result=load_result,
             persist_directory=persist_directory,
@@ -148,8 +192,13 @@ def index_youtube(
             tag=tag,
             respect_structure=respect_structure,
             extra_metadata=extra_metadata,
+            verbose_emitter=verbose_emitter,
         )
     else:
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=chunk_mode video_id={document_id!r} mode='flat'",
+        )
         size = chunk_size if chunk_size is not None else get_chunk_size()
         overlap = chunk_overlap if chunk_overlap is not None else get_chunk_overlap()
         chunk_docs = chunk_documents(
@@ -191,6 +240,10 @@ def index_youtube(
             batch = chunk_docs[i : i + batch_size]
             store.add_documents(batch)
         total_chunks = len(chunk_docs)
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=chunk_upsert_done video_id={document_id!r} chunks={total_chunks}",
+        )
 
     return YouTubeIndexResult(
         video_id=load_result.video_id,
@@ -212,6 +265,7 @@ def _index_youtube_parent_child(
     tag: str | None,
     respect_structure: bool,
     extra_metadata: dict | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> int:
     """Index YouTube using parent-child retrieval: embed small chunks, store large parents in docstore."""
     parent_size = get_parent_chunk_size()
@@ -302,6 +356,10 @@ def _index_youtube_parent_child(
     for i in range(0, len(all_children), batch_size):
         batch = all_children[i : i + batch_size]
         store.add_documents(batch)
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=chunk_upsert_done video_id={document_id!r} chunks={total_chunks}",
+    )
 
     return total_chunks
 
@@ -313,6 +371,7 @@ def index_youtube_playlist(
     collection_name: str | None = None,
     embedding: Embeddings | None = None,
     tag: str | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> YouTubePlaylistIndexResult:
     """Index all videos in a YouTube playlist into Chroma.
 
@@ -355,6 +414,10 @@ def index_youtube_playlist(
         extra["playlist_title"] = playlist_title
 
     n_videos = len(video_ids)
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=playlist_load_done playlist_id={playlist_id!r} videos={n_videos}",
+    )
     _log.info(
         "Playlist %s (%s): %d videos to index",
         playlist_id,
@@ -364,6 +427,10 @@ def index_youtube_playlist(
 
     for i, video_id in enumerate(video_ids):
         _log.info("Processing video %d/%d: %s", i + 1, n_videos, video_id)
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=playlist_video_start index={i + 1} total={n_videos} video_id={video_id!r}",
+        )
         try:
             result = index_youtube(
                 video_id,
@@ -372,6 +439,7 @@ def index_youtube_playlist(
                 embedding=embedding,
                 tag=tag,
                 extra_metadata=extra,
+                verbose_emitter=verbose_emitter,
             )
             indexed.append(result)
             title_part = f" ({result.title})" if result.title else ""
@@ -382,9 +450,18 @@ def index_youtube_playlist(
                 result.total_segments,
                 result.total_chunks,
             )
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=playlist_video_done index={i + 1} video_id={video_id!r} chunks={result.total_chunks}",
+            )
         except Exception as e:
             failed.append({"video_id": video_id, "error": str(e)})
             _log.warning("Video %s failed: %s", video_id, e)
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=playlist_video_error index={i + 1} video_id={video_id!r} error={str(e)!r}",
+                level="warning",
+            )
 
     _log.info(
         "Playlist %s complete: %d indexed, %d failed",

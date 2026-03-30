@@ -118,7 +118,7 @@
   - [x] Handle embedding generation errors — propagate; logged and returned to client
   - [x] Handle retrieval errors — propagate; logged and returned to client
   - [x] Handle LLM generation errors — propagate; logged and returned to client
-  - [x] Add basic error messages — tools validate and raise with clear messages; `_log_tool_errors` decorator logs to stderr (Cursor Output) then re-raises
+  - [x] Add basic error messages — tools validate and raise with clear messages; `_log_tool_errors` decorator emits MCP notifications and then re-raises
 
 ### Testing - MVP
 - [x] **Basic Testing**
@@ -272,7 +272,7 @@
 - [x] **Plain TXT file indexing** — Index plain text files (.txt) that are not Discord exports. Load file → chunk → Chroma; metadata: `document_id` (filename), `document_type` ("plaintext"), `source` (file path). MCP `add_document_tool` detects .txt; distinguish from Discord format (check for `Guild:`/`Channel:` header—Discord takes precedence). Citations show document_id (no page; optional line range if tracked). Reuse existing chunking; optional file-size cap via config.
 
 ### Improve Logging
-- [x] **MCP tool/resource logging** — Log tool calls (entry + completion), resource reads, and indexing progress to stderr so they appear in Cursor's MCP Output panel. Uses `pinrag.mcp` logger with `StreamHandler(sys.stderr)`; `pinrag` parent logger also configured for indexing modules. Logs: tool name + args summary, format detection (GitHub/YouTube/playlist/PDF/Discord), per-path progress (e.g. "Processing path 2/5"), indexed counts, and errors.
+- [x] **MCP tool/resource logging** — Tool lifecycle events are emitted through MCP `notifications/message` (`ctx.log`) so clients can render structured logs without stderr duplication/noise. Logs include tool name + args summary, completion timing, and errors.
 
 ### Multi-threading
 - [x] **Multi-threading** — MCP server tools/resources converted to async with `anyio.to_thread.run_sync`; heavy indexing (YouTube playlist, GitHub repo) no longer blocks the event loop. You can index from one agent and query or read the documents resource from another at the same time.
@@ -282,7 +282,7 @@
 - [x] **Backup and restore** — Documentation only: README notes that users should back up `~/.pinrag/chroma_db` (or `PINRAG_PERSIST_DIR`) for migration and recovery. Restore = copy the directory back. No programmatic export/import.
 
 ### Monitoring & Observability
-- [x] **Metrics & Logging** — LangSmith for query performance (latency, timing, token usage); README documents setup (notes/langsmith-setup.md). Tool completion timing logged when PINRAG_LOG_TO_STDERR=true. Error tracking via existing exception logging. Retrieval quality metrics remain eval-only (LLM-as-judge per query is costly).
+- [x] **Metrics & Logging** — LangSmith for query performance (latency, timing, token usage); README documents setup (notes/langsmith-setup.md). MCP notifications provide structured tool lifecycle logs in clients. Error tracking via existing exception logging. Retrieval quality metrics remain eval-only (LLM-as-judge per query is costly).
 
 ### Misc
 - [x] Update PyPi package description: set in `pyproject.toml` — `description` = one-line summary (PyPI summary); `readme = "README.md"` = long description (PyPI project page body). Re-publish to PyPI for changes to appear.

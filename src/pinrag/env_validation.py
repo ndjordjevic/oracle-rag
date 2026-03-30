@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 import os
 import sys
 
 from pinrag.config import get_llm_provider
-
-logger = logging.getLogger(__name__)
 
 _ENV_HINT = (
     "Set it in the process environment—for Cursor/VS Code MCP, add keys under the "
@@ -24,11 +21,10 @@ _LLM_KEYS = {
 
 
 def _fail(key_env: str, provider_env: str, provider: str) -> None:
-    """Log and print error, then exit."""
+    """Print error to stderr, then exit (before MCP is active; stderr is reliable)."""
     msg = (
         f"{key_env} not set. It is required when {provider_env}={provider}. {_ENV_HINT}"
     )
-    logger.error(msg)
     print(msg, file=sys.stderr)
     sys.exit(1)
 
@@ -41,7 +37,6 @@ def _require_key(
     """Check that the required API key for the given provider is set."""
     if provider not in keys_map:
         msg = f"Unknown provider: {provider}. Expected {valid_providers}."
-        logger.error(msg)
         print(msg, file=sys.stderr)
         sys.exit(1)
     key_env, provider_env = keys_map[provider]

@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -29,6 +30,7 @@ from pinrag.config import (
 from pinrag.indexing.youtube_loader import YouTubeLoadResult
 
 _log = logging.getLogger("pinrag.indexing")
+VerboseSyncEmitter = Callable[[str, str], None]
 
 _VISION_PROMPT = (
     "You are extracting on-screen context from a technical tutorial video frame "
@@ -134,6 +136,18 @@ class _YtdlpStderrLogger:
 
     def error(self, msg: str) -> None:
         sys.stderr.write("ERROR: " + msg + "\n")
+
+
+def _emit_verbose(
+    verbose_emitter: VerboseSyncEmitter | None, message: str, level: str = "info"
+) -> None:
+    """Best-effort sync verbose emitter for MCP notifications."""
+    if verbose_emitter is None:
+        return
+    try:
+        verbose_emitter(message, level)
+    except Exception:
+        _log.debug("verbose_emit_failed message=%s", message, exc_info=True)
 
 
 def download_video(video_id: str, output_dir: Path) -> Path:
@@ -279,7 +293,9 @@ def merge_transcript_and_frames(
     return merged
 
 
-def enrich_with_vision(load_result: YouTubeLoadResult) -> YouTubeLoadResult:
+def enrich_with_vision(
+    load_result: YouTubeLoadResult, verbose_emitter: VerboseSyncEmitter | None = None
+) -> YouTubeLoadResult:
     """Download, extract, analyze, and merge visual context into transcript docs.
 
     When ``PINRAG_YT_VISION_PROVIDER=openrouter``, skips local download and frame extraction
@@ -290,8 +306,16 @@ def enrich_with_vision(load_result: YouTubeLoadResult) -> YouTubeLoadResult:
     provider = get_vision_provider()
     model = get_vision_model()
     image_detail = get_yt_vision_image_detail()
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=vision_config provider={provider!r} model={model!r} max_frames={max_frames} min_scene_score={min_scene_score}",
+    )
 
     if provider == "openrouter":
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_path_selected path='openrouter_video_url' video_id={load_result.video_id!r}",
+        )
         analyses = analyze_frames(
             [],
             provider=provider,
@@ -300,8 +324,21 @@ def enrich_with_vision(load_result: YouTubeLoadResult) -> YouTubeLoadResult:
             source_url=load_result.source_url,
         )
         if not analyses:
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=vision_analyze_empty video_id={load_result.video_id!r}",
+                level="warning",
+            )
             return load_result
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_analyze_done video_id={load_result.video_id!r} frames={len(analyses)}",
+        )
         docs = merge_transcript_and_frames(load_result.documents, analyses)
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_merge_done video_id={load_result.video_id!r} docs={len(docs)}",
+        )
         return YouTubeLoadResult(
             video_id=load_result.video_id,
             source_url=load_result.source_url,
@@ -312,14 +349,31 @@ def enrich_with_vision(load_result: YouTubeLoadResult) -> YouTubeLoadResult:
 
     with TemporaryDirectory(prefix=f"pinrag-yt-{load_result.video_id}-") as tmp:
         tmp_dir = Path(tmp)
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_download_start video_id={load_result.video_id!r}",
+        )
         video_path = download_video(load_result.video_id, tmp_dir / "video")
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_download_done video_id={load_result.video_id!r} path={str(video_path)!r}",
+        )
         frames = extract_frames(
             video_path,
             max_frames=max_frames,
             min_scene_score=min_scene_score,
             output_dir=tmp_dir / "frames",
         )
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_extract_done video_id={load_result.video_id!r} frames={len(frames)}",
+        )
         if not frames:
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=vision_extract_empty video_id={load_result.video_id!r}",
+                level="warning",
+            )
             return load_result
         analyses = analyze_frames(
             frames,
@@ -329,8 +383,21 @@ def enrich_with_vision(load_result: YouTubeLoadResult) -> YouTubeLoadResult:
             source_url=load_result.source_url,
         )
         if not analyses:
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=vision_analyze_empty video_id={load_result.video_id!r}",
+                level="warning",
+            )
             return load_result
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_analyze_done video_id={load_result.video_id!r} frames={len(analyses)}",
+        )
         docs = merge_transcript_and_frames(load_result.documents, analyses)
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=vision_merge_done video_id={load_result.video_id!r} docs={len(docs)}",
+        )
 
     return YouTubeLoadResult(
         video_id=load_result.video_id,

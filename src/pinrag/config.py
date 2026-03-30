@@ -57,6 +57,7 @@ DEFAULT_CHILD_CHUNK_SIZE = 800
 # --- RAG response & structure-aware chunking ---
 DEFAULT_RESPONSE_STYLE = "thorough"
 DEFAULT_STRUCTURE_AWARE_CHUNKING = True
+DEFAULT_VERBOSE_LOGGING = False
 
 # --- YouTube vision enrichment (optional, opt-in) ---
 DEFAULT_YT_VISION_ENABLED = False
@@ -444,6 +445,19 @@ def get_structure_aware_chunking() -> bool:
     if v in ("0", "false", "no", "off"):
         return False
     return DEFAULT_STRUCTURE_AWARE_CHUNKING
+
+
+def get_verbose_logging() -> bool:
+    """Return whether verbose MCP notifications are enabled (default: false)."""
+    val = os.environ.get("PINRAG_VERBOSE_LOGGING")
+    if val is None or not str(val).strip():
+        return DEFAULT_VERBOSE_LOGGING
+    v = str(val).strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return DEFAULT_VERBOSE_LOGGING
 
 
 # --- GitHub indexing ---

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse
@@ -33,10 +34,23 @@ from pinrag.vectorstore import get_chroma_store
 from pinrag.vectorstore.docstore import get_parent_docstore
 
 logger = logging.getLogger(__name__)
+VerboseSyncEmitter = Callable[[str, str], None]
 
 # GitHub.com /owner/repo path segments (defense-in-depth; indexer also validates).
 _GITHUB_OWNER_RE = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$")
 _GITHUB_REPO_RE = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?$")
+
+
+def _emit_verbose(
+    verbose_emitter: VerboseSyncEmitter | None, message: str, level: str = "info"
+) -> None:
+    """Best-effort sync verbose emitter for MCP notifications."""
+    if verbose_emitter is None:
+        return
+    try:
+        verbose_emitter(message, level)
+    except Exception:
+        logger.debug("verbose_emit_failed message=%s", message, exc_info=True)
 
 
 def _resolve_user_content_path(path_str: str) -> Path:
@@ -213,6 +227,7 @@ def query(
     response_style: Literal["thorough", "concise"] = "thorough",
     persist_dir: str = "",
     collection: str | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> dict[str, Any]:
     """Query indexed documents (PDF, Discord) and return an answer with citations.
 
@@ -288,6 +303,10 @@ def query(
         file_path=file_path_filter,
         response_style=response_style,
     )
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=query_complete source_count={len(rag_result.sources)} response_style={response_style}",
+    )
 
     sources_out: list[dict[str, Any]] = []
     for s in rag_result.sources:
@@ -312,6 +331,7 @@ def add_file(
     branch: str | None = None,
     include_patterns: list[str] | None = None,
     exclude_patterns: list[str] | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> dict[str, Any]:
     """Add a file, directory, YouTube video, or GitHub repo to the index.
 
@@ -344,11 +364,16 @@ def add_file(
     tag_clean = tag.strip() if tag and str(tag).strip() else None
 
     fmt = _detect_source_format(path)
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=detect_format path={path!r} format={(fmt or 'unsupported')!r}",
+    )
     if fmt == "github":
         logger.info(
             "Indexing GitHub repo: %s", path[:80] + "..." if len(path) > 80 else path
         )
         try:
+            _emit_verbose(verbose_emitter, f"phase=github_index_start path={path!r}")
             embedding = get_embedding_model()
             result_gh: GitHubIndexResult = index_github(
                 path,
@@ -365,6 +390,10 @@ def add_file(
                 f"{result_gh.owner}/{result_gh.repo}",
                 result_gh.files_indexed,
                 result_gh.total_chunks,
+            )
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=github_index_done repo={result_gh.owner}/{result_gh.repo} files={result_gh.files_indexed} chunks={result_gh.total_chunks}",
             )
             gh_item: dict[str, Any] = {
                 "path": path,
@@ -386,6 +415,11 @@ def add_file(
             }
         except Exception as e:
             logger.warning("GitHub indexing failed: %s - %s", path, e)
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=github_index_error path={path!r} error={str(e)!r}",
+                level="warning",
+            )
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -400,6 +434,9 @@ def add_file(
             path[:80] + "..." if len(path) > 80 else path,
         )
         try:
+            _emit_verbose(
+                verbose_emitter, f"phase=youtube_playlist_start path={path!r}"
+            )
             embedding = get_embedding_model()
             result_pl = index_youtube_playlist(
                 path,
@@ -407,6 +444,7 @@ def add_file(
                 collection_name=collection,
                 embedding=embedding,
                 tag=tag_clean,
+                verbose_emitter=verbose_emitter,
             )
             indexed_items: list[dict[str, Any]] = []
             for r in result_pl.indexed:
@@ -433,6 +471,10 @@ def add_file(
                 result_pl.total_indexed,
                 result_pl.total_failed,
             )
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=youtube_playlist_done indexed={result_pl.total_indexed} failed={result_pl.total_failed}",
+            )
             out: dict[str, Any] = {
                 "indexed": indexed_items,
                 "failed": failed_items,
@@ -446,6 +488,11 @@ def add_file(
             return out
         except Exception as e:
             logger.warning("YouTube playlist indexing failed: %s - %s", path, e)
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=youtube_playlist_error path={path!r} error={str(e)!r}",
+                level="warning",
+            )
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -459,6 +506,7 @@ def add_file(
             "Indexing YouTube video: %s", path[:80] + "..." if len(path) > 80 else path
         )
         try:
+            _emit_verbose(verbose_emitter, f"phase=youtube_index_start path={path!r}")
             embedding = get_embedding_model()
             result_yt: YouTubeIndexResult = index_youtube(
                 path,
@@ -466,6 +514,7 @@ def add_file(
                 collection_name=collection,
                 embedding=embedding,
                 tag=tag_clean,
+                verbose_emitter=verbose_emitter,
             )
             indexed_item: dict[str, Any] = {
                 "path": path,
@@ -482,6 +531,10 @@ def add_file(
                 result_yt.video_id,
                 result_yt.total_chunks,
             )
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=youtube_index_done video_id={result_yt.video_id!r} segments={result_yt.total_segments} chunks={result_yt.total_chunks}",
+            )
             return {
                 "indexed": [indexed_item],
                 "failed": [],
@@ -492,6 +545,11 @@ def add_file(
             }
         except Exception as e:
             logger.warning("YouTube video indexing failed: %s - %s", path, e)
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=youtube_index_error path={path!r} error={str(e)!r}",
+                level="warning",
+            )
             return {
                 "indexed": [],
                 "failed": [{"path": path, "error": str(e)}],
@@ -544,9 +602,17 @@ def add_file(
     failed: list[dict[str, str]] = []
 
     logger.info("Indexing %d file(s) from %s", len(files_to_index), path)
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=file_index_batch_start root={path!r} files={len(files_to_index)}",
+    )
     for f in files_to_index:
         try:
             file_fmt = _detect_file_format(f)
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=file_index_item path={str(f)!r} format={(file_fmt or 'unsupported')!r}",
+            )
             if file_fmt == "pdf":
                 result: IndexResult = index_pdf(
                     f,
@@ -622,6 +688,11 @@ def add_file(
                 failed.append({"path": str(f), "error": "Unsupported format"})
         except Exception as e:
             logger.warning("File indexing failed: %s - %s", f, e)
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=file_index_error path={str(f)!r} error={str(e)!r}",
+                level="warning",
+            )
             failed.append({"path": str(f), "error": str(e)})
 
     return {
@@ -643,6 +714,7 @@ def add_files(
     branch: str | None = None,
     include_patterns: list[str] | None = None,
     exclude_patterns: list[str] | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> dict[str, Any]:
     """Add multiple files, directories, or URLs to the index in one call.
 
@@ -676,6 +748,7 @@ def add_files(
     all_failed: list[dict[str, str]] = []
 
     n_paths = len(paths)
+    _emit_verbose(verbose_emitter, f"phase=add_files_start paths={n_paths}")
     for i, raw_path in enumerate(paths):
         if not raw_path or not str(raw_path).strip():
             all_failed.append({"path": str(raw_path), "error": "path cannot be empty"})
@@ -690,6 +763,10 @@ def add_files(
                 n_paths,
                 raw_path[:60] + "..." if len(raw_path) > 60 else raw_path,
             )
+        _emit_verbose(
+            verbose_emitter,
+            f"phase=add_files_path_start index={i + 1} total={n_paths} path={raw_path!r}",
+        )
         try:
             r = add_file(
                 path=raw_path,
@@ -699,15 +776,29 @@ def add_files(
                 branch=branch.strip() if branch and str(branch).strip() else None,
                 include_patterns=include_patterns if include_patterns else None,
                 exclude_patterns=exclude_patterns if exclude_patterns else None,
+                verbose_emitter=verbose_emitter,
             )
             all_indexed.extend(r["indexed"])
             all_failed.extend(r["failed"])
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=add_files_path_done index={i + 1} indexed={len(r['indexed'])} failed={len(r['failed'])}",
+            )
         except Exception as e:
             logger.warning("Path failed: %s - %s", raw_path, e)
+            _emit_verbose(
+                verbose_emitter,
+                f"phase=add_files_path_error index={i + 1} error={str(e)!r}",
+                level="warning",
+            )
             all_failed.append({"path": str(raw_path), "error": str(e)})
 
     logger.info(
         "add_files done: %d indexed, %d failed", len(all_indexed), len(all_failed)
+    )
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=add_files_done indexed={len(all_indexed)} failed={len(all_failed)}",
     )
     result: dict[str, Any] = {
         "indexed": all_indexed,
@@ -735,6 +826,7 @@ def list_documents(
     persist_dir: str | None = None,
     collection: str | None = None,
     tag: str | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> dict[str, Any]:
     """List all indexed documents (PDF, Discord, etc.) in the PinRAG index.
 
@@ -768,10 +860,13 @@ def list_documents(
         persist_directory=_persist,
         collection_name=collection,
     )
+    tag_filter = tag.strip() if tag and str(tag).strip() else None
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=list_documents_store_loaded collection={collection!r} tag={tag_filter!r}",
+    )
     data = store.get(include=["metadatas"])
     metadatas = data.get("metadatas") or []
-
-    tag_filter = tag.strip() if tag and str(tag).strip() else None
 
     doc_ids: set[str] = set()
     document_details: dict[str, dict[str, Any]] = {}
@@ -845,6 +940,7 @@ def remove_document(
     document_id: str,
     persist_dir: str = "",
     collection: str | None = None,
+    verbose_emitter: VerboseSyncEmitter | None = None,
 ) -> dict[str, Any]:
     """Remove a document and all its chunks and embeddings from the Chroma index.
 
@@ -882,6 +978,10 @@ def remove_document(
         persist_directory=_persist,
         collection_name=collection,
     )
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=remove_document_start document_id={document_id.strip()!r} collection={collection!r}",
+    )
 
     # Get chunks matching this document_id (need metadatas for parent doc_ids when parent-child)
     data = store.get(
@@ -917,6 +1017,10 @@ def remove_document(
 
     if ids:
         store.delete(where={"document_id": document_id.strip()})
+    _emit_verbose(
+        verbose_emitter,
+        f"phase=remove_document_done document_id={document_id.strip()!r} deleted_chunks={deleted_count}",
+    )
 
     return {
         "deleted_chunks": deleted_count,

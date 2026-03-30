@@ -6,11 +6,19 @@ import logging
 from typing import Annotated
 
 import anyio
+from mcp import types
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field
 
 from pinrag import config
-from pinrag.mcp.logging_utils import _log_tool_errors, configure_logging
+from pinrag.mcp.logging_utils import (
+    VerboseCollector,
+    _emit_client_log,
+    _log_tool_errors,
+    configure_logging,
+    emit_verbose,
+    make_verbose_emitter,
+)
 from pinrag.mcp.resource_text import format_documents_list, format_server_config
 from pinrag.mcp.tools import (
     add_files,
@@ -24,6 +32,13 @@ from pinrag.mcp.tools import (
 logger = logging.getLogger(__name__)
 
 mcp = FastMCP("PinRAG", json_response=True)
+
+
+@mcp._mcp_server.set_logging_level()
+async def _handle_set_logging_level(level: types.LoggingLevel) -> None:
+    """Handle MCP ``logging/setLevel`` to declare logging capability."""
+    _ = level
+
 
 # Re-export for pinrag.cli (F401: name used via import from this module).
 __all__ = ["configure_logging", "mcp"]
@@ -105,6 +120,8 @@ async def query_tool(
     else:
         style = config.get_response_style()
 
+    verbose_emitter = make_verbose_emitter(ctx, scope="tool", name="query_tool")
+
     def _run() -> dict:
         return query_index(
             user_query=query,
@@ -115,9 +132,14 @@ async def query_tool(
             document_type=document_type or None,
             file_path=file_path or None,
             response_style=style,
+            verbose_emitter=verbose_emitter,
         )
 
-    return await anyio.to_thread.run_sync(_run)
+    result = await anyio.to_thread.run_sync(_run)
+    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
+    if collector is not None:
+        collector.flush()
+    return result
 
 
 @mcp.tool()
@@ -178,6 +200,8 @@ async def add_document_tool(
 
     """
 
+    verbose_emitter = make_verbose_emitter(ctx, scope="tool", name="add_document_tool")
+
     def _run() -> dict:
         return add_files(
             paths=paths,
@@ -187,9 +211,14 @@ async def add_document_tool(
             branch=branch,
             include_patterns=include_patterns,
             exclude_patterns=exclude_patterns,
+            verbose_emitter=verbose_emitter,
         )
 
-    return await anyio.to_thread.run_sync(_run)
+    result = await anyio.to_thread.run_sync(_run)
+    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
+    if collector is not None:
+        collector.flush()
+    return result
 
 
 @mcp.tool()
@@ -229,6 +258,8 @@ async def add_url_tool(
     if tags is not None and len(tags) != len(input_paths):
         raise ValueError("tags must have same length as paths when provided")
 
+    verbose_emitter = make_verbose_emitter(ctx, scope="tool", name="add_url_tool")
+
     def _run() -> dict:
         return add_files(
             paths=input_paths,
@@ -238,9 +269,14 @@ async def add_url_tool(
             branch=branch,
             include_patterns=include_patterns,
             exclude_patterns=exclude_patterns,
+            verbose_emitter=verbose_emitter,
         )
 
-    return await anyio.to_thread.run_sync(_run)
+    result = await anyio.to_thread.run_sync(_run)
+    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
+    if collector is not None:
+        collector.flush()
+    return result
 
 
 @mcp.tool()
@@ -270,14 +306,21 @@ async def list_documents_tool(
 
     """
 
+    verbose_emitter = make_verbose_emitter(ctx, scope="tool", name="list_documents_tool")
+
     def _run() -> dict:
         return list_documents(
             persist_dir=config.get_persist_dir(),
             collection=config.get_collection_name(),
             tag=tag or None,
+            verbose_emitter=verbose_emitter,
         )
 
-    return await anyio.to_thread.run_sync(_run)
+    result = await anyio.to_thread.run_sync(_run)
+    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
+    if collector is not None:
+        collector.flush()
+    return result
 
 
 @mcp.tool()
@@ -304,14 +347,21 @@ async def remove_document_tool(
 
     """
 
+    verbose_emitter = make_verbose_emitter(ctx, scope="tool", name="remove_document_tool")
+
     def _run() -> dict:
         return remove_document(
             document_id=document_id,
             persist_dir=config.get_persist_dir(),
             collection=config.get_collection_name(),
+            verbose_emitter=verbose_emitter,
         )
 
-    return await anyio.to_thread.run_sync(_run)
+    result = await anyio.to_thread.run_sync(_run)
+    collector: VerboseCollector | None = getattr(verbose_emitter, "_collector", None)
+    if collector is not None:
+        collector.flush()
+    return result
 
 
 @mcp.resource(
@@ -319,17 +369,25 @@ async def remove_document_tool(
     title="Indexed documents list",
     description="Read-only list of documents currently indexed in PinRAG (default collection).",
 )
-async def documents_resource() -> str:
+async def documents_resource(ctx: Context | None = None) -> str:
     """Return a plain-text list of indexed documents for the default collection.
 
     For PDFs: shows page count. For Discord: shows size (messages or bytes).
     For YouTube: shows video title when available, with video ID in parentheses.
     Shows tag when attached to a document.
     """
+    await _emit_client_log(ctx, "resource=pinrag://documents status=start")
     logger.debug("Resource pinrag://documents read")
     try:
-        return await anyio.to_thread.run_sync(format_documents_list)
+        body = await anyio.to_thread.run_sync(format_documents_list)
+        await emit_verbose(
+            ctx,
+            f"resource=pinrag://documents phase=render_done chars={len(body)}",
+        )
+        await _emit_client_log(ctx, "resource=pinrag://documents status=ok")
+        return body
     except Exception as e:
+        await _emit_client_log(ctx, "resource=pinrag://documents status=error", "error")
         logger.exception("Resource pinrag://documents failed")
         return f"Error listing documents: {e}"
 
@@ -339,10 +397,17 @@ async def documents_resource() -> str:
     title="Server configuration",
     description="Environment variables and config params used by the PinRAG MCP server.",
 )
-async def server_config_resource() -> str:
+async def server_config_resource(ctx: Context | None = None) -> str:
     """Return plain-text summary: env vars that are set (top), defaults (bottom)."""
+    await _emit_client_log(ctx, "resource=pinrag://server-config status=start")
     logger.debug("Resource pinrag://server-config read")
-    return await anyio.to_thread.run_sync(format_server_config)
+    body = await anyio.to_thread.run_sync(format_server_config)
+    await emit_verbose(
+        ctx,
+        f"resource=pinrag://server-config phase=render_done chars={len(body)}",
+    )
+    await _emit_client_log(ctx, "resource=pinrag://server-config status=ok")
+    return body
 
 
 @mcp.prompt()

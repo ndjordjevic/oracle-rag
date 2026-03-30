@@ -15,25 +15,6 @@ def _env_set(name: str) -> bool:
     return v is not None and str(v).strip() != ""
 
 
-def _parse_bool_env(name: str, default: bool = False) -> bool:
-    """Parse a boolean env var using the same accepted values as runtime config."""
-    raw = os.environ.get(name)
-    if raw is None or not str(raw).strip():
-        return default
-    val = str(raw).strip().lower()
-    if val in ("1", "true", "yes", "on"):
-        return True
-    if val in ("0", "false", "no", "off"):
-        return False
-    return default
-
-
-def _effective_log_level_name() -> str:
-    """Return normalized effective log level (DEBUG/INFO/WARNING/ERROR)."""
-    level_name = (os.environ.get("PINRAG_LOG_LEVEL") or "INFO").strip().upper()
-    return level_name if level_name in ("DEBUG", "INFO", "WARNING", "ERROR") else "INFO"
-
-
 def format_documents_list() -> str:
     """Sync helper: fetch and format documents list for documents_resource."""
     result = list_documents(
@@ -121,6 +102,7 @@ def format_server_config() -> str:
         ("PINRAG_PARENT_CHUNK_SIZE", lambda: str(config.get_parent_chunk_size())),
         ("PINRAG_CHILD_CHUNK_SIZE", lambda: str(config.get_child_chunk_size())),
         ("PINRAG_RESPONSE_STYLE", config.get_response_style),
+        ("PINRAG_VERBOSE_LOGGING", lambda: str(config.get_verbose_logging()).lower()),
         (
             "PINRAG_GITHUB_MAX_FILE_BYTES",
             lambda: str(config.get_github_max_file_bytes()),
@@ -145,11 +127,6 @@ def format_server_config() -> str:
             lambda: str(config.get_yt_vision_min_scene_score()),
         ),
         ("PINRAG_YT_VISION_IMAGE_DETAIL", config.get_yt_vision_image_detail),
-        (
-            "PINRAG_LOG_TO_STDERR",
-            lambda: str(_parse_bool_env("PINRAG_LOG_TO_STDERR", default=False)).lower(),
-        ),
-        ("PINRAG_LOG_LEVEL", _effective_log_level_name),
     ]
     set_items: list[str] = []
     default_items: list[str] = []
