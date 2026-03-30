@@ -104,8 +104,8 @@ def test_enrich_with_vision_merges_into_load_result(
     with patch.dict(
         os.environ,
         {
-            "PINRAG_VISION_PROVIDER": "openai",
-            "PINRAG_VISION_MODEL": "gpt-4o-mini",
+            "PINRAG_YT_VISION_PROVIDER": "openai",
+            "PINRAG_YT_VISION_MODEL": "gpt-4o-mini",
             "PINRAG_YT_VISION_MAX_FRAMES": "5",
             "PINRAG_YT_VISION_MIN_SCENE_SCORE": "20",
         },
@@ -155,8 +155,8 @@ def test_enrich_with_vision_full_pipeline_live() -> None:
         with patch.dict(
             os.environ,
             {
-                "PINRAG_VISION_PROVIDER": "openai",
-                "PINRAG_VISION_MODEL": "gpt-4o-mini",
+                "PINRAG_YT_VISION_PROVIDER": "openai",
+                "PINRAG_YT_VISION_MODEL": "gpt-4o-mini",
                 "PINRAG_YT_VISION_MAX_FRAMES": "2",
                 "PINRAG_YT_VISION_MIN_SCENE_SCORE": "25",
             },

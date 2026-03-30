@@ -199,7 +199,7 @@ By default, YouTube indexing uses **transcripts only**. Set `PINRAG_YT_VISION_EN
 | **`pinrag[vision]`** | Python extra that pulls in PySceneDetect (and OpenCV) for scene detection. Example: `uv sync --extra vision` in a clone, or `pip install 'pinrag[vision]'` / `pipx install 'pinrag[vision]'` in the same environment as `pinrag`. |
 | **ffmpeg** (and **ffprobe**, usually bundled) | Frame extraction and duration probing. Must be on `PATH` for the MCP process. |
 
-`yt-dlp` is already a core dependency and is used to fetch the video file when vision is enabled. Vision models need a provider API key: **`OPENAI_API_KEY`** when `PINRAG_VISION_PROVIDER=openai`, or **`ANTHROPIC_API_KEY`** when `PINRAG_VISION_PROVIDER=anthropic`.
+`yt-dlp` is already a core dependency and is used to fetch the video file when vision is enabled. Vision models need a provider API key: **`OPENAI_API_KEY`** when `PINRAG_YT_VISION_PROVIDER=openai`, or **`ANTHROPIC_API_KEY`** when `PINRAG_YT_VISION_PROVIDER=anthropic`.
 
 **Operational notes:**
 
@@ -227,16 +227,20 @@ Environment variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | **LLM** | | |
+| **Provider & model** | | |
 | `PINRAG_LLM_PROVIDER` | `openrouter` | `openrouter`, `openai`, or `anthropic` |
-| `PINRAG_LLM_MODEL` | *(provider default)* | OpenRouter: default `openrouter/free`; or any slug (e.g. `anthropic/claude-sonnet-4-6`). OpenAI/Anthropic: e.g. `gpt-4o-mini`, `claude-haiku-4-5` |
-| `PINRAG_LLM_MODEL_FALLBACKS` | *(unset)* | OpenRouter only: comma-separated fallback model slugs sent as OpenRouter’s `models` list. The gateway tries the next slug when the primary (`PINRAG_LLM_MODEL`) fails (rate limits, downtime, etc.). Use extra free models here to stay zero-cost. |
-| `PINRAG_OPENROUTER_SORT` | *(unset)* | OpenRouter only: optional `provider.sort` — `price`, `throughput`, or `latency`. When unset, OpenRouter uses its default provider selection. |
-| `OPENROUTER_API_KEY` | *(required for OpenRouter LLM)* | OpenRouter API key when `PINRAG_LLM_PROVIDER=openrouter` or `PINRAG_EVALUATOR_PROVIDER=openrouter` |
-| `OPENROUTER_APP_URL` | `https://github.com/ndjordjevic/pinrag` | OpenRouter app attribution (`HTTP-Referer`). Override with your site URL (see [OpenRouter app attribution](https://openrouter.ai/docs/app-attribution)). PinRAG copies this into `OPENROUTER_HTTP_REFERER` for the OpenRouter Python SDK. |
-| `OPENROUTER_APP_TITLE` | `PinRAG` | OpenRouter app title (`X-Title`). Override to label usage in the OpenRouter dashboard. PinRAG copies this into `OPENROUTER_X_OPEN_ROUTER_TITLE` for the SDK. |
-| `OPENAI_API_KEY` | *(required for OpenAI LLM)* | OpenAI API key when using OpenAI for the LLM (`PINRAG_LLM_PROVIDER=openai`) |
+| `PINRAG_LLM_MODEL` | *(provider default)* | When unset: OpenRouter `openrouter/free`, OpenAI `gpt-4o-mini`, Anthropic `claude-haiku-4-5`. Override with any model id (e.g. OpenRouter `anthropic/claude-sonnet-4-6`). |
+| **OpenRouter** | | |
+| `PINRAG_OPENROUTER_MODEL_FALLBACKS` | *(unset)* | Comma-separated fallback model slugs sent as OpenRouter’s `models` list. The gateway tries the next slug when the primary (`PINRAG_LLM_MODEL`) fails (rate limits, downtime, etc.). Use extra free models here to stay zero-cost. Legacy alias: `PINRAG_LLM_MODEL_FALLBACKS`. |
+| `PINRAG_OPENROUTER_SORT` | *(unset)* | Optional `provider.sort` — `price`, `throughput`, or `latency`. When unset, OpenRouter uses its default provider selection. Prefer leaving this unset if you set `PINRAG_OPENROUTER_PROVIDER_ORDER` to pin a specific backend (avoids conflicting routing signals). |
+| `PINRAG_OPENROUTER_PROVIDER_ORDER` | *(unset)* | Comma-separated provider names for `provider.order` (tried in sequence). Example: `Cerebras` with `PINRAG_LLM_MODEL=openai/gpt-oss-120b` to prefer [Cerebras-backed routing](https://openrouter.ai/docs/guides/routing/provider-selection). Use exact labels from the model’s provider list on OpenRouter. |
+| `OPENROUTER_APP_URL` | `https://github.com/ndjordjevic/pinrag` | App attribution (`HTTP-Referer`). Override with your site URL (see [OpenRouter app attribution](https://openrouter.ai/docs/app-attribution)). PinRAG copies this into `OPENROUTER_HTTP_REFERER` for the OpenRouter Python SDK. |
+| `OPENROUTER_APP_TITLE` | `PinRAG` | App title (`X-Title`). Override to label usage in the OpenRouter dashboard. PinRAG copies this into `OPENROUTER_X_OPEN_ROUTER_TITLE` for the SDK. |
+| **API keys** | | |
+| `OPENROUTER_API_KEY` | *(required for OpenRouter LLM)* | Required when `PINRAG_LLM_PROVIDER=openrouter` or `PINRAG_EVALUATOR_PROVIDER=openrouter`. |
+| `OPENAI_API_KEY` | *(required for OpenAI LLM)* | Required when using OpenAI for the LLM (`PINRAG_LLM_PROVIDER=openai`). |
 | `OPENAI_BASE_URL` | *(optional)* | Override OpenAI API base URL (e.g. `https://openrouter.ai/api/v1` with `OPENAI_API_KEY` set to your OpenRouter key for vision or other OpenAI-compatible calls). |
-| `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Anthropic API key (when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`) |
+| `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Required when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`. |
 | **Embeddings** | | |
 | `PINRAG_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Local Nomic model id (via `langchain-nomic`). First run downloads weights (~270 MB, cached). No API key. |
 | **Storage & chunking** | | |
@@ -272,11 +276,11 @@ Environment variables:
 | `PINRAG_YT_PROXY_HTTPS_URL` | *(none)* | HTTPS proxy URL for transcript fetches. Same as HTTP when using a generic proxy. |
 | **YouTube vision (optional)** | | |
 | `PINRAG_YT_VISION_ENABLED` | `false` | Set `true` / `1` / `yes` / `on` to enable on-screen enrichment for YouTube indexing. Requires `pinrag[vision]`, ffmpeg on `PATH`, and a vision provider key. |
-| `PINRAG_VISION_PROVIDER` | `openai` | Vision API: `openai` or `anthropic`. Independent of `PINRAG_LLM_PROVIDER` (query LLM can stay OpenAI while vision uses Anthropic, and vice versa). |
-| `PINRAG_VISION_MODEL` | *(provider default)* | Model id for vision calls. If unset: OpenAI default `gpt-4o-mini`, Anthropic default `claude-sonnet-4-6`. Use a **vision-capable** model (e.g. `gpt-4o`, or a current Claude Sonnet id from your Anthropic console). |
+| `PINRAG_YT_VISION_PROVIDER` | `openai` | YouTube vision API: `openai` or `anthropic`. Independent of `PINRAG_LLM_PROVIDER` (query LLM can stay OpenAI while vision uses Anthropic, and vice versa). |
+| `PINRAG_YT_VISION_MODEL` | *(provider default)* | Model id for YouTube vision calls. If unset: OpenAI default `gpt-4o-mini`, Anthropic default `claude-sonnet-4-6`. Use a **vision-capable** model (e.g. `gpt-4o`, or a current Claude Sonnet id from your Anthropic console). |
 | `PINRAG_YT_VISION_MAX_FRAMES` | `8` | Maximum scene-based keyframes analyzed per video (after scene detection). Higher values improve coverage but increase time and API cost. |
 | `PINRAG_YT_VISION_MIN_SCENE_SCORE` | `27.0` | PySceneDetect `AdaptiveDetector` threshold; larger values yield fewer, stronger scene cuts (see PySceneDetect docs). |
-| `PINRAG_YT_VISION_IMAGE_DETAIL` | `low` | **OpenAI only:** `low`, `high`, or `auto` for `image_url.detail`. `high` reads small code better at higher image-token cost. Ignored when `PINRAG_VISION_PROVIDER=anthropic` (full image is sent). |
+| `PINRAG_YT_VISION_IMAGE_DETAIL` | `low` | **OpenAI only:** `low`, `high`, or `auto` for `image_url.detail`. `high` reads small code better at higher image-token cost. Ignored when `PINRAG_YT_VISION_PROVIDER=anthropic` (full image is sent). |
 | **Logging (MCP output)** | | |
 | `PINRAG_LOG_TO_STDERR` | `false` | Set to `true` to send PinRAG logs (tool calls, completion timing, indexing messages) to stderr so they appear in the MCP server output in VS Code or Cursor. Default is off to avoid noisy or misleading badges in the editor. |
 | `PINRAG_LOG_LEVEL` | `INFO` | Log level when `PINRAG_LOG_TO_STDERR=true`: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. |
@@ -287,8 +291,8 @@ Environment variables:
 | `LANGSMITH_ENDPOINT` | US API (implicit) | **EU workspaces:** set `https://eu.api.smith.langchain.com` so traces land in your EU project. If your account uses `eu.smith.langchain.com` in the browser, you need this. US-region workspaces can omit it (default API host). |
 | **Evaluators (LLM-as-judge)** | | |
 | `PINRAG_EVALUATOR_PROVIDER` | `openai` | `openai`, `anthropic`, or `openrouter` — which LLM runs LLM-as-judge graders. Used only during evaluation runs (LangSmith experiments). |
-| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`, `openrouter/free` when evaluator provider is OpenRouter). With OpenRouter, the default free router may rotate models; graders use strict JSON schema—set this to a **specific** free slug from [openrouter.ai/models](https://openrouter.ai/models) if you need stable structured output. |
-| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`, `openrouter/free` when evaluator provider is OpenRouter). Same OpenRouter note as `PINRAG_EVALUATOR_MODEL`. `PINRAG_LLM_MODEL_FALLBACKS` / `PINRAG_OPENROUTER_SORT` apply when the evaluator provider is OpenRouter. |
+| `PINRAG_EVALUATOR_MODEL` | *(provider default)* | Model for **correctness** grading (e.g. `gpt-4o`, `claude-sonnet-4-6`, `openrouter/free` when evaluator provider is OpenRouter). With OpenRouter, the default free router may rotate models; graders use strict JSON schema—set this to a **specific** free slug from [openrouter.ai/models](https://openrouter.ai/models) if you need stable structured output. OpenRouter routing env vars below also apply to graders when `PINRAG_EVALUATOR_PROVIDER=openrouter`. |
+| `PINRAG_EVALUATOR_MODEL_CONTEXT` | *(provider default)* | Model for **groundedness** grading (large retrieved context; e.g. `gpt-4o-mini`, `claude-haiku-4-5`, `openrouter/free` when evaluator provider is OpenRouter). Same OpenRouter note as `PINRAG_EVALUATOR_MODEL`. When the evaluator provider is OpenRouter, `PINRAG_OPENROUTER_MODEL_FALLBACKS`, `PINRAG_OPENROUTER_SORT`, and `PINRAG_OPENROUTER_PROVIDER_ORDER` apply to the grader client. |
 
 > **Re-indexing when changing embedding model:** Changing `PINRAG_EMBEDDING_MODEL` (or upgrading from indexes built with older OpenAI embeddings) requires re-indexing; vector dimensions must match the model used at index time.
 >

@@ -7,8 +7,9 @@ OpenRouter: default ``openrouter/free`` for both (zero-cost; the gateway may rou
 capable free models). Graders use ``json_schema`` strict structured output—if a routed model
 does not support that well, set ``PINRAG_EVALUATOR_MODEL`` / ``PINRAG_EVALUATOR_MODEL_CONTEXT`` to a
 specific free slug from https://openrouter.ai/models (filter ``structured_outputs``).
-``PINRAG_LLM_MODEL_FALLBACKS`` and ``PINRAG_OPENROUTER_SORT`` apply to the OpenRouter
-chat client here the same as for RAG generation when the evaluator provider is openrouter.
+``PINRAG_OPENROUTER_MODEL_FALLBACKS``, ``PINRAG_OPENROUTER_SORT``, and
+``PINRAG_OPENROUTER_PROVIDER_ORDER`` apply to the OpenRouter chat client here the same as
+for RAG generation when the evaluator provider is openrouter.
 Code evaluators have no LLM cost.
 """
 
@@ -23,8 +24,10 @@ from pinrag.config import (
     get_evaluator_model,
     get_evaluator_provider,
     get_llm_model_fallbacks,
+    get_openrouter_app_title,
+    get_openrouter_app_url,
+    get_openrouter_provider_order,
     get_openrouter_sort,
-    sync_openrouter_sdk_attribution_env,
 )
 
 # ---------------------------------------------------------------------------
@@ -79,16 +82,21 @@ def _get_grader_llm(schema: type, *, context_heavy: bool = False) -> Any:
     elif provider == "openrouter":
         from langchain_openrouter import ChatOpenRouter
 
-        sync_openrouter_sdk_attribution_env()
         fallbacks = get_llm_model_fallbacks()
         sort = get_openrouter_sort()
+        order = get_openrouter_provider_order()
         model_kwargs = {"models": fallbacks} if fallbacks else {}
-        openrouter_provider = {"sort": sort} if sort else None
+        provider_prefs: dict[str, object] = {}
+        if sort:
+            provider_prefs["sort"] = sort
+        if order:
+            provider_prefs["order"] = order
+        openrouter_provider = provider_prefs if provider_prefs else None
         llm = ChatOpenRouter(  # type: ignore[call-arg]
             model=model,
             temperature=0,
-            app_url=None,
-            app_title=None,
+            app_url=get_openrouter_app_url(),
+            app_title=get_openrouter_app_title(),
             model_kwargs=model_kwargs,
             openrouter_provider=openrouter_provider,
         )

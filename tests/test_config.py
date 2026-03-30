@@ -21,6 +21,7 @@ from pinrag.config import (
     get_llm_provider,
     get_openrouter_app_title,
     get_openrouter_app_url,
+    get_openrouter_provider_order,
     get_openrouter_sort,
     sync_openrouter_sdk_attribution_env,
     get_persist_dir,
@@ -69,16 +70,32 @@ def test_sync_openrouter_sdk_attribution_env(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_get_llm_model_fallbacks_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_OPENROUTER_MODEL_FALLBACKS", raising=False)
     monkeypatch.delenv("PINRAG_LLM_MODEL_FALLBACKS", raising=False)
     assert get_llm_model_fallbacks() is None
 
 
 def test_get_llm_model_fallbacks_parsed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_LLM_MODEL_FALLBACKS", raising=False)
     monkeypatch.setenv(
-        "PINRAG_LLM_MODEL_FALLBACKS",
+        "PINRAG_OPENROUTER_MODEL_FALLBACKS",
         "a/b:free, c/d ,",
     )
     assert get_llm_model_fallbacks() == ["a/b:free", "c/d"]
+
+
+def test_get_llm_model_fallbacks_legacy_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_OPENROUTER_MODEL_FALLBACKS", raising=False)
+    monkeypatch.setenv("PINRAG_LLM_MODEL_FALLBACKS", "x/y")
+    assert get_llm_model_fallbacks() == ["x/y"]
+
+
+def test_get_llm_model_fallbacks_prefers_openrouter_env_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PINRAG_OPENROUTER_MODEL_FALLBACKS", "a/b")
+    monkeypatch.setenv("PINRAG_LLM_MODEL_FALLBACKS", "c/d")
+    assert get_llm_model_fallbacks() == ["a/b"]
 
 
 def test_get_openrouter_sort_unset(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -94,6 +111,19 @@ def test_get_openrouter_sort_valid(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_openrouter_sort_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PINRAG_OPENROUTER_SORT", "cheapest")
     assert get_openrouter_sort() is None
+
+
+def test_get_openrouter_provider_order_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_OPENROUTER_PROVIDER_ORDER", raising=False)
+    assert get_openrouter_provider_order() is None
+
+
+def test_get_openrouter_provider_order_parsed(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(
+        "PINRAG_OPENROUTER_PROVIDER_ORDER",
+        "Cerebras, OtherProvider ,",
+    )
+    assert get_openrouter_provider_order() == ["Cerebras", "OtherProvider"]
 
 
 def test_get_chunk_size_default(monkeypatch: pytest.MonkeyPatch) -> None:

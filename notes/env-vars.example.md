@@ -13,10 +13,14 @@ See also the configuration table in the project `README.md`.
 #   openrouter=openrouter/free (free model router), openai=gpt-4o-mini, anthropic=claude-haiku-4-5
 # Premium OpenRouter example: PINRAG_LLM_MODEL=anthropic/claude-sonnet-4-6
 # PINRAG_LLM_MODEL=openrouter/free
-# Optional: comma-separated fallback slugs (OpenRouter `models`); tried if the primary model fails (stay free with other :free slugs).
-# PINRAG_LLM_MODEL_FALLBACKS=google/gemini-2.0-flash-001:free,meta-llama/llama-3.3-70b-instruct:free
+# Optional: comma-separated fallback model slugs for OpenRouter (`models` field); tried if the primary fails (use other :free slugs to stay zero-cost).
+# PINRAG_OPENROUTER_MODEL_FALLBACKS=google/gemini-2.0-flash-001:free,meta-llama/llama-3.3-70b-instruct:free
 # Optional provider preference: price | throughput | latency
 # PINRAG_OPENROUTER_SORT=price
+# Optional: comma-separated OpenRouter provider.order (pin inference backend; use exact labels from the model page)
+# Example: fast gpt-oss-120b via OpenRouter — PINRAG_LLM_MODEL=openai/gpt-oss-120b + PINRAG_OPENROUTER_PROVIDER_ORDER=Cerebras
+# PINRAG_OPENROUTER_PROVIDER_ORDER=Cerebras
+# PINRAG_OPENROUTER_MODEL_FALLBACKS lists alternate *model* slugs if the primary fails, not duplicate primary or provider names. Legacy alias: PINRAG_LLM_MODEL_FALLBACKS.
 
 # OpenRouter (required when PINRAG_LLM_PROVIDER=openrouter; get a key at https://openrouter.ai/)
 #OPENROUTER_API_KEY=your_openrouter_api_key_here
@@ -101,8 +105,8 @@ See also the configuration table in the project `README.md`.
 # Requires: pip install 'pinrag[vision]', ffmpeg on PATH, and vision API key(s).
 # PINRAG_YT_VISION_ENABLED=true
 # Vision API: openai (default) | anthropic — set matching API key (OPENAI_API_KEY / ANTHROPIC_API_KEY).
-# PINRAG_VISION_PROVIDER=openai
-# PINRAG_VISION_MODEL=gpt-4o
+# PINRAG_YT_VISION_PROVIDER=openai
+# PINRAG_YT_VISION_MODEL=gpt-4o
 # PINRAG_YT_VISION_MAX_FRAMES=8
 # PINRAG_YT_VISION_MIN_SCENE_SCORE=27.0
 # OpenAI-only image resolution for vision (low | high | auto):
@@ -124,7 +128,7 @@ See also the configuration table in the project `README.md`.
 # PINRAG_EVALUATOR_MODEL_CONTEXT=gpt-4o-mini
 # OpenRouter defaults stay free (openrouter/free) but may rotate underlying models; graders use strict json_schema.
 # For stable free grading, set EVALUATOR_MODEL* to a specific slug from https://openrouter.ai/models (structured_outputs).
-# When PINRAG_EVALUATOR_PROVIDER=openrouter, PINRAG_LLM_MODEL_FALLBACKS and PINRAG_OPENROUTER_SORT apply to the grader client too.
+# When PINRAG_EVALUATOR_PROVIDER=openrouter, PINRAG_OPENROUTER_MODEL_FALLBACKS, PINRAG_OPENROUTER_SORT, and PINRAG_OPENROUTER_PROVIDER_ORDER apply to the grader client too.
 
 # --- Optional: LangSmith tracing (see notes/langsmith-setup.md) ---
 # LANGSMITH_API_KEY=your_langsmith_api_key_here

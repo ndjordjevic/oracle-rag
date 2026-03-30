@@ -114,11 +114,11 @@ def get_openrouter_app_title() -> str | None:
 
 
 def sync_openrouter_sdk_attribution_env() -> None:
-    """Push ``OPENROUTER_APP_*`` (and PinRAG defaults) into env for the OpenRouter Python SDK.
-
-    ``langchain-openrouter`` builds the SDK with a mismatched ``x_title`` kwarg; the
-    SDK instead reads ``OPENROUTER_HTTP_REFERER`` and ``OPENROUTER_X_OPEN_ROUTER_TITLE``.
-    Call this before ``ChatOpenRouter(..., app_url=None, app_title=None)``.
+    """Copy PinRAG-resolved ``OPENROUTER_APP_*`` into ``OPENROUTER_HTTP_REFERER`` /
+    ``OPENROUTER_X_OPEN_ROUTER_TITLE`` for code that talks to OpenRouter outside
+    ``langchain-openrouter`` (that stack uses ``app_url`` / ``app_title`` on
+    ``ChatOpenRouter`` directly, with PinRAG passing :func:`get_openrouter_app_url`
+    / :func:`get_openrouter_app_title`).
     """
     url = get_openrouter_app_url()
     title = get_openrouter_app_title()
@@ -133,13 +133,17 @@ def sync_openrouter_sdk_attribution_env() -> None:
 
 
 def get_llm_model_fallbacks() -> list[str] | None:
-    """Return OpenRouter fallback model IDs from ``PINRAG_LLM_MODEL_FALLBACKS`` (comma-separated).
+    """Return OpenRouter fallback model IDs from ``PINRAG_OPENROUTER_MODEL_FALLBACKS`` (comma-separated).
 
     Passed to OpenRouter as the ``models`` request field so the gateway tries the next
     model when the primary (``PINRAG_LLM_MODEL``) fails (rate limits, downtime, etc.).
     Only used when ``PINRAG_LLM_PROVIDER=openrouter``.
+
+    Legacy: if unset or empty, ``PINRAG_LLM_MODEL_FALLBACKS`` is read (same format).
     """
-    val = os.environ.get("PINRAG_LLM_MODEL_FALLBACKS")
+    val = os.environ.get("PINRAG_OPENROUTER_MODEL_FALLBACKS")
+    if val is None or not str(val).strip():
+        val = os.environ.get("PINRAG_LLM_MODEL_FALLBACKS")
     if val is None or not str(val).strip():
         return None
     out = [p.strip() for p in str(val).split(",") if p.strip()]
@@ -154,6 +158,24 @@ def get_openrouter_sort() -> str | None:
     """
     val = (os.environ.get("PINRAG_OPENROUTER_SORT") or "").strip().lower()
     return val if val in ("price", "throughput", "latency") else None
+
+
+def get_openrouter_provider_order() -> list[str] | None:
+    """Return OpenRouter ``provider.order`` from ``PINRAG_OPENROUTER_PROVIDER_ORDER`` (comma-separated).
+
+    Provider slugs are tried in sequence before OpenRouter's default selection. For example
+    ``PINRAG_OPENROUTER_PROVIDER_ORDER=Cerebras`` with ``PINRAG_LLM_MODEL=openai/gpt-oss-120b``
+    prefers Cerebras-backed inference on OpenRouter. Use exact labels from the model's
+    provider list on OpenRouter if a name fails validation.
+
+    See https://openrouter.ai/docs/guides/routing/provider-selection. Only used when
+    ``PINRAG_LLM_PROVIDER=openrouter``.
+    """
+    val = os.environ.get("PINRAG_OPENROUTER_PROVIDER_ORDER")
+    if val is None or not str(val).strip():
+        return None
+    out = [p.strip() for p in str(val).split(",") if p.strip()]
+    return out or None
 
 
 # --- Evaluator ---
@@ -503,8 +525,13 @@ def get_yt_vision_enabled() -> bool:
 
 
 def get_vision_provider() -> str:
-    """Return vision provider from PINRAG_VISION_PROVIDER env (openai | anthropic)."""
-    val = os.environ.get("PINRAG_VISION_PROVIDER", DEFAULT_VISION_PROVIDER)
+    """Return YouTube vision provider from PINRAG_YT_VISION_PROVIDER (openai | anthropic).
+
+    Legacy ``PINRAG_VISION_PROVIDER`` is still read if the YT-prefixed variable is unset.
+    """
+    val = os.environ.get("PINRAG_YT_VISION_PROVIDER") or os.environ.get(
+        "PINRAG_VISION_PROVIDER", DEFAULT_VISION_PROVIDER
+    )
     p = (val or "").strip().lower()
     if p in ("openai", "anthropic"):
         return p
@@ -512,8 +539,11 @@ def get_vision_provider() -> str:
 
 
 def get_vision_model() -> str:
-    """Return vision model name from PINRAG_VISION_MODEL env, or provider default."""
-    val = os.environ.get("PINRAG_VISION_MODEL")
+    """Return YouTube vision model from PINRAG_YT_VISION_MODEL, or provider default.
+
+    Legacy ``PINRAG_VISION_MODEL`` is still read if the YT-prefixed variable is unset.
+    """
+    val = os.environ.get("PINRAG_YT_VISION_MODEL") or os.environ.get("PINRAG_VISION_MODEL")
     if val and str(val).strip():
         return str(val).strip()
     provider = get_vision_provider()

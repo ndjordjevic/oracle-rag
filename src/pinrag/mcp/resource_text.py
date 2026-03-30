@@ -87,10 +87,14 @@ def format_server_config() -> str:
         ("PINRAG_LLM_PROVIDER", config.get_llm_provider),
         ("PINRAG_LLM_MODEL", config.get_llm_model),
         (
-            "PINRAG_LLM_MODEL_FALLBACKS",
+            "PINRAG_OPENROUTER_MODEL_FALLBACKS",
             lambda: ",".join(config.get_llm_model_fallbacks() or []),
         ),
         ("PINRAG_OPENROUTER_SORT", lambda: config.get_openrouter_sort() or ""),
+        (
+            "PINRAG_OPENROUTER_PROVIDER_ORDER",
+            lambda: ",".join(config.get_openrouter_provider_order() or []),
+        ),
         ("PINRAG_EVALUATOR_PROVIDER", config.get_evaluator_provider),
         (
             "PINRAG_EVALUATOR_MODEL",
@@ -126,6 +130,21 @@ def format_server_config() -> str:
             "PINRAG_PLAINTEXT_MAX_FILE_BYTES",
             lambda: str(config.get_plaintext_max_file_bytes()),
         ),
+        (
+            "PINRAG_YT_VISION_ENABLED",
+            lambda: str(config.get_yt_vision_enabled()).lower(),
+        ),
+        ("PINRAG_YT_VISION_PROVIDER", config.get_vision_provider),
+        ("PINRAG_YT_VISION_MODEL", config.get_vision_model),
+        (
+            "PINRAG_YT_VISION_MAX_FRAMES",
+            lambda: str(config.get_yt_vision_max_frames()),
+        ),
+        (
+            "PINRAG_YT_VISION_MIN_SCENE_SCORE",
+            lambda: str(config.get_yt_vision_min_scene_score()),
+        ),
+        ("PINRAG_YT_VISION_IMAGE_DETAIL", config.get_yt_vision_image_detail),
         (
             "PINRAG_LOG_TO_STDERR",
             lambda: str(_parse_bool_env("PINRAG_LOG_TO_STDERR", default=False)).lower(),

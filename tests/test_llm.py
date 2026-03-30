@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from unittest.mock import patch
 
 import pytest
@@ -17,7 +16,7 @@ from pinrag.config import (
     DEFAULT_OPENROUTER_APP_TITLE,
     DEFAULT_OPENROUTER_APP_URL,
 )
-from pinrag.llm.openai_client import DEFAULT_MODEL, get_chat_model
+from pinrag.llm.chat_model import DEFAULT_MODEL, get_chat_model
 
 
 def test_openai_missing_api_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -75,23 +74,30 @@ def test_get_chat_model_returns_openrouter_when_configured(
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
     monkeypatch.setenv("PINRAG_LLM_MODEL", DEFAULT_LLM_MODEL_OPENROUTER)
+    monkeypatch.delenv("PINRAG_OPENROUTER_MODEL_FALLBACKS", raising=False)
     monkeypatch.delenv("PINRAG_LLM_MODEL_FALLBACKS", raising=False)
     monkeypatch.delenv("PINRAG_OPENROUTER_SORT", raising=False)
+    monkeypatch.delenv("PINRAG_OPENROUTER_PROVIDER_ORDER", raising=False)
     llm = get_chat_model()
     assert isinstance(llm, ChatOpenRouter)
     assert llm.model_name == DEFAULT_LLM_MODEL_OPENROUTER
-    assert os.environ.get("OPENROUTER_HTTP_REFERER") == DEFAULT_OPENROUTER_APP_URL
-    assert os.environ.get("OPENROUTER_X_OPEN_ROUTER_TITLE") == DEFAULT_OPENROUTER_APP_TITLE
+    assert llm.app_url == DEFAULT_OPENROUTER_APP_URL
+    assert llm.app_title == DEFAULT_OPENROUTER_APP_TITLE
 
 
 def test_openrouter_model_fallbacks_and_sort_in_chat_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """OpenRouter extras: PINRAG_LLM_MODEL_FALLBACKS and PINRAG_OPENROUTER_SORT."""
+    """OpenRouter extras: PINRAG_OPENROUTER_MODEL_FALLBACKS and PINRAG_OPENROUTER_SORT."""
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
     monkeypatch.setenv("PINRAG_LLM_MODEL", "openrouter/free")
-    monkeypatch.setenv("PINRAG_LLM_MODEL_FALLBACKS", "meta/llama:free, google/gemini:free")
+    monkeypatch.delenv("PINRAG_LLM_MODEL_FALLBACKS", raising=False)
+    monkeypatch.delenv("PINRAG_OPENROUTER_PROVIDER_ORDER", raising=False)
+    monkeypatch.setenv(
+        "PINRAG_OPENROUTER_MODEL_FALLBACKS",
+        "meta/llama:free, google/gemini:free",
+    )
     monkeypatch.setenv("PINRAG_OPENROUTER_SORT", "throughput")
     llm = get_chat_model()
     assert isinstance(llm, ChatOpenRouter)
@@ -99,17 +105,53 @@ def test_openrouter_model_fallbacks_and_sort_in_chat_model(
     assert llm.openrouter_provider == {"sort": "throughput"}
 
 
-def test_openrouter_app_attribution_env_override_in_chat_model(
+def test_openrouter_provider_order_in_chat_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """PINRAG_OPENROUTER_PROVIDER_ORDER maps to ChatOpenRouter openrouter_provider.order."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
+    monkeypatch.setenv("PINRAG_LLM_MODEL", "openai/gpt-oss-120b")
+    monkeypatch.delenv("PINRAG_OPENROUTER_MODEL_FALLBACKS", raising=False)
+    monkeypatch.delenv("PINRAG_LLM_MODEL_FALLBACKS", raising=False)
+    monkeypatch.delenv("PINRAG_OPENROUTER_SORT", raising=False)
+    monkeypatch.setenv("PINRAG_OPENROUTER_PROVIDER_ORDER", "Cerebras")
+    llm = get_chat_model()
+    assert isinstance(llm, ChatOpenRouter)
+    assert llm.openrouter_provider == {"order": ["Cerebras"]}
+
+
+def test_openrouter_fallbacks_sort_and_provider_order_in_chat_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """OpenRouter provider dict merges sort and order with model fallbacks."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
+    monkeypatch.setenv("PINRAG_LLM_MODEL", "openai/gpt-oss-120b")
+    monkeypatch.setenv("PINRAG_OPENROUTER_MODEL_FALLBACKS", "meta/llama:free")
+    monkeypatch.setenv("PINRAG_OPENROUTER_SORT", "latency")
+    monkeypatch.setenv("PINRAG_OPENROUTER_PROVIDER_ORDER", "Cerebras,Other")
+    llm = get_chat_model()
+    assert isinstance(llm, ChatOpenRouter)
+    assert llm.model_kwargs == {"models": ["meta/llama:free"]}
+    assert llm.openrouter_provider == {
+        "sort": "latency",
+        "order": ["Cerebras", "Other"],
+    }
+
+
+def test_openrouter_app_attribution_override_in_chat_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("PINRAG_OPENROUTER_PROVIDER_ORDER", raising=False)
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openrouter")
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test-key")
     monkeypatch.setenv("OPENROUTER_APP_URL", "https://custom.example")
     monkeypatch.setenv("OPENROUTER_APP_TITLE", "MyPinRAG")
     llm = get_chat_model()
     assert isinstance(llm, ChatOpenRouter)
-    assert os.environ.get("OPENROUTER_HTTP_REFERER") == "https://custom.example"
-    assert os.environ.get("OPENROUTER_X_OPEN_ROUTER_TITLE") == "MyPinRAG"
+    assert llm.app_url == "https://custom.example"
+    assert llm.app_title == "MyPinRAG"
 
 
 def test_chat_model_invoke(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -117,7 +159,7 @@ def test_chat_model_invoke(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PINRAG_LLM_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-fake")
     fake = FakeListChatModel(responses=["ok"])
-    with patch("pinrag.llm.openai_client.ChatOpenAI", return_value=fake):
+    with patch("pinrag.llm.chat_model.ChatOpenAI", return_value=fake):
         llm = get_chat_model()
     response = llm.invoke([HumanMessage(content="Say 'ok' and nothing else.")])
     assert response.content
