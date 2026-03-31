@@ -299,12 +299,13 @@
 - [x] Check pinrag repo and what's been pushed there and should we expose it to the users?
 - [x] Investigate advertising & distribution for the PinRAG MCP server (IDE lists, directories, promotion) — see `notes/mcp-advertising-distribution-strategy.md`.
 - [x] Implement distribution strategies
-- [ ] Implement advertising strategies
 - [x] Investigate how to smartly extract YouTube video content beside just the transcript.
 - [x] Implement local Nomic embeddings.
 - [x] Add OpenRouter as a default provider for LLM.
 - [x] Investigate how to use Cerebras skill to use LiteLLM via OpenRouter to the openrouter/openai/gpt-oss-120b model with Cerebras as the inference provider to improve the RAG pipeline.
-  - [x] Add Cerebras Inference provider to the pinrag mcp server.
+- [x] Add Cerebras Inference provider to the pinrag mcp server.
+- [x] Polish README.md and make it more user-friendly.
+- [ ] Implement advertising strategies
 - [ ] I like how fancy Claude Code Cli looks like so just an idea of UI interface for my pinrag-tutor
 
 ---

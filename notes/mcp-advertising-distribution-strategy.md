@@ -141,7 +141,7 @@ https://cursor.com/en/install-mcp?name=pinrag&config=eyJjb21tYW5kIjoidXZ4IiwiYXJ
 ```
 Decodes to `{"command":"uvx","args":["--refresh","pinrag"],"env":{"OPENAI_API_KEY":"","PINRAG_PERSIST_DIR":""}}`.
 
-**VS Code:** GitHub strips custom URL schemes, so the README links to an HTTPS landing page with the `vscode:` button: [`docs/vscode-mcp-install.html`](../docs/vscode-mcp-install.html), served via GitHub Pages at `https://ndjordjevic.github.io/pinrag/vscode-mcp-install.html`.
+**VS Code:** README documents manual `servers` JSON. GitHub strips custom URL schemes, so there is no README link to a `vscode:` handler; use the raw URL below when you want a one-shot protocol install.
 
 Raw `vscode:` URL (for local preview / manual paste):
 ```

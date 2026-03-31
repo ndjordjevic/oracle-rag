@@ -104,7 +104,7 @@ def _user_friendly_api_error(exc: Exception) -> str | None:
 
 def _build_tool_summary(name: str, kwargs: dict[str, Any]) -> str:
     """Build a short summary string for tool logging. Always redacts sensitive content."""
-    if name in ("add_document_tool", "add_url_tool"):
+    if name == "add_document_tool":
         paths = kwargs.get("paths", [])
         n = len(paths)
         if not paths:

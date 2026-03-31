@@ -62,11 +62,6 @@ async def _handle_set_logging_level(level: types.LoggingLevel) -> None:
 __all__ = ["configure_logging", "mcp"]
 
 
-def _is_url(s: str) -> bool:
-    """Return True if string is an HTTP(S) URL."""
-    return (s or "").strip().startswith(("http://", "https://"))
-
-
 @mcp.tool()
 @_log_tool_errors
 async def query_tool(
@@ -253,70 +248,6 @@ async def add_document_tool(
 
 @mcp.tool()
 @_log_tool_errors
-async def add_url_tool(
-    paths: Annotated[
-        list[str],
-        Field(description="URLs to index: YouTube video/playlist or GitHub repo."),
-    ],
-    tags: Annotated[
-        list[str] | None, Field(description="Optional list of tags, one per URL.")
-    ] = None,
-    branch: Annotated[
-        str | None, Field(description="For GitHub: override branch (default: main).")
-    ] = None,
-    include_patterns: Annotated[
-        list[str] | None,
-        Field(description="For GitHub: glob patterns for files to include."),
-    ] = None,
-    exclude_patterns: Annotated[
-        list[str] | None, Field(description="For GitHub: glob patterns to exclude.")
-    ] = None,
-    ctx: Context | None = None,
-) -> dict:
-    """Add YouTube videos/playlists or GitHub repos to the index via URL.
-
-    For local files or directories, use add_document_tool instead.
-    """
-    input_paths = list(paths or [])
-    if not input_paths:
-        raise ValueError("paths cannot be empty")
-    for i, p in enumerate(input_paths):
-        if not _is_url(p):
-            raise ValueError(
-                f"path[{i}] is not a URL. Use add_document_tool for local files or directories."
-            )
-    if tags is not None and len(tags) != len(input_paths):
-        raise ValueError("tags must have same length as paths when provided")
-
-    verbose_emitter = make_verbose_emitter(ctx, scope="tool", name="add_url_tool")
-
-    def _run() -> dict:
-        return add_files(
-            paths=input_paths,
-            persist_dir=config.get_persist_dir(),
-            collection=config.get_collection_name(),
-            tags=tags,
-            branch=branch,
-            include_patterns=include_patterns,
-            exclude_patterns=exclude_patterns,
-            verbose_emitter=verbose_emitter,
-        )
-
-    try:
-        result = await anyio.to_thread.run_sync(_run)
-    except Exception:
-        mirror_verbose_to_output_panel(_drain_verbose_lines(verbose_emitter))
-        raise
-
-    verbose_lines = _drain_verbose_lines(verbose_emitter)
-    mirror_verbose_to_output_panel(verbose_lines)
-    if isinstance(result, dict):
-        return _attach_server_metadata(result, verbose_lines=verbose_lines)
-    return result
-
-
-@mcp.tool()
-@_log_tool_errors
 async def list_documents_tool(
     tag: Annotated[
         str,
@@ -461,7 +392,7 @@ def use_pinrag(request: str = "") -> str:
 
     Routes to the correct tool based on the request:
     - Query / question  → query_tool
-    - Index / add       → add_url_tool (URLs) or add_document_tool (files/dirs)
+    - Index / add       → add_document_tool
     - List / show       → list_documents_tool
     - Remove / delete   → remove_document_tool
     """
@@ -475,12 +406,8 @@ def use_pinrag(request: str = "") -> str:
         "document_type ('pdf', 'youtube', 'discord', 'github', 'plaintext'), "
         "file_path (filter to a file within a doc, e.g. src/foo.c for GitHub), "
         "response_style ('thorough' or 'concise').\n\n"
-        "add_url_tool — index YouTube videos/playlists or GitHub repos via URL only.\n"
-        "  Required: paths (list of URLs). "
-        "  Optional: tags (list, one per URL), branch (GitHub only), "
-        "include_patterns / exclude_patterns (GitHub only).\n\n"
-        "add_document_tool — index local files, directories, or URLs (all-in-one).\n"
-        "  Required: paths (list of str: file paths, dir paths, YouTube URLs, GitHub URLs). "
+        "add_document_tool — index local files, directories, or remote URLs.\n"
+        "  Required: paths (list of str: file paths, dir paths, YouTube URLs/IDs, GitHub URLs). "
         "  Optional: tags (list, one per path), branch (GitHub only), "
         "include_patterns / exclude_patterns (GitHub only).\n\n"
         "list_documents_tool — list all indexed documents and chunk counts.\n"

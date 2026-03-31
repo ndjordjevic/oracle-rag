@@ -55,7 +55,7 @@ def test_make_verbose_emitter_returns_collector_backed_emitter() -> None:
         "pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True
     ):
         emitter = mcp_logging.make_verbose_emitter(
-            MagicMock(), scope="tool", name="add_url_tool"
+            MagicMock(), scope="tool", name="add_document_tool"
         )
         assert hasattr(emitter, "_collector")
         collector = emitter._collector  # type: ignore[attr-defined]
@@ -75,7 +75,7 @@ def test_make_verbose_emitter_from_worker_thread() -> None:
             "pinrag.mcp.logging_utils.config.get_verbose_logging", return_value=True
         ):
             emitter = mcp_logging.make_verbose_emitter(
-                ctx, scope="tool", name="add_url_tool"
+                ctx, scope="tool", name="add_document_tool"
             )
             await asyncio.to_thread(emitter, "phase=a", "info")
             await asyncio.to_thread(emitter, "phase=b", "info")
@@ -87,8 +87,8 @@ def test_make_verbose_emitter_from_worker_thread() -> None:
     asyncio.run(_run())
 
 
-def test_add_url_tool_includes_verbose_log_when_enabled() -> None:
-    """Tool responses include _verbose_log when verbose logging is enabled."""
+def test_add_document_tool_includes_verbose_log_when_enabled_for_url() -> None:
+    """add_document_tool responses include _verbose_log when verbose logging is enabled."""
 
     def _fake_add_files(*args, **kwargs) -> dict:
         verbose_emitter = kwargs.get("verbose_emitter")
@@ -104,19 +104,21 @@ def test_add_url_tool_includes_verbose_log_when_enabled() -> None:
                     "pinrag.mcp.server.config.get_collection_name", return_value="pinrag"
                 ):
                     out = asyncio.run(
-                        mcp_server.add_url_tool(paths=["https://youtu.be/demo"])
+                        mcp_server.add_document_tool(
+                            paths=["https://youtu.be/demo"]
+                        )
                     )
 
     assert "_verbose_log" in out
     assert "_server_version" in out
     assert out["_verbose_log"] == [
-        "tool=add_url_tool phase=one",
-        "tool=add_url_tool phase=two",
+        "tool=add_document_tool phase=one",
+        "tool=add_document_tool phase=two",
     ]
 
 
-def test_add_url_tool_omits_verbose_log_when_disabled() -> None:
-    """Tool responses do not include _verbose_log when verbose logging is disabled."""
+def test_add_document_tool_omits_verbose_log_when_disabled_for_url() -> None:
+    """add_document_tool omits _verbose_log when verbose logging is disabled."""
 
     def _fake_add_files(*args, **kwargs) -> dict:
         verbose_emitter = kwargs.get("verbose_emitter")
@@ -131,15 +133,17 @@ def test_add_url_tool_omits_verbose_log_when_disabled() -> None:
                     "pinrag.mcp.server.config.get_collection_name", return_value="pinrag"
                 ):
                     out = asyncio.run(
-                        mcp_server.add_url_tool(paths=["https://youtu.be/demo"])
+                        mcp_server.add_document_tool(
+                            paths=["https://youtu.be/demo"]
+                        )
                     )
 
     assert "_server_version" in out
     assert "_verbose_log" not in out
 
 
-def test_add_url_tool_mirrors_verbose_to_output_on_error() -> None:
-    """Verbose lines are mirrored to stderr even when the tool raises."""
+def test_add_document_tool_mirrors_verbose_to_output_on_error_for_url() -> None:
+    """Verbose lines are mirrored to stderr when add_document_tool raises."""
 
     def _fake_add_files(*args, **kwargs) -> dict:
         verbose_emitter = kwargs.get("verbose_emitter")
@@ -161,13 +165,17 @@ def test_add_url_tool_mirrors_verbose_to_output_on_error() -> None:
                     ):
                         try:
                             asyncio.run(
-                                mcp_server.add_url_tool(paths=["https://youtu.be/demo"])
+                                mcp_server.add_document_tool(
+                                    paths=["https://youtu.be/demo"]
+                                )
                             )
                             assert False, "expected RuntimeError"
                         except RuntimeError as exc:
                             assert str(exc) == "boom"
 
-    mirror_mock.assert_called_once_with(["tool=add_url_tool phase=before_error"])
+    mirror_mock.assert_called_once_with(
+        ["tool=add_document_tool phase=before_error"]
+    )
 
 
 def test_add_files_emits_verbose_phase_events() -> None:

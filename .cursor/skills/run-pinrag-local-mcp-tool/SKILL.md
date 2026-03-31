@@ -12,7 +12,7 @@ description: >-
 
 ## Non-negotiable
 
-- **Use `call_mcp_tool`** with PinRAG’s MCP tools: `add_document_tool`, `add_url_tool`, `query_tool`, `list_documents_tool`, `remove_document_tool`.
+- **Use `call_mcp_tool`** with PinRAG’s MCP tools: `add_document_tool`, `query_tool`, `list_documents_tool`, `remove_document_tool`.
 - **Do not** implement indexing or querying with Python (`python -c`, ad-hoc scripts, LangChain/Chroma calls, or `pinrag`/`uv run` in the terminal) unless the user **explicitly** asks for scripts, debugging, or automation outside the editor MCP.
 - **Do not** skip MCP because “it’s faster to script”—the user’s editor and `PINRAG_PERSIST_DIR` are wired through the MCP server process.
 
@@ -47,7 +47,6 @@ Examples:
 | Tool | When |
 |------|------|
 | `add_document_tool` | Index local paths (PDF, dirs, Discord export), or pass URLs (YouTube, GitHub). **`paths`**: list of strings (use **absolute paths** for files). Optional **`tags`**: one per path. |
-| `add_url_tool` | URLs only (YouTube / GitHub). |
 | `query_tool` | Questions over the index. Optional: `tag`, `document_id`, `page_min`/`page_max`, `document_type`, `file_path`, `response_style`. |
 | `list_documents_tool` | What’s indexed; optional `tag`. |
 | `remove_document_tool` | Remove by `document_id` from listing. |
