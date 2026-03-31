@@ -8,6 +8,7 @@ import pytest
 from youtube_transcript_api.proxies import GenericProxyConfig
 
 from pinrag.config import (
+    DEFAULT_LLM_MODEL_CEREBRAS,
     DEFAULT_LLM_MODEL_OPENROUTER,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_MAX_INDEX_FILE_BYTES,
@@ -16,6 +17,7 @@ from pinrag.config import (
     get_chunk_overlap,
     get_chunk_size,
     get_collection_name,
+    get_cerebras_base_url,
     get_llm_model,
     get_llm_model_fallbacks,
     get_llm_provider,
@@ -45,6 +47,27 @@ def test_get_llm_model_default_openrouter_free(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.delenv("PINRAG_LLM_PROVIDER", raising=False)
     monkeypatch.delenv("PINRAG_LLM_MODEL", raising=False)
     assert get_llm_model() == DEFAULT_LLM_MODEL_OPENROUTER == "openrouter/free"
+
+
+def test_get_llm_provider_cerebras(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "cerebras")
+    assert get_llm_provider() == "cerebras"
+
+
+def test_get_llm_model_default_cerebras(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "cerebras")
+    monkeypatch.delenv("PINRAG_LLM_MODEL", raising=False)
+    assert get_llm_model() == DEFAULT_LLM_MODEL_CEREBRAS == "llama3.1-8b"
+
+
+def test_get_cerebras_base_url_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PINRAG_CEREBRAS_BASE_URL", raising=False)
+    assert get_cerebras_base_url() == "https://api.cerebras.ai/v1"
+
+
+def test_get_cerebras_base_url_override_strips_slash(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_CEREBRAS_BASE_URL", "https://example.api/v1/")
+    assert get_cerebras_base_url() == "https://example.api/v1"
 
 
 def test_openrouter_app_attribution_defaults(monkeypatch: pytest.MonkeyPatch) -> None:

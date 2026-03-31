@@ -19,6 +19,13 @@ DEFAULT_LLM_PROVIDER = "openrouter"
 DEFAULT_LLM_MODEL_OPENROUTER = "openrouter/free"
 DEFAULT_LLM_MODEL_OPENAI = "gpt-4o-mini"
 DEFAULT_LLM_MODEL_ANTHROPIC = "claude-haiku-4-5"
+# Default Cerebras model id (see https://inference-docs.cerebras.ai/models/overview).
+# Prefer llama3.1-8b over gpt-oss-120b for typical RAG: production tier, fast, and less
+# constrained on the free tier than gpt-oss-120b / zai-glm-4.7 per Cerebras docs.
+DEFAULT_LLM_MODEL_CEREBRAS = "llama3.1-8b"
+
+# Cerebras Inference OpenAI-compatible API (overridable via PINRAG_CEREBRAS_BASE_URL).
+DEFAULT_CEREBRAS_BASE_URL = "https://api.cerebras.ai/v1"
 
 # OpenRouter HTTP-Referer / X-Title attribution (overridable via OPENROUTER_APP_* env).
 DEFAULT_OPENROUTER_APP_URL = "https://github.com/ndjordjevic/pinrag"
@@ -78,12 +85,20 @@ DEFAULT_PLAINTEXT_MAX_FILE_BYTES = DEFAULT_MAX_INDEX_FILE_BYTES
 
 # --- LLM ---
 def get_llm_provider() -> str:
-    """Return LLM provider from PINRAG_LLM_PROVIDER env (openai | anthropic | openrouter)."""
+    """Return LLM provider from PINRAG_LLM_PROVIDER env (openai | anthropic | openrouter | cerebras)."""
     val = os.environ.get("PINRAG_LLM_PROVIDER", DEFAULT_LLM_PROVIDER)
     p = (val or "").strip().lower()
-    if p in ("openai", "anthropic", "openrouter"):
+    if p in ("openai", "anthropic", "openrouter", "cerebras"):
         return p
     return DEFAULT_LLM_PROVIDER
+
+
+def get_cerebras_base_url() -> str:
+    """Return Cerebras API base URL for OpenAI-compatible clients (trailing slash stripped)."""
+    val = os.environ.get("PINRAG_CEREBRAS_BASE_URL")
+    if val is not None and str(val).strip():
+        return str(val).strip().rstrip("/")
+    return DEFAULT_CEREBRAS_BASE_URL.rstrip("/")
 
 
 def get_llm_model() -> str:
@@ -96,6 +111,8 @@ def get_llm_model() -> str:
         return DEFAULT_LLM_MODEL_ANTHROPIC
     if provider == "openrouter":
         return DEFAULT_LLM_MODEL_OPENROUTER
+    if provider == "cerebras":
+        return DEFAULT_LLM_MODEL_CEREBRAS
     return DEFAULT_LLM_MODEL_OPENAI
 
 

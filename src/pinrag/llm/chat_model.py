@@ -1,4 +1,4 @@
-"""Chat model client for RAG (OpenAI / Anthropic / OpenRouter)."""
+"""Chat model client for RAG (OpenAI / Anthropic / OpenRouter / Cerebras)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from pydantic import SecretStr
 
 from pinrag.config import (
     DEFAULT_LLM_MODEL_OPENAI,
+    get_cerebras_base_url,
     get_llm_model,
     get_llm_model_fallbacks,
     get_llm_provider,
@@ -30,11 +31,13 @@ def get_chat_model(
     api_key: str | None = None,
     temperature: float = 0,
 ) -> BaseChatModel:
-    """Return a chat model based on PINRAG_LLM_PROVIDER (openai | anthropic | openrouter).
+    """Return a chat model based on PINRAG_LLM_PROVIDER (openai | anthropic | openrouter | cerebras).
 
     For anthropic, requires ANTHROPIC_API_KEY and langchain-anthropic.
     For openai, requires OPENAI_API_KEY unless ``api_key`` is passed.
     For openrouter, requires OPENROUTER_API_KEY and langchain-openrouter.
+    For cerebras, requires CEREBRAS_API_KEY unless ``api_key`` is passed; uses OpenAI-compatible
+    endpoint from :func:`~pinrag.config.get_cerebras_base_url`.
 
     OpenRouter routing: optional ``PINRAG_OPENROUTER_MODEL_FALLBACKS``, ``PINRAG_OPENROUTER_SORT``,
     and ``PINRAG_OPENROUTER_PROVIDER_ORDER`` (``provider.order``; e.g. ``Cerebras`` for
@@ -88,6 +91,19 @@ def get_chat_model(
         return ChatAnthropic(  # type: ignore[call-arg]
             model_name=model_name,
             api_key=SecretStr(key),
+            temperature=temperature,
+        )
+
+    if provider == "cerebras":
+        key_cb = api_key if api_key is not None else os.environ.get("CEREBRAS_API_KEY")
+        if not key_cb:
+            raise ValueError(
+                "CEREBRAS_API_KEY is required for Cerebras Inference chat models."
+            )
+        return ChatOpenAI(
+            model=model_name,
+            api_key=SecretStr(key_cb),
+            base_url=get_cerebras_base_url(),
             temperature=temperature,
         )
 

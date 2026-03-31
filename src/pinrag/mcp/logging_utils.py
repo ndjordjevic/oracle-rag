@@ -94,6 +94,8 @@ def _user_friendly_api_error(exc: Exception) -> str | None:
     ):
         if "anthropic" in msg or "claude" in msg:
             return "Anthropic API key missing or invalid. Set ANTHROPIC_API_KEY in ~/.pinrag/.env (or your config)."
+        if (os.environ.get("PINRAG_LLM_PROVIDER") or "").strip().lower() == "cerebras":
+            return "Cerebras API key missing or invalid. Set CEREBRAS_API_KEY in ~/.pinrag/.env (or your config)."
         return "OpenAI API key not found or invalid. Set OPENAI_API_KEY in ~/.pinrag/.env (or your config)."
     if "rate" in msg and "limit" in msg:
         return "API rate limit exceeded. Please try again in a moment."

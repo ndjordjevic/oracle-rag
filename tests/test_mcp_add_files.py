@@ -182,6 +182,7 @@ def test_add_file_youtube_detection_and_success(tmp_path: Path) -> None:
         collection_name="test_coll",
         embedding=mock_index.call_args[1]["embedding"],
         tag=None,
+        verbose_emitter=None,
     )
 
 
@@ -272,6 +273,7 @@ def test_add_file_youtube_playlist_detection_and_success(tmp_path: Path) -> None
         collection_name="test_coll",
         embedding=mock_index.call_args[1]["embedding"],
         tag=None,
+        verbose_emitter=None,
     )
 
 

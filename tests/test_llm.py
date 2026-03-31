@@ -12,6 +12,8 @@ from langchain_openai import ChatOpenAI
 from langchain_openrouter import ChatOpenRouter
 
 from pinrag.config import (
+    DEFAULT_CEREBRAS_BASE_URL,
+    DEFAULT_LLM_MODEL_CEREBRAS,
     DEFAULT_LLM_MODEL_OPENROUTER,
     DEFAULT_OPENROUTER_APP_TITLE,
     DEFAULT_OPENROUTER_APP_URL,
@@ -51,6 +53,33 @@ def test_get_chat_model_returns_anthropic_when_configured(
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-key")
     llm = get_chat_model()
     assert isinstance(llm, ChatAnthropic)
+
+
+def test_cerebras_missing_api_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "cerebras")
+    monkeypatch.delenv("CEREBRAS_API_KEY", raising=False)
+    with pytest.raises(ValueError, match="CEREBRAS_API_KEY"):
+        get_chat_model()
+
+
+def test_cerebras_explicit_api_key_skips_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "cerebras")
+    monkeypatch.delenv("CEREBRAS_API_KEY", raising=False)
+    llm = get_chat_model(api_key="cb-from-arg")
+    assert isinstance(llm, ChatOpenAI)
+
+
+def test_get_chat_model_returns_cerebras_chat_openai(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """get_chat_model returns ChatOpenAI with Cerebras base URL when provider=cerebras."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "cerebras")
+    monkeypatch.setenv("CEREBRAS_API_KEY", "cb-test-key")
+    monkeypatch.delenv("PINRAG_LLM_MODEL", raising=False)
+    llm = get_chat_model()
+    assert isinstance(llm, ChatOpenAI)
+    assert llm.model_name == DEFAULT_LLM_MODEL_CEREBRAS
+    assert llm.openai_api_base == DEFAULT_CEREBRAS_BASE_URL.rstrip("/")
 
 
 def test_openrouter_missing_api_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:

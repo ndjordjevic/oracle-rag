@@ -31,7 +31,7 @@ Screen recording: indexing a PDF and using PinRAG from VS Code.
 - **MCP tools** — `add_document_tool` (files, dirs, or URLs), `add_url_tool` (YouTube/GitHub URLs only), `query_tool`, `list_documents_tool`, `remove_document_tool`
 - **MCP resources** — `pinrag://documents` (indexed documents) and `pinrag://server-config` (env vars and config); click in Cursor’s MCP panel to view
 - **MCP prompt** — `use_pinrag` (parameter: request) for querying, indexing, listing, or removing documents
-- **Configurable LLM** — OpenRouter (default, free `openrouter/free` router), OpenAI, or Anthropic; set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
+- **Configurable LLM** — OpenRouter (default, free `openrouter/free` router), OpenAI, Anthropic, or [Cerebras Inference](https://inference-docs.cerebras.ai/introduction) (OpenAI-compatible API); set via `PINRAG_LLM_PROVIDER` and `PINRAG_LLM_MODEL` in MCP `env` or your shell
 - **Local embeddings** — Nomic (`PINRAG_EMBEDDING_MODEL`, default `nomic-embed-text-v1.5`); no API key; first run downloads model weights (~270 MB, cached)
 - **Retrieval & chunking options** — Structure-aware chunking (on by default); optional FlashRank re-ranking, multi-query expansion, and parent-child chunks for PDFs (see Configuration)
 - **Observability** — MCP tool notifications (`ctx.log`) plus optional [LangSmith](https://smith.langchain.com) tracing
@@ -104,6 +104,7 @@ if any are missing. Set keys in your MCP `env` block as in the examples below.
 - **Default setup** (local embeddings + OpenRouter chat): set `OPENROUTER_API_KEY` for the LLM (get a key at [openrouter.ai](https://openrouter.ai/)).
 - **OpenAI instead:** set `PINRAG_LLM_PROVIDER=openai` and `OPENAI_API_KEY`.
 - **Anthropic for queries:** set `PINRAG_LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (no OpenRouter/OpenAI key needed for chat unless you use them for vision or evaluators).
+- **Cerebras Inference for queries:** set `PINRAG_LLM_PROVIDER=cerebras`, `CEREBRAS_API_KEY`, and optionally `PINRAG_LLM_MODEL` (default `llama3.1-8b`; other [supported models](https://inference-docs.cerebras.ai/models/overview) include `gpt-oss-120b`, `qwen-3-235b-a22b-instruct-2507`, `zai-glm-4.7`). See [Cerebras inference docs](https://inference-docs.cerebras.ai/introduction). Optional `PINRAG_CEREBRAS_BASE_URL` overrides the API base (default `https://api.cerebras.ai/v1`, e.g. dedicated endpoints).
 - **Optional re-ranking:** set `PINRAG_USE_RERANK=true` and install `pinrag[rerank]` (no API key required).
 
 A longer commented reference for optional `PINRAG_*` variables is in [`notes/env-vars.example.md`](notes/env-vars.example.md).
@@ -233,8 +234,8 @@ Environment variables:
 |----------|---------|-------------|
 | **LLM** | | |
 | **Provider & model** | | |
-| `PINRAG_LLM_PROVIDER` | `openrouter` | `openrouter`, `openai`, or `anthropic` |
-| `PINRAG_LLM_MODEL` | *(provider default)* | When unset: OpenRouter `openrouter/free`, OpenAI `gpt-4o-mini`, Anthropic `claude-haiku-4-5`. Override with any model id (e.g. OpenRouter `anthropic/claude-sonnet-4-6`). |
+| `PINRAG_LLM_PROVIDER` | `openrouter` | `openrouter`, `openai`, `anthropic`, or `cerebras` |
+| `PINRAG_LLM_MODEL` | *(provider default)* | When unset: OpenRouter `openrouter/free`, OpenAI `gpt-4o-mini`, Anthropic `claude-haiku-4-5`, Cerebras `llama3.1-8b`. Override with any model id (e.g. OpenRouter `anthropic/claude-sonnet-4-6`, Cerebras `gpt-oss-120b`). |
 | **OpenRouter** | | |
 | `PINRAG_OPENROUTER_MODEL_FALLBACKS` | *(unset)* | Comma-separated fallback model slugs sent as OpenRouter’s `models` list. The gateway tries the next slug when the primary (`PINRAG_LLM_MODEL`) fails (rate limits, downtime, etc.). Use extra free models here to stay zero-cost. Legacy alias: `PINRAG_LLM_MODEL_FALLBACKS`. |
 | `PINRAG_OPENROUTER_SORT` | *(unset)* | Optional `provider.sort` — `price`, `throughput`, or `latency`. When unset, OpenRouter uses its default provider selection. Prefer leaving this unset if you set `PINRAG_OPENROUTER_PROVIDER_ORDER` to pin a specific backend (avoids conflicting routing signals). |
@@ -245,6 +246,8 @@ Environment variables:
 | `OPENROUTER_API_KEY` | *(required for OpenRouter LLM)* | Required when `PINRAG_LLM_PROVIDER=openrouter` or `PINRAG_EVALUATOR_PROVIDER=openrouter`. |
 | `OPENAI_API_KEY` | *(required for OpenAI LLM)* | Required when using OpenAI for the LLM (`PINRAG_LLM_PROVIDER=openai`). |
 | `OPENAI_BASE_URL` | *(optional)* | Override OpenAI API base URL (e.g. `https://openrouter.ai/api/v1` with `OPENAI_API_KEY` set to your OpenRouter key for vision or other OpenAI-compatible calls). |
+| `CEREBRAS_API_KEY` | *(required for Cerebras LLM)* | Required when `PINRAG_LLM_PROVIDER=cerebras`. Get a key from the [Cerebras cloud console](https://cloud.cerebras.ai). |
+| `PINRAG_CEREBRAS_BASE_URL` | `https://api.cerebras.ai/v1` | Override the OpenAI-compatible base URL for Cerebras (e.g. dedicated inference endpoints). |
 | `ANTHROPIC_API_KEY` | *(required for Anthropic)* | Required when `PINRAG_LLM_PROVIDER=anthropic` or `PINRAG_EVALUATOR_PROVIDER=anthropic`. |
 | **Embeddings** | | |
 | `PINRAG_EMBEDDING_MODEL` | `nomic-embed-text-v1.5` | Local Nomic model id (via `langchain-nomic`). First run downloads weights (~270 MB, cached). No API key. |

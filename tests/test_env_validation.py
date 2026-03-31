@@ -92,6 +92,26 @@ def test_require_llm_api_key_openrouter_set(monkeypatch: pytest.MonkeyPatch) -> 
     require_llm_api_key()
 
 
+def test_require_llm_api_key_cerebras_missing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """require_llm_api_key exits when provider=cerebras and CEREBRAS_API_KEY not set."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "cerebras")
+    monkeypatch.delenv("CEREBRAS_API_KEY", raising=False)
+    with pytest.raises(SystemExit) as exc_info:
+        require_llm_api_key()
+    assert exc_info.value.code == 1
+    err = capsys.readouterr().err
+    assert "CEREBRAS_API_KEY" in err
+
+
+def test_require_llm_api_key_cerebras_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    """require_llm_api_key does not exit when provider=cerebras and CEREBRAS_API_KEY set."""
+    monkeypatch.setenv("PINRAG_LLM_PROVIDER", "cerebras")
+    monkeypatch.setenv("CEREBRAS_API_KEY", "cb-test")
+    require_llm_api_key()
+
+
 def test_require_api_keys_for_server_defaults_exits_without_openrouter_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

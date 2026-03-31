@@ -17,6 +17,7 @@ _LLM_KEYS = {
     "anthropic": ("ANTHROPIC_API_KEY", "PINRAG_LLM_PROVIDER"),
     "openai": ("OPENAI_API_KEY", "PINRAG_LLM_PROVIDER"),
     "openrouter": ("OPENROUTER_API_KEY", "PINRAG_LLM_PROVIDER"),
+    "cerebras": ("CEREBRAS_API_KEY", "PINRAG_LLM_PROVIDER"),
 }
 
 
@@ -48,7 +49,9 @@ def _require_key(
 def require_llm_api_key() -> None:
     """Verify the LLM provider's API key is set. Exit with error if missing."""
     provider = get_llm_provider()
-    _require_key(provider, _LLM_KEYS, "anthropic, openai, or openrouter")
+    _require_key(
+        provider, _LLM_KEYS, "anthropic, cerebras, openai, or openrouter"
+    )
 
 
 def require_api_keys_for_server() -> None:
