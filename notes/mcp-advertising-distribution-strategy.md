@@ -43,7 +43,7 @@ PinRAG reaches users through two mechanisms:
 | 9 | [Goose Agent Skills PR](https://github.com/block/agent-skills/pull/18) | Plugin | **PR pending** ([#18](https://github.com/block/agent-skills/pull/18)) | Low |
 | 10 | [mcp.so](https://mcp.so) | MCP | **Submitted** ([web form](https://mcp.so/submit); pending listing) | Low |
 | 11 | [MCPRepository](https://mcprepository.com/ndjordjevic/pinrag) | MCP | **Done** ([PinRAG](https://mcprepository.com/ndjordjevic/pinrag); [`mcp-index` CLI](https://github.com/mcprepository/mcp-index)) | Low |
-| 12 | [awesome-mcp-servers PR](https://github.com/punkpeye/awesome-mcp-servers) | Visibility | **PR open** — [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) (pending merge) | Low |
+| 12 | [Awesome MCP Servers](https://mcpservers.org/) | Visibility | **Submitted** — [mcpservers.org/submit](https://mcpservers.org/submit) (web form; Mar 2026); pending approval / live listing | Low |
 | 13 | [Claude Code marketplace](https://claude.ai/settings/plugins/submit) | Plugin | **Submitted** — [platform.claude.com/plugins/submit](https://platform.claude.com/plugins/submit) (Mar 2026); pending review | Low |
 | 14 | [MCP Market](https://mcpmarket.com/) | MCP | **Done** — [PinRAG on MCP Market](https://mcpmarket.com/server/pinrag) (submitted [mcpmarket.com/submit](https://mcpmarket.com/submit) with `https://github.com/ndjordjevic/pinrag`, Mar 2026). See §2.14. | Low |
 | 15 | [MCPCentral](https://mcpcentral.io/) | MCP | **Done** — [registry search `pinrag`](https://mcpcentral.io/registry?q=pinrag) returns PinRAG (`github.com/ndjordjevic/pinrag`; Mar 2026 browser verification). Updates via `mcp-publisher` + `-registry https://registry.mcpcentral.io` ([submit-server](https://mcpcentral.io/submit-server)). See §2.15. | Low |
@@ -62,7 +62,7 @@ PinRAG reaches users through two mechanisms:
 
 | Tool | Live channels | Planned channels |
 |------|--------------|-----------------|
-| **Cursor** | **MCP Registry**, **mcp-marketplace.io**, **cursor.store**, **Cursor Directory**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **one-click README**, **manual config**, **pinrag-plugin** | mcp.so (submitted; pending listing — §1.1), awesome-mcp-servers ([PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) pending), Cursor Marketplace (publisher application submitted Mar 2026 — §1.1 row 16; pending review), [cursormcp.dev](https://cursormcp.dev/) (no submit path known) |
+| **Cursor** | **MCP Registry**, **mcp-marketplace.io**, **cursor.store**, **Cursor Directory**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **one-click README**, **manual config**, **pinrag-plugin** | mcp.so (submitted; pending listing — §1.1), [Awesome MCP Servers](https://mcpservers.org/) (submitted via [submit](https://mcpservers.org/submit); pending listing — §1.1 row 12), Cursor Marketplace (publisher application submitted Mar 2026 — §1.1 row 16; pending review), [cursormcp.dev](https://cursormcp.dev/) (no submit path known) |
 | **VS Code Copilot** | **MCP Registry**, **mcp-marketplace.io**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **one-click README**, **manual config**, **pinrag-plugin** | mcp.so, VS Code Extension, VS Code Copilot marketplace |
 | **Claude Code** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config**, **pinrag-plugin** | Claude Code marketplace (submitted Mar 2026; pending review — §1.1 row 13), mcp.so |
 | **JetBrains + Copilot** | **MCP Registry**, **MCPRepository** (listed), **Glama**, **MCP Market** ([listing](https://mcpmarket.com/server/pinrag)), **MCPCentral** ([registry](https://mcpcentral.io/registry?q=pinrag)), **manual config** | mcp.so |
@@ -190,19 +190,15 @@ npx mcp-index https://github.com/ndjordjevic/pinrag
 
 This calls MCPRepository’s index API (`POST https://mcprepository.com/api/index`). **Listed** Mar 2026 — [PinRAG on MCPRepository](https://mcprepository.com/ndjordjevic/pinrag).
 
-#### 12. awesome-mcp-servers
+#### 12. Awesome MCP Servers (mcpservers.org)
 
-[punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) (~84k stars). **Mechanism unchanged:** fork → branch → edit root [`README.md`](https://github.com/punkpeye/awesome-mcp-servers/blob/main/README.md) → open PR — see upstream [CONTRIBUTING.md](https://github.com/punkpeye/awesome-mcp-servers/blob/main/CONTRIBUTING.md).
+**URL:** [mcpservers.org](https://mcpservers.org/) — public directory (“Awesome MCP Servers”). **Submit:** [mcpservers.org/submit](https://mcpservers.org/submit) — web form (server name, one-line description, GitHub or docs link, category, contact email). Listings are free; the site also offers an optional paid “premium submit” for faster review.
 
-**Status (Mar 2026):** [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) is **open** (adds PinRAG under **🧠 Knowledge & Memory** with Glama score badge). **Pending upstream merge** — after merge, spot-check the list on `main` and check off **§4 Distribution** in this doc.
+**No GitHub PR required** for this directory (unlike the legacy flow on [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers), which was historically fork → edit root `README.md` → PR).
 
-One line under **🧠 Knowledge & Memory** (local-first RAG; fits alongside similar entries). **Alphabetical order by `owner/repo`** — `ndjordjevic/pinrag` belongs **after** `n24q02m/mnemo-mcp` and **before** `nicholasglazer/gnosis-mcp`. Use the **[Glama score badge](https://glama.ai/mcp/servers/ndjordjevic/pinrag/badges/score.svg)** with paths **`ndjordjevic/pinrag`** (no `@` prefix — `@` breaks the SVG URL).
+**Status (Mar 2026):** PinRAG **submitted** via the form (repo `https://github.com/ndjordjevic/pinrag`, category **Development**, confirmation on submit). **Pending approval** — site copy: email when the submission is approved. After PinRAG appears on [mcpservers.org](https://mcpservers.org/), spot-check search / **Latest MCPs** and check off **§4 Distribution** in this doc.
 
-```
-- [ndjordjevic/pinrag](https://github.com/ndjordjevic/pinrag) [![ndjordjevic/pinrag MCP server](https://glama.ai/mcp/servers/ndjordjevic/pinrag/badges/score.svg)](https://glama.ai/mcp/servers/ndjordjevic/pinrag) 🐍 🏠 - RAG for PDFs, YouTube, GitHub repos, Discord exports; index documents and query with citations.
-```
-
-Optional: [CONTRIBUTING.md](https://github.com/punkpeye/awesome-mcp-servers/blob/main/CONTRIBUTING.md) says automated-agent PRs can append `🤖🤖🤖` to the PR title for fast-track merge. Large PR backlog — expect delay.
+**Note:** An older open PR against the GitHub awesome list ([PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834)) is **obsolete** for this channel if the site is the canonical intake; close or ignore as appropriate.
 
 #### 13. Claude Code Marketplace
 
@@ -327,7 +323,7 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 
 ### Distribution
 
-*Still in progress* until **mcp.so** lists PinRAG and [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) merges (plus any other open items below).
+*Still in progress* until **mcp.so** lists PinRAG, **Awesome MCP Servers** ([mcpservers.org](https://mcpservers.org/)) lists PinRAG after submit approval, and any other open items below resolve.
 
 - [x] **Official MCP Registry** — `io.github.ndjordjevic/pinrag`; [`server.json`](../server.json)
 - [x] **mcp-marketplace.io** — listed (Mar 2026)
@@ -338,7 +334,7 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 - [x] **MCP Market** (mcpmarket.com) — [listed](https://mcpmarket.com/server/pinrag) (Mar 2026); [submit](https://mcpmarket.com/submit) — §1.1 row 14 / §2.14
 - [x] **MCPCentral** — [listed](https://mcpcentral.io/registry?q=pinrag) (Mar 2026; browser verified); updates via [submit-server](https://mcpcentral.io/submit-server) / `mcp-publisher` — §1.1 row 15 / §2.15
 - [x] **Glama** — [listed](https://glama.ai/mcp/servers/ndjordjevic/pinrag) (Mar 2026); [`glama.json`](../glama.json) + [`Dockerfile`](../Dockerfile) in repo — §1.1 row 17 / §2.17
-- [ ] **awesome-mcp-servers** — [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) **open** (pending merge); after merge, confirm line on `main` and check this off
+- [ ] **Awesome MCP Servers** ([mcpservers.org](https://mcpservers.org/)) — submitted Mar 2026 via [mcpservers.org/submit](https://mcpservers.org/submit); pending approval / live listing (§1.1 row 12 / §2.12)
 - [x] **[pinrag-plugin](https://github.com/ndjordjevic/pinrag-plugin)** published
 - [ ] **Goose Agent Skills** — [PR #18](https://github.com/block/agent-skills/pull/18) (pending review)
 - [ ] **Cursor Marketplace** (official plugin) — [submitted](https://cursor.com/marketplace/publish) (Mar 2026); publisher application pending review — §1.1 row 16 / §2.16
@@ -372,7 +368,7 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 4. **Video assets are high-ROI.** RepoClip promo plus a **README screen recording** ([`docs/pinrag-demo.mp4`](../docs/pinrag-demo.mp4)) give both story and proof-of-flow for developers skimming the repo.
 5. **Plugin bundle targets a subset of tools.** Cursor, Claude Code, VS Code Copilot, Amp, and Goose; everyone else uses PyPI MCP-only.
 6. **Smithery is blocked on HTTP transport.** PinRAG is stdio-only; Smithery listing requires PinRAG Cloud or an added HTTP layer.
-7. **awesome-mcp-servers has a massive PR backlog** — [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) for PinRAG is open (Mar 2026); expect a wait for merge.
+7. **Awesome MCP Servers** is now **[mcpservers.org](https://mcpservers.org/)** with a **web submit** path ([submit](https://mcpservers.org/submit)), not the old GitHub README PR workflow; PinRAG was submitted Mar 2026 pending approval.
 8. **VS Code Extension is nice-to-have, not urgent.** One-click URL + MCP Registry cover most of the discoverability value.
 9. **mcp.so ≠ MCPRepository.** Two separate directories and submission paths; completing one does not list you on the other. `npx mcp-index` only targets MCPRepository.
 
@@ -409,7 +405,7 @@ PinRAG was conceived as an **MCP RAG** where you **index your own sources** — 
 - [mcp-marketplace.io/submit](https://mcp-marketplace.io/submit) — security-scanned marketplace ([docs](https://mcp-marketplace.io/docs), [FAQ](https://mcp-marketplace.io/faq))
 - [mcp.so/submit](https://mcp.so/submit) — large public directory (~17,000+ servers); independent of MCPRepository
 - [MCPRepository](https://mcprepository.com) — [`mcp-index` CLI](https://github.com/mcprepository/mcp-index) (`POST /api/index`); not mcp.so
-- [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) — 83.7k stars; PinRAG: [PR #3834](https://github.com/punkpeye/awesome-mcp-servers/pull/3834) (open)
+- [Awesome MCP Servers](https://mcpservers.org/) — directory + [submit](https://mcpservers.org/submit) (web form; PinRAG submitted Mar 2026, pending listing). Legacy GitHub list: [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 - [Glama — PinRAG](https://glama.ai/mcp/servers/ndjordjevic/pinrag) — directory + [score](https://glama.ai/mcp/servers/ndjordjevic/pinrag/score); badge SVGs under `/badges/score.svg` and `/badges/card.svg` (use `ndjordjevic/pinrag`, not `@ndjordjevic/...`) — §2.17 / §1.1 row 17
 - [PinRAG on MCP Market](https://mcpmarket.com/server/pinrag) — [submit form](https://mcpmarket.com/submit); ~21,700+ servers
 - [PinRAG on MCPCentral](https://mcpcentral.io/registry?q=pinrag) — registry search; [submit-server](https://mcpcentral.io/submit-server) — `mcp-publisher login … --registry https://registry.mcpcentral.io` then `publish` (separate from official MCP Registry)
